@@ -1,0 +1,121 @@
+\documentclass{mprop}
+\usepackage{graphicx}
+% other potentially useful packages
+%\uspackage{amssymb,amsmath}
+%\usepackage{url}
+%\usepackage{fancyvrb}
+%\usepackage[final]{pdfpages}
+\begin{document}
+
+\title{Variational Inference for Inverse Reinforcement Learning with Gaussian
+  Processes}
+\author{Paulius Dilkas}
+\date{Date of submission placed here} % TODO
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}\label{intro}
+briefly explain the context of the project problem
+\subsection{A subsection}
+Please note your proposal need not follow the included section headings - this is only a suggested structure. Also add subsections etc as required
+\section{Statement of Problem}
+clearly state the problem to be addressed in your forthcoming project. Explain why it would be worthwhile to solve this problem.
+\section{Background Survey}
+present an overview of relevant previous work including articles, books, and existing software products. Critically evaluate the strengths and weaknesses of the previous work.
+\section{Proposed Approach}
+state how you propose to solve the software development problem. Show that your proposed approach is feasible, but identify any risks.
+\section{Work Plan}
+show how you plan to organize your work, identifying intermediate deliverables and dates.
+
+\section{Notes on papers (to be removed)}
+
+\subsection{Miscellaneous}
+
+(Directed) similarity between MDPs using restricted Boltzmann machines
+\cite{9401f4eeb9a64c77afb3d087261d1080}
+
+Chapter 6 on distance measures \cite{mccune2002analysis}
+
+The PhD thesis behind maximum causal entropy \cite{Ziebart:2010:MPA:2049078}
+
+\subsection{Gaussian Processes}
+
+Your recommended book \cite{DBLP:books/lib/RasmussenW06}
+
+Simple introduction to GPs for time-series modelling \cite{Roberts2013GaussianPF}
+
+Spectral kernels \cite{pmlr-v28-wilson13}
+
+GPs over graphs instead of vectors (haven't actually read)
+\cite{DBLP:journals/corr/abs-1803-05776}
+
+Another introduction from physics (skimmed through) \cite{introduction_to_gps}
+
+Learning a GP from very little data \cite{DBLP:conf/nips/PlattBSWZ01}
+
+One GP for multiple correlated output variables \cite{DBLP:journals/jcphy/BilionisZKL13}
+
+Kernels for categorical and count data \cite{savitsky2011variable}
+
+\subsection{Interpretability}
+
+Learning latent factors \cite{DBLP:conf/nips/LiSE17}
+
+The behaviour of Reddit users \cite{DBLP:conf/atal/DasL14}
+
+\subsection{Inverse Reinforcement Learning}
+
+One of the first papers on the topic \cite{DBLP:conf/icml/NgR00}
+
+Follow-up on the previous paper \cite{DBLP:conf/icml/PieterN04}
+
+Bayesian setting \cite{DBLP:conf/ijcai/RamachandranA07}
+
+Learning optimal composite features \cite{DBLP:conf/ijcai/ChoiK13}
+
+The main paper \cite{DBLP:conf/nips/LevinePK11}
+
+A different take on IRL with GPs \cite{DBLP:journals/corr/abs-1208-2112}
+
+The paper that introduced maximum entropy into IRL \cite{ziebart2008maximum}
+
+IRL for large state spaces (haven't read) \cite{DBLP:journals/jmlr/BoulariasKP11}
+
+Multiple reward functions \cite{DBLP:conf/nips/ChoiK12}
+
+\subsubsection{Multiple Strategies}
+
+EM clustering \cite{DBLP:conf/icml/BabesMLS11}
+
+Structured priors \cite{DBLP:conf/ewrl/DimitrakakisR11}
+
+There are more, but I haven't gotten to them yet.
+
+\subsection{Variational Inference}
+
+Chapter 10 on approximate inference \cite{DBLP:books/lib/Bishop07}
+
+Part IV on probabilities and inference \cite{MacKay:2002:ITI:971143}
+
+A recent review \cite{blei2017variational}
+
+Normalizing flows \cite{DBLP:conf/icml/RezendeM15}
+
+Linear VI for GPs \cite{DBLP:conf/nips/ChengB17}
+
+Stochastic VI \cite{DBLP:journals/jmlr/HoffmanBWP13}
+
+Structured stochastic VI (haven't read) \cite{DBLP:conf/aistats/HoffmanB15}
+
+Another review of recent advances \cite{DBLP:journals/corr/abs-1711-05597}
+
+Sparse VI for GP \cite{DBLP:journals/jmlr/HensmanDS17}
+
+Sparse GPs \cite{DBLP:journals/jmlr/CandelaR05}
+
+IRL via deep GP \cite{DBLP:conf/uai/JinDAS17}
+
+\bibliographystyle{plain}
+\bibliography{mprop}
+\end{document}
