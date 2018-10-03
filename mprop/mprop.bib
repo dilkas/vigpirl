@@ -39,7 +39,8 @@ booktitle = "Proceedings of the MLIS-2014 collocated with The Twenty-Eighth AAAI
   isbn      = {026218253X},
   timestamp = {Wed, 26 Apr 2017 17:48:08 +0200},
   biburl    = {https://dblp.org/rec/bib/books/lib/RasmussenW06},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The main book on GPs.}
 }
 
 @article{Roberts2013GaussianPF,
@@ -273,7 +274,8 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   year      = {2004},
   timestamp = {Mon, 22 Oct 2007 13:54:01 +0200},
   biburl    = {https://dblp.org/rec/bib/conf/icml/2004},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {Two early algorithms based on max margin optimisation.}
 }
 
 @inproceedings{DBLP:conf/ijcai/RamachandranA07,
@@ -358,13 +360,14 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   url       = {http://papers.nips.cc/book/advances-in-neural-information-processing-systems-24-2011},
   timestamp = {Thu, 11 Dec 2014 17:34:08 +0100},
   biburl    = {https://dblp.org/rec/bib/conf/nips/2011},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {First paper to tackle rewards that cannot be expressed as a linear combination of features.}
 }
 
 @article{DBLP:journals/corr/abs-1208-2112,
   author    = {Qifeng Qiao and
                Peter A. Beling},
-  title     = {Inverse Reinforcement Learning with Gaussian Process},
+  title     = {Inverse Reinforcement Learning with {Gaussian} Process},
   journal   = {CoRR},
   volume    = {abs/1208.2112},
   year      = {2012},
@@ -373,17 +376,19 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   eprint    = {1208.2112},
   timestamp = {Mon, 13 Aug 2018 16:46:45 +0200},
   biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1208-2112},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {An alternative formulation of IRL with GPs.}
 }
 
 @inproceedings{ziebart2008maximum,
   title={Maximum Entropy Inverse Reinforcement Learning.},
-  author={Ziebart, Brian D and Maas, Andrew L and Bagnell, J Andrew and Dey, Anind K},
+  author={Ziebart, Brian D. and Maas, Andrew L. and Bagnell, J. Andrew and Dey, Anind K.},
   booktitle={AAAI},
   volume={8},
   pages={1433--1438},
   year={2008},
-  organization={Chicago, IL, USA}
+  organization={Chicago, IL, USA},
+  note = {An influential idea: maximum entropy IRL.}
 }
 
 @inproceedings{DBLP:journals/jmlr/BoulariasKP11,
@@ -522,7 +527,8 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   isbn      = {9780387310732},
   timestamp = {Wed, 26 Apr 2017 17:48:52 +0200},
   biburl    = {https://dblp.org/rec/bib/books/lib/Bishop07},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+%  note = {Cited for the definition of KL divergence.}
 }
 
 @book{MacKay:2002:ITI:971143,
@@ -536,13 +542,14 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
 
 @article{blei2017variational,
   title={Variational inference: A review for statisticians},
-  author={Blei, David M and Kucukelbir, Alp and McAuliffe, Jon D},
+  author={Blei, David M. and Kucukelbir, Alp and McAuliffe, Jon D.},
   journal={Journal of the American Statistical Association},
   volume={112},
   number={518},
   pages={859--877},
   year={2017},
-  publisher={Taylor \& Francis}
+  publisher={Taylor \& Francis},
+  note = {A recent review of VI.}
 }
 
 @inproceedings{DBLP:conf/icml/RezendeM15,
@@ -725,5 +732,307 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   url       = {http://www.auai.org/uai2017/media/Booklet.pdf},
   timestamp = {Mon, 13 Nov 2017 19:56:58 +0100},
   biburl    = {https://dblp.org/rec/bib/conf/uai/2017},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {IRL with an extra GP layer to represent features and variational approximation.}
+}
+
+@article{DBLP:journals/corr/abs-1806-06877,
+  author    = {Saurabh Arora and
+               Prashant Doshi},
+  title     = {A Survey of Inverse Reinforcement Learning: Challenges, Methods and
+               Progress},
+  journal   = {CoRR},
+  volume    = {abs/1806.06877},
+  year      = {2018},
+  url       = {http://arxiv.org/abs/1806.06877},
+  archivePrefix = {arXiv},
+  eprint    = {1806.06877},
+  timestamp = {Mon, 13 Aug 2018 16:46:37 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1806-06877},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/colt/Russell98,
+  author    = {Stuart J. Russell},
+  title     = {Learning Agents for Uncertain Environments (Extended Abstract)},
+  booktitle = {Proceedings of the Eleventh Annual Conference on Computational Learning
+               Theory, {COLT} 1998, Madison, Wisconsin, USA, July 24-26, 1998.},
+  pages     = {101--103},
+  year      = {1998},
+  crossref  = {DBLP:conf/colt/1998},
+  url       = {http://doi.acm.org/10.1145/279943.279964},
+  doi       = {10.1145/279943.279964},
+  timestamp = {Fri, 23 Dec 2011 14:54:21 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/colt/Russell98},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+}
+@proceedings{DBLP:conf/colt/1998,
+  editor    = {Peter L. Bartlett and
+               Yishay Mansour},
+  title     = {Proceedings of the Eleventh Annual Conference on Computational Learning
+               Theory, {COLT} 1998, Madison, Wisconsin, USA, July 24-26, 1998},
+  publisher = {{ACM}},
+  year      = {1998},
+  url       = {http://dl.acm.org/citation.cfm?id=279943},
+  isbn      = {1-58113-057-0},
+  timestamp = {Mon, 12 Dec 2011 15:03:15 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/colt/1998},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The first paper (talk) that defines inverse reinforcement learning.}
+}
+
+@article{DBLP:journals/ijrr/KretzschmarSSB16,
+  author    = {Henrik Kretzschmar and
+               Markus Spies and
+               Christoph Sprunk and
+               Wolfram Burgard},
+  title     = {Socially compliant mobile robot navigation via inverse reinforcement
+               learning},
+  journal   = {I. J. Robotics Res.},
+  volume    = {35},
+  number    = {11},
+  pages     = {1289--1307},
+  year      = {2016},
+  url       = {https://doi.org/10.1177/0278364915619772},
+  doi       = {10.1177/0278364915619772},
+  timestamp = {Thu, 18 May 2017 09:54:59 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/ijrr/KretzschmarSSB16},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {An example of how IRL can be used in socially adaptive robot path planning}
+}
+
+@inproceedings{DBLP:conf/uai/NeuS07,
+  author    = {Gergely Neu and
+               Csaba Szepesv{\'{a}}ri},
+  title     = {Apprenticeship Learning using Inverse Reinforcement Learning and Gradient
+               Methods},
+  booktitle = {{UAI} 2007, Proceedings of the Twenty-Third Conference on Uncertainty
+               in Artificial Intelligence, Vancouver, BC, Canada, July 19-22, 2007},
+  pages     = {295--302},
+  year      = {2007},
+  crossref  = {DBLP:conf/uai/2007},
+  url       = {https://dslpitt.org/uai/displayArticleDetails.jsp?mmnu=1\&smnu=2\&article\_id=1702\&proceeding\_id=23},
+  timestamp = {Wed, 06 May 2015 15:02:56 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/uai/NeuS07},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+}
+@proceedings{DBLP:conf/uai/2007,
+  editor    = {Ronald Parr and
+               Linda C. van der Gaag},
+  title     = {{UAI} 2007, Proceedings of the Twenty-Third Conference on Uncertainty
+               in Artificial Intelligence, Vancouver, BC, Canada, July 19-22, 2007},
+  publisher = {{AUAI} Press},
+  year      = {2007},
+  url       = {https://dslpitt.org/uai/displayArticles.jsp?mmnu=1\&smnu=1\&proceeding\_id=23},
+  isbn      = {0-9749039-3-0},
+  timestamp = {Wed, 06 May 2015 15:02:53 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/uai/2007},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{DBLP:journals/ijsr/KimP16,
+  author    = {Beomjoon Kim and
+               Joelle Pineau},
+  title     = {Socially Adaptive Path Planning in Human Environments Using Inverse
+               Reinforcement Learning},
+  journal   = {I. J. Social Robotics},
+  volume    = {8},
+  number    = {1},
+  pages     = {51--66},
+  year      = {2016},
+  url       = {https://doi.org/10.1007/s12369-015-0310-2},
+  doi       = {10.1007/s12369-015-0310-2},
+  timestamp = {Wed, 17 May 2017 14:25:15 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/ijsr/KimP16},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {An example of how IRL can be used in socially adaptive robot path planning}
+}
+
+@inproceedings{DBLP:conf/huc/ZiebartMDB08,
+  author    = {Brian D. Ziebart and
+               Andrew L. Maas and
+               Anind K. Dey and
+               J. Andrew Bagnell},
+  title     = {Navigate like a cabbie: probabilistic reasoning from observed context-aware
+               behavior},
+  booktitle = {UbiComp 2008: Ubiquitous Computing, 10th International Conference,
+               UbiComp 2008, Seoul, Korea, September 21-24, 2008, Proceedings},
+  pages     = {322--331},
+  year      = {2008},
+  crossref  = {DBLP:conf/huc/2008},
+  url       = {http://doi.acm.org/10.1145/1409635.1409678},
+  doi       = {10.1145/1409635.1409678},
+  timestamp = {Fri, 17 Feb 2012 13:10:16 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/huc/ZiebartMDB08},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/huc/2008,
+  editor    = {Hee Yong Youn and
+               We{-}Duke Cho},
+  title     = {UbiComp 2008: Ubiquitous Computing, 10th International Conference,
+               UbiComp 2008, Seoul, Korea, September 21-24, 2008, Proceedings},
+  series    = {{ACM} International Conference Proceeding Series},
+  volume    = {344},
+  publisher = {{ACM}},
+  year      = {2008},
+  isbn      = {978-1-60558-136-1},
+  timestamp = {Tue, 23 Sep 2008 09:09:37 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/huc/2008},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {Using IRL to predict the behaviour of taxi drivers.}
+}
+
+@inproceedings{DBLP:conf/iros/ZiebartRGMPBHDS09,
+  author    = {Brian D. Ziebart and
+               Nathan D. Ratliff and
+               Garratt Gallagher and
+               Christoph Mertz and
+               Kevin M. Peterson and
+               James A. Bagnell and
+               Martial Hebert and
+               Anind K. Dey and
+               Siddhartha S. Srinivasa},
+  title     = {Planning-based prediction for pedestrians},
+  booktitle = {2009 {IEEE/RSJ} International Conference on Intelligent Robots and
+               Systems, October 11-15, 2009, St. Louis, MO, {USA}},
+  pages     = {3931--3936},
+  year      = {2009},
+  crossref  = {DBLP:conf/iros/2009},
+  url       = {https://doi.org/10.1109/IROS.2009.5354147},
+  doi       = {10.1109/IROS.2009.5354147},
+  timestamp = {Mon, 22 May 2017 17:11:29 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/iros/ZiebartRGMPBHDS09},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/iros/2009,
+  title     = {2009 {IEEE/RSJ} International Conference on Intelligent Robots and
+               Systems, October 11-15, 2009, St. Louis, MO, {USA}},
+  publisher = {{IEEE}},
+  year      = {2009},
+  url       = {http://ieeexplore.ieee.org/xpl/mostRecentIssue.jsp?punumber=5342790},
+  isbn      = {978-1-4244-3803-7},
+  timestamp = {Mon, 11 May 2015 16:37:25 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/iros/2009},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {Using IRL to predict the movement of pedestrians}
+}
+
+@inproceedings{DBLP:conf/aaai/VogelRGR12,
+  author    = {Adam Vogel and
+               Deepak Ramachandran and
+               Rakesh Gupta and
+               Antoine Raux},
+  title     = {Improving Hybrid Vehicle Fuel Efficiency Using Inverse Reinforcement
+               Learning},
+  booktitle = {Proceedings of the Twenty-Sixth {AAAI} Conference on Artificial Intelligence,
+               July 22-26, 2012, Toronto, Ontario, Canada.},
+  year      = {2012},
+  crossref  = {DBLP:conf/aaai/2012},
+  url       = {http://www.aaai.org/ocs/index.php/AAAI/AAAI12/paper/view/5143},
+  timestamp = {Thu, 31 Jul 2014 11:17:14 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/aaai/VogelRGR12},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/aaai/2012,
+  editor    = {J{\"{o}}rg Hoffmann and
+               Bart Selman},
+  title     = {Proceedings of the Twenty-Sixth {AAAI} Conference on Artificial Intelligence,
+               July 22-26, 2012, Toronto, Ontario, Canada},
+  publisher = {{AAAI} Press},
+  year      = {2012},
+  timestamp = {Thu, 31 Jul 2014 11:17:14 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/aaai/2012},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {Using IRL to predict where the driver is going.}
+}
+
+@article{DBLP:journals/ai/BogertD18,
+  author    = {Kenneth D. Bogert and
+               Prashant Doshi},
+  title     = {Multi-robot inverse reinforcement learning under occlusion with estimation
+               of state transitions},
+  journal   = {Artif. Intell.},
+  volume    = {263},
+  pages     = {46--73},
+  year      = {2018},
+  url       = {https://doi.org/10.1016/j.artint.2018.07.002},
+  doi       = {10.1016/j.artint.2018.07.002},
+  timestamp = {Thu, 13 Sep 2018 18:11:55 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/ai/BogertD18},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {Using IRL to predict positions of patrolling robots.}
+}
+
+@misc{supplementary_material,
+  author    = {Sergey Levine and
+               Zoran Popovic and
+               Vladlen Koltun},
+  title     = {Supplementary material: Nonlinear Inverse Reinforcement Learning with {Gaussian} Processes},
+  year      = {2011},
+  month     = {December},
+  howpublished = {\url{http://graphics.stanford.edu/projects/gpirl/gpirl_supplement.pdf}},
+  note = {Contains derivations of likelihood partial derivatives and additional details about the implementation.}
+}
+
+@mastersthesis{kth,
+address = {Stockholm, Sweden},
+author = {Hanna Hultin},
+month = {June},
+school = {KTH Royal Institute of Technology},
+title = {Evaluation of Massively Scalable {Gaussian} Processes},
+year = {2017}
+}
+
+@article{DBLP:journals/corr/abs-1807-01065,
+  author    = {Haitao Liu and
+               Yew{-}Soon Ong and
+               Xiaobo Shen and
+               Jianfei Cai},
+  title     = {When {Gaussian} Process Meets Big Data: {A} Review of Scalable {GPs}},
+  journal   = {CoRR},
+  volume    = {abs/1807.01065},
+  year      = {2018},
+  url       = {http://arxiv.org/abs/1807.01065},
+  archivePrefix = {arXiv},
+  eprint    = {1807.01065},
+  timestamp = {Mon, 13 Aug 2018 16:48:07 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1807-01065},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {A recent review of scalable GPs.}
+}
+
+@inproceedings{DBLP:conf/icml/RainforthKLMIWT18,
+  author    = {Tom Rainforth and
+               Adam R. Kosiorek and
+               Tuan Anh Le and
+               Chris J. Maddison and
+               Maximilian Igl and
+               Frank Wood and
+               Yee Whye Teh},
+  title     = {Tighter Variational Bounds are Not Necessarily Better},
+  booktitle = {Proceedings of the 35th International Conference on Machine Learning,
+               {ICML} 2018, Stockholmsm{\"{a}}ssan, Stockholm, Sweden, July
+               10-15, 2018},
+  pages     = {4274--4282},
+  year      = {2018},
+  crossref  = {DBLP:conf/icml/2018},
+  url       = {http://proceedings.mlr.press/v80/rainforth18b.html},
+  timestamp = {Fri, 13 Jul 2018 14:58:25 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/RainforthKLMIWT18},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/icml/2018,
+  editor    = {Jennifer G. Dy and
+               Andreas Krause},
+  title     = {Proceedings of the 35th International Conference on Machine Learning,
+               {ICML} 2018, Stockholmsm{\"{a}}ssan, Stockholm, Sweden, July
+               10-15, 2018},
+  series    = {{JMLR} Workshop and Conference Proceedings},
+  volume    = {80},
+  publisher = {JMLR.org},
+  year      = {2018},
+  url       = {http://proceedings.mlr.press/v80/},
+  timestamp = {Fri, 13 Jul 2018 14:57:00 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/2018},
   bibsource = {dblp computer science bibliography, https://dblp.org}
 }

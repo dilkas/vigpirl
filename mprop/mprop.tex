@@ -1,12 +1,15 @@
 \documentclass{mprop}
 \usepackage{graphicx}
-% other potentially useful packages
-%\uspackage{amssymb,amsmath}
-%\usepackage{url}
+\usepackage{amssymb,amsmath,amsthm}
+\usepackage{url}
 %\usepackage{fancyvrb}
 %\usepackage[final]{pdfpages}
-\begin{document}
 
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\begin{document}
 \title{Variational Inference for Inverse Reinforcement Learning with Gaussian
   Processes}
 \author{Paulius Dilkas}
@@ -15,18 +18,212 @@
 \tableofcontents
 \newpage
 
-\section{Introduction}\label{intro}
-briefly explain the context of the project problem
-\subsection{A subsection}
-Please note your proposal need not follow the included section headings - this is only a suggested structure. Also add subsections etc as required
-\section{Statement of Problem}
-clearly state the problem to be addressed in your forthcoming project. Explain why it would be worthwhile to solve this problem.
-\section{Background Survey}
-present an overview of relevant previous work including articles, books, and existing software products. Critically evaluate the strengths and weaknesses of the previous work.
+\newcommand{\Kuu}{\mathbf{K}_{\mathbf{u},\mathbf{u}}}
+\newcommand{\Krr}{\mathbf{K}_{\mathbf{r},\mathbf{r}}}
+\newcommand{\Kru}{\mathbf{K}_{\mathbf{r},\mathbf{u}}}
+\newcommand{\DKL}{D_{\mathrm{KL}}}
+\newcommand{\pfull}{p(\mathcal{D}, \Theta, \mathbf{X_u}, \mathbf{u}, \mathbf{r})}
+\newcommand{\posterior}{p(\Theta, \mathbf{u}, \mathbf{r} | \mathcal{D}, \mathbf{X_u})}
+\newcommand{\approximation}{q(\Theta, \mathbf{u}, \mathbf{r}; \Lambda)}
+
+\section{Introduction}
+%briefly explain the context of the project problem
+
+Inverse reinforcement learning (IRL)---a problem proposed by Russell in 1998
+\cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a Markov
+decision process that best explains a set of given demonstrations. IRL is
+important because reward functions can be hard to define manually
+\cite{DBLP:conf/icml/PieterN04,DBLP:journals/corr/abs-1806-06877}, and rewards
+are not entirely specific to a given environment, allowing one to reuse the same
+reward structure in previously unseen environments
+\cite{DBLP:journals/corr/abs-1806-06877,DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}.
+Moreover, IRL has seen a wide array of applications in autonomous vehicle
+control
+\cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16}
+and learning to predict another agent's behaviour
+\cite{DBLP:journals/ai/BogertD18,DBLP:conf/aaai/VogelRGR12,ziebart2008maximum,DBLP:conf/huc/ZiebartMDB08,DBLP:conf/iros/ZiebartRGMPBHDS09}.
+Most approaches in the literature (see Section \ref{literature}) make a
+convenient yet unjustified assumption that the reward function can be expressed
+as a linear combination of features. One proven way to abandon this assumption
+is by representing the reward function as a Gaussian process
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11,DBLP:journals/corr/abs-1208-2112}.
+
+\section{Statement of the Problem}
+%clearly state the problem to be addressed in your forthcoming project. Explain
+%why it would be worthwhile to solve this problem.
+
+\begin{definition}
+  A \emph{Markov decision process} (MDP) is a set $\mathcal{M} = \{ \mathcal{S},
+  \mathcal{A}, \mathcal{T}, \gamma, r \}$, where $\mathcal{S}$ and
+  $\mathcal{A}$ are sets of states and actions, respectively; $\mathcal{T} :
+  \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to [0, 1]$ is a function
+  defined so that $\mathcal{T}(s, a, s')$ is the probability of moving to state $s'$
+  after taking action $a$ in state $s$; $\gamma \in [0, 1)$ is the discount
+  factor (with higher $\gamma$ values, it makes little difference whether a
+  reward is received now or later, while with lower $\gamma$ values the future
+  becomes gradually less and less important); and $r : \mathcal{S} \to
+  \mathbb{R}$ is the reward function.
+\end{definition}
+
+In \emph{inverse reinforcement learning}, one is presented with an MDP without a
+reward function $\mathcal{M} \setminus \{ r \}$ and a set of expert
+demonstrations $\mathcal{D} = \{ \zeta_i \}_{i=1}^N$, where each demonstration
+$\zeta_i = \{ (s_{i,0}, a_{i,0}), \dots, (s_{i,T}, a_{i,T}) \}$ is a multiset of
+state-action pairs representing the actions taken by the expert during a
+particular recorded session. Each state is also characterised by a number of
+features. The goal of IRL is then to find $r$ such that the optimal policy under
+$r$
+\[ \pi^* = \argmax_\pi \mathbb{E}\left[ \sum_{t=0}^\infty \gamma^t r(s_t) | \pi
+  \right] \]
+matches the actions in $\mathcal{D}$.
+
+The likelihood of the data can be written down as
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
+\begin{equation} \label{pDr}
+  p(\mathcal{D} | r) = \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) = \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q(s_{i,t}, a_{i,t}; r) - V(s_{i,t}; r) \right),
+\end{equation}
+where
+\[ Q(s_{i,t}, a_{i,t}; r) = r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
+  \mathcal{T}(s_{i,t}, a_{i,t}, s')V(s'; r), \]
+and $V(s; r)$ can be obtained by repeatedly applying the equation
+\cite{supplementary_material}
+\[ V(s; r) = \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in
+      \mathcal{S}} \mathcal{T}(s, a, s')V(s'; r) \right). \]
+However, a reward function learned by maximising this likelihood is not
+transferable to new situations
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}. One needs to model the
+reward structure in a way that would allow reward predictions for previously
+unseen states.
+
+One way to model rewards without assumptions of linearity is with a
+\emph{Gaussian process} (GP). A GP is a collection of random variables, any
+finite combination of which has a joint Gaussian distribution
+\cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0,
+k_{\Theta})$ to say that $r$ is a GP with mean $0$ and covariance function
+$k_{\Theta}$, which uses a set of hyperparameters $\Theta$. Covariance functions
+take two state feature vectors as input and quantify how similar the two states
+are, in a sense that we would expect them to have similar rewards.
+
+% TODO: import info from the MSci paper
+As training a GP with $n$ data points has a time complexity of
+$\mathcal{O}(n^3)$ \cite{DBLP:books/lib/RasmussenW06}, numerous approximation
+methods have been suggested, many of which select a subset of data called
+\emph{inducing points} and focus most of the training effort on them
+\cite{DBLP:journals/corr/abs-1807-01065}. Let $\mathbf{X_u}$ be the matrix of
+features at inducing states, $\mathbf{u}$ the rewards at those states, and
+$\mathbf{r}$ a vector with $r(\mathcal{S})$ as elements. Then the full joint
+probability distribution can be factorised as
+\begin{equation} \label{full}
+  \pfull = p(\mathbf{X_u}) \times p(\Theta | \mathbf{X_u}) \times p(\mathbf{u}
+  | \Theta, \mathbf{X_u}) \times p(\mathbf{r} | \Theta, \mathbf{X_u},
+  \mathbf{u}) \times p(\mathcal{D} | r).
+\end{equation}
+Here $p(\mathbf{X_u})$ and $p(\Theta | \mathbf{X_u})$ are freely chosen priors,
+\[
+  \begin{split}
+    p(\mathbf{u} | \Theta, \mathbf{X_u}) &= \mathcal{N}(\mathbf{0},
+    \Kuu) \\
+    &= \frac{1}{(2\pi)^{n/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2}
+      \mathbf{u}^T\Kuu^{-1}\mathbf{u} \right) \\
+    &= \exp\left(-\frac{1}{2}\mathbf{u}^T\Kuu^{-1}\mathbf{u} -
+      \frac{1}{2}\log|\Kuu| - \frac{n}{2}\log 2\pi\right)
+  \end{split}
+\]
+is the GP prior \cite{DBLP:books/lib/RasmussenW06}, the GP posterior is a
+multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11}
+\begin{equation} \label{eq:r}
+  p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) =
+  \mathcal{N}(\Kru^T\Kuu^{-1}\mathbf{u}, \Krr - \Kru^T\Kuu^{-1}\Kru),
+\end{equation}
+and $p(\mathcal{D} | r)$ is as in Equation \ref{pDr}. The matrices such as
+$\Kru$ are called \emph{covariance matrices} and are defined as
+$[\Kru]_{i,j} = k_\Theta(\mathbf{x}_{\mathbf{r},i}, \mathbf{x}_{\mathbf{u},j})$,
+where $\mathbf{x}_{\mathbf{r},i}$ and $\mathbf{x}_{\mathbf{u},j}$ denote feature
+vectors for the $i$th state in $\mathcal{S}$ and the $j$th state in
+$\mathbf{X_u}$, respectively.
+
+Given this model, data $\mathcal{D}$, and inducing feature matrix
+$\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
+$\Theta$, inducing rewards $\mathbf{u}$, and the reward function $r$. While the
+previous paper that considered this IRL model computed maximum likelihood estimates
+for $\Theta$ and $\mathbf{u}$, and made an assumption that $\mathbf{r}$ in
+Equation \ref{eq:r} has $0$ variance \cite{DBLP:conf/nips/LevinePK11}, we aim to
+avoid this assumption and use variational inference to approximate the full
+posterior distribution $\posterior$. \emph{Variational inference} (VI) is an
+approximation technique for probability densities \cite{blei2017variational}.
+Let $\approximation$ be our approximating family of probability distributions
+for $\posterior$ with its own set of hyperparameters $\Lambda$. Then it is up to
+VI algorithms to optimise $\Lambda$ in order to minimise the
+\emph{Kullback-Leibler} (KL) divergence between the original probability
+distribution and our approximation.  KL divergence (asymmetrically) measures how
+different the two distributions are and in this case can be defined as follows
+\cite{blei2017variational}:
+\[ \DKL(\approximation || \posterior) = \mathbb{E}_q[\log\approximation] -
+  \mathbb{E}_q[\log \posterior]. \]
+Since KL divergence is typically hard to compute, instead of minimising it, VI
+typically tries to maximise the \emph{evidence lower bound} (ELBO) defined as
+\[
+  \begin{split}
+    \mathcal{L}(\Lambda) &= \mathbb{E}_q[\log \pfull] -
+    \mathbb{E}_q[\log\approximation] \\
+    &= \iiint \approximation \log
+    \frac{\pfull}{\approximation}\,d\Theta\,d\mathbf{u}\,d\mathbf{r}.
+  \end{split}
+\]
+% TODO: cite something
+
+By considering full probability distributions instead of point estimates,---as
+long as the approximations are able to capture important features of the
+posterior---our predictions are likely to be more accurate and rely on fewer
+assumptions. Moreover, we hope to make use of various recent advancements in VI
+for both time complexity and approximation distribution fit (see Section
+\ref{literature}), making the resulting algorithm competitive both in terms of
+speed and model fit.
+
+\section{Literature Survey} \label{literature}
+
+present an overview of relevant previous work including articles, books, and
+existing software products. Critically evaluate the strengths and weaknesses of
+the previous work.
+
 \section{Proposed Approach}
-state how you propose to solve the software development problem. Show that your proposed approach is feasible, but identify any risks.
+
+%state how you propose to solve the software development problem. Show that your
+%proposed approach is feasible, but identify any risks.
+
+We begin by rewriting the posterior by using the chain rule and Bayes' theorem,
+trying to extract parts of the distribution we know how to compute, namely those
+in Equation \ref{full}:
+\[
+  \begin{split}
+    \posterior &= p(\Theta | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u} |
+    \Theta, \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{r} | \Theta,
+    \mathbf{X_u}, \mathbf{u}, \mathcal{D}) \\
+    &\propto p(\Theta | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u} | \Theta,
+    \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} | r) \times p(\mathbf{r} |
+    \Theta, \mathbf{X_u}, \mathbf{u}) \\
+    &\propto p(\Theta | \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} |
+    \Theta, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \Theta,
+    \mathbf{X_u}) \times p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta,
+    \mathbf{X_u}, \mathbf{u}) \\
+    &\propto p(\mathcal{D} | \Theta, \mathbf{X_u}) \times p(\Theta |
+    \mathbf{X_u}) \times p(\mathcal{D} | \Theta, \mathbf{X_u}, \mathbf{u})
+    \times p(\mathbf{u} | \Theta, \mathbf{X_u}) \times p(\mathcal{D} | r) \times
+    p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u})
+  \end{split}
+\]
+Note that now there are only two unknown probability distributions:
+$p(\mathcal{D} | \Theta, \mathbf{X_u})$ and $p(\mathcal{D} | \Theta,
+\mathbf{X_u}, \mathbf{u})$. They can be computed as follows:
+\begin{align*}
+  p(\mathcal{D} | \Theta, \mathbf{X_u}, \mathbf{u}) = \int &p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \, d\mathbf{r}, \\
+  p(\mathcal{D} | \Theta, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \Theta, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
+\end{align*}
+
 \section{Work Plan}
-show how you plan to organize your work, identifying intermediate deliverables and dates.
+
+show how you plan to organize your work, identifying intermediate deliverables
+and dates.
 
 \section{Notes on papers (to be removed)}
 
@@ -40,8 +237,6 @@ Chapter 6 on distance measures \cite{mccune2002analysis}
 The PhD thesis behind maximum causal entropy \cite{Ziebart:2010:MPA:2049078}
 
 \subsection{Gaussian Processes}
-
-Your recommended book \cite{DBLP:books/lib/RasmussenW06}
 
 Simple introduction to GPs for time-series modelling \cite{Roberts2013GaussianPF}
 
@@ -58,6 +253,8 @@ One GP for multiple correlated output variables \cite{DBLP:journals/jcphy/Bilion
 
 Kernels for categorical and count data \cite{savitsky2011variable}
 
+Scalability/Approximations thesis \cite{kth}
+
 \subsection{Interpretability}
 
 Learning latent factors \cite{DBLP:conf/nips/LiSE17}
@@ -68,21 +265,19 @@ The behaviour of Reddit users \cite{DBLP:conf/atal/DasL14}
 
 One of the first papers on the topic \cite{DBLP:conf/icml/NgR00}
 
-Follow-up on the previous paper \cite{DBLP:conf/icml/PieterN04}
-
 Bayesian setting \cite{DBLP:conf/ijcai/RamachandranA07}
 
 Learning optimal composite features \cite{DBLP:conf/ijcai/ChoiK13}
 
-The main paper \cite{DBLP:conf/nips/LevinePK11}
-
 A different take on IRL with GPs \cite{DBLP:journals/corr/abs-1208-2112}
-
-The paper that introduced maximum entropy into IRL \cite{ziebart2008maximum}
 
 IRL for large state spaces (haven't read) \cite{DBLP:journals/jmlr/BoulariasKP11}
 
 Multiple reward functions \cite{DBLP:conf/nips/ChoiK12}
+
+A recent survey \cite{DBLP:journals/corr/abs-1806-06877}
+
+Some not-very-successful method \cite{DBLP:conf/uai/NeuS07}
 
 \subsubsection{Multiple Strategies}
 
@@ -94,11 +289,7 @@ There are more, but I haven't gotten to them yet.
 
 \subsection{Variational Inference}
 
-Chapter 10 on approximate inference \cite{DBLP:books/lib/Bishop07}
-
 Part IV on probabilities and inference \cite{MacKay:2002:ITI:971143}
-
-A recent review \cite{blei2017variational}
 
 Normalizing flows \cite{DBLP:conf/icml/RezendeM15}
 
@@ -112,9 +303,11 @@ Another review of recent advances \cite{DBLP:journals/corr/abs-1711-05597}
 
 Sparse VI for GP \cite{DBLP:journals/jmlr/HensmanDS17}
 
-Sparse GPs \cite{DBLP:journals/jmlr/CandelaR05}
+Sparse GPs \cite{DBLP:journals/jmlr/CandelaR05}.
 
-IRL via deep GP \cite{DBLP:conf/uai/JinDAS17}
+Tighter ELBOs are not necessarily better \cite{DBLP:conf/icml/RainforthKLMIWT18}.
+
+\cite{DBLP:books/lib/Bishop07}
 
 \bibliographystyle{plain}
 \bibliography{mprop}
