@@ -2,12 +2,19 @@
 \usepackage{graphicx}
 \usepackage{amssymb,amsmath,amsthm}
 \usepackage{url}
+\usepackage{bm}
+\usepackage{bbm}
+\usepackage{booktabs}
 %\usepackage{fancyvrb}
 %\usepackage[final]{pdfpages}
 
+\newtheorem{lemma}{Lemma}
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
 \DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\diag}{diag}
 
 \begin{document}
 \title{Variational Inference for Inverse Reinforcement Learning with Gaussian
@@ -18,13 +25,17 @@
 \tableofcontents
 \newpage
 
+% TODO: table of notation?
 \newcommand{\Kuu}{\mathbf{K}_{\mathbf{u},\mathbf{u}}}
 \newcommand{\Krr}{\mathbf{K}_{\mathbf{r},\mathbf{r}}}
 \newcommand{\Kru}{\mathbf{K}_{\mathbf{r},\mathbf{u}}}
 \newcommand{\DKL}{D_{\mathrm{KL}}}
 \newcommand{\pfull}{p(\mathcal{D}, \Theta, \mathbf{X_u}, \mathbf{u}, \mathbf{r})}
+\newcommand{\pfullS}{p(\mathcal{D}, \Theta_s, \mathbf{X_u}, \mathbf{u}_s, \mathbf{r}_s)}
 \newcommand{\posterior}{p(\Theta, \mathbf{u}, \mathbf{r} | \mathcal{D}, \mathbf{X_u})}
-\newcommand{\approximation}{q(\Theta, \mathbf{u}, \mathbf{r}; \Lambda)}
+\newcommand{\approximation}{q_{\bm\nu}(\Theta, \mathbf{u}, \mathbf{r})}
+\newcommand{\approximationS}{q_{\bm\nu}(\Theta_s, \mathbf{u}_s, \mathbf{r}_s)}
+\newcommand{\Eq}{\mathbb{E}_{(\Theta, \mathbf{u}, \mathbf{r}) \sim \approximation}}
 
 \section{Introduction}
 %briefly explain the context of the project problem
@@ -119,58 +130,53 @@ probability distribution can be factorised as
   \mathbf{u}) \times p(\mathcal{D} | r).
 \end{equation}
 Here $p(\mathbf{X_u})$ and $p(\Theta | \mathbf{X_u})$ are freely chosen priors,
-\[
-  \begin{split}
-    p(\mathbf{u} | \Theta, \mathbf{X_u}) &= \mathcal{N}(\mathbf{0},
-    \Kuu) \\
-    &= \frac{1}{(2\pi)^{n/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2}
-      \mathbf{u}^T\Kuu^{-1}\mathbf{u} \right) \\
-    &= \exp\left(-\frac{1}{2}\mathbf{u}^T\Kuu^{-1}\mathbf{u} -
-      \frac{1}{2}\log|\Kuu| - \frac{n}{2}\log 2\pi\right)
-  \end{split}
-\]
+\begin{align}
+  p(\mathbf{u} | \Theta, \mathbf{X_u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \nonumber \\
+                                       &= \frac{1}{(2\pi)^{n/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^T\Kuu^{-1}\mathbf{u} \right) \nonumber \\
+                                       &= \exp\left(-\frac{1}{2}\mathbf{u}^T\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right) \label{eq:normal}
+  \end{align} % TODO: introduce m here, deleting later introduction
 is the GP prior \cite{DBLP:books/lib/RasmussenW06}, the GP posterior is a
 multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11}
 \begin{equation} \label{eq:r}
   p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) =
-  \mathcal{N}(\Kru^T\Kuu^{-1}\mathbf{u}, \Krr - \Kru^T\Kuu^{-1}\Kru),
+  \mathcal{N}(\mathbf{r}; \Kru^T\Kuu^{-1}\mathbf{u}, \Krr - \Kru^T\Kuu^{-1}\Kru),
 \end{equation}
-and $p(\mathcal{D} | r)$ is as in Equation \ref{pDr}. The matrices such as
+and $p(\mathcal{D} | r)$ is as in \eqref{pDr}. The matrices such as
 $\Kru$ are called \emph{covariance matrices} and are defined as
 $[\Kru]_{i,j} = k_\Theta(\mathbf{x}_{\mathbf{r},i}, \mathbf{x}_{\mathbf{u},j})$,
 where $\mathbf{x}_{\mathbf{r},i}$ and $\mathbf{x}_{\mathbf{u},j}$ denote feature
 vectors for the $i$th state in $\mathcal{S}$ and the $j$th state in
-$\mathbf{X_u}$, respectively.
+$\mathbf{X_u}$, respectively \cite{DBLP:conf/uai/JinDAS17}.
 
 Given this model, data $\mathcal{D}$, and inducing feature matrix
 $\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
 $\Theta$, inducing rewards $\mathbf{u}$, and the reward function $r$. While the
 previous paper that considered this IRL model computed maximum likelihood estimates
 for $\Theta$ and $\mathbf{u}$, and made an assumption that $\mathbf{r}$ in
-Equation \ref{eq:r} has $0$ variance \cite{DBLP:conf/nips/LevinePK11}, we aim to
+\eqref{eq:r} has zero variance \cite{DBLP:conf/nips/LevinePK11}, we aim to
 avoid this assumption and use variational inference to approximate the full
 posterior distribution $\posterior$. \emph{Variational inference} (VI) is an
 approximation technique for probability densities \cite{blei2017variational}.
 Let $\approximation$ be our approximating family of probability distributions
-for $\posterior$ with its own set of hyperparameters $\Lambda$. Then it is up to
-VI algorithms to optimise $\Lambda$ in order to minimise the
+for $\posterior$ with its own hyperparameter vector $\bm\nu$. Then it is up
+to VI algorithms to optimise $\bm\nu$ in order to minimise the
 \emph{Kullback-Leibler} (KL) divergence between the original probability
 distribution and our approximation.  KL divergence (asymmetrically) measures how
 different the two distributions are and in this case can be defined as follows
 \cite{blei2017variational}:
-\[ \DKL(\approximation || \posterior) = \mathbb{E}_q[\log\approximation] -
-  \mathbb{E}_q[\log \posterior]. \]
+\[ \DKL(\approximation || \posterior) = \Eq \left[ \log
+  \frac{\approximation}{\posterior} \right]. \]
 Since KL divergence is typically hard to compute, instead of minimising it, VI
 typically tries to maximise the \emph{evidence lower bound} (ELBO) defined as
+\cite{DBLP:books/lib/Bishop07,blei2017variational}
 \[
   \begin{split}
-    \mathcal{L}(\Lambda) &= \mathbb{E}_q[\log \pfull] -
-    \mathbb{E}_q[\log\approximation] \\
+    \mathcal{L}(\bm\nu) &= \Eq \left[ \log \frac{\pfull}{\approximation}
+    \right] \\
     &= \iiint \approximation \log
     \frac{\pfull}{\approximation}\,d\Theta\,d\mathbf{u}\,d\mathbf{r}.
   \end{split}
 \]
-% TODO: cite something
 
 By considering full probability distributions instead of point estimates,---as
 long as the approximations are able to capture important features of the
@@ -181,19 +187,159 @@ for both time complexity and approximation distribution fit (see Section
 speed and model fit.
 
 \section{Literature Survey} \label{literature}
+%present an overview of relevant previous work including articles, books, and
+%existing software products. Critically evaluate the strengths and weaknesses of
+%the previous work.
 
-present an overview of relevant previous work including articles, books, and
-existing software products. Critically evaluate the strengths and weaknesses of
-the previous work.
+Variational inference has seen a recent increase in interest among academics,
+with different approaches focusing on different goals: better time complexity,
+handling a wider variety of models, making approximations more accurate, and
+using more complex function approximation techniques (such as neural networks)
+to infer local latent variable values without having to calculate them
+individually for each data point \cite{DBLP:journals/corr/abs-1711-05597}. As
+our IRL model is based on a GP, we will begin by reviewing some of the VI
+approaches applied specifically to GP regression. Based on a recent review of
+scalable GPs \cite{DBLP:journals/corr/abs-1711-05597}, we will concentrate on
+\emph{stochastic variational sparse approximations}, as they have achieved
+modelling accuracy close to that of the full GP with no approximations, while
+providing a time complexity of $\mathcal{O}(m^3)$, where $m$ is the number of
+inducing points. Below we provide a short overview of various assumptions that
+have been used in approximating \emph{sparse} GPs (i.e., GPs that use inducing
+points), following on a paper by Qui\~{n}onero-Candela and Rasmussen
+\cite{DBLP:journals/jmlr/CandelaR05}.
 
-\section{Proposed Approach}
+\begin{description}
+  \item [Subset of data ($\mathcal{O}(m^3)$)] is a baseline method of simply
+    using a subset of data points.
+  \item [Subset of regressors ($\mathcal{O}(nm^2)$)
+    \cite{silverman1985some,DBLP:conf/nips/SmolaB00,DBLP:conf/nips/WahbaLGXKK98}]
+    is a degenerate approximation that uses a weight for each inducing point. A
+    GP is called \emph{degenerate} if the covariance function has a finite
+    number of non-zero eigenvalues, restricting the prior distribution to only a
+    finite number of linearly independent functions
+    \cite{DBLP:journals/jmlr/CandelaR05}.
+  \item [Deterministic training conditional ($\mathcal{O}(nm^2)$)
+    \cite{DBLP:conf/aistats/SeegerWL03}] approximation imposes a zero-variance
+    normal distribution for $\mathbf{r} | \mathbf{u}$, resulting in the same mean
+    but different variance predictions compared to the subset of regressors.
+  \item [Fully independent training conditional ($\mathcal{O}(nm^2)$)
+    \cite{DBLP:conf/nips/SnelsonG05}] has the assumption that the GP values are
+    independent of each other when conditioned on the inducing values:
+    \[ q(\mathbf{r} | \mathbf{u}) = \prod_{i=1}^n p(r_i | \mathbf{u}). \]
+  \item [Partially independent training conditional ($\mathcal{O}(nm^2)$)
+    \cite{DBLP:journals/neco/Tresp00,DBLP:conf/nips/SchwaighoferT02}]
+    approximates the same distribution as the fully independent training
+    conditional, but considers a block diagonal rather than a diagonal
+    covariance matrix.
+  \item [Transduction] tailors the predictive distribution to
+    specific test inputs \cite{DBLP:journals/jmlr/CandelaR05}. As we are not too
+    concerned about a specific set of test inputs in the IRL setting,
+    transduction is of limited interest to us.
+  \item [Augmentation \cite{rasmussen2002reduced}] aims to improve predictive
+    accuracy by adding each test input to the inducing points.
+  \item [Nystr\"{o}m approximation ($\mathcal{O}(nm^2)$)
+    \cite{DBLP:conf/nips/WilliamsS00}] approximates the prior covariance of
+    $\mathbf{r}$, but can lead to negative predictive variances.
+  \item [Relevance vector machine ($\mathcal{O}(m^3)$)
+    \cite{DBLP:journals/jmlr/Tipping01}] is a degenerative approximation
+    supporting a limited range of covariance functions.
+\end{description}
+
+\begin{table}
+  \centering % TODO: recheck and explain
+  \begin{tabular}{llllll} % Lower bound? Model? % TODO: comment about 'modelled' no longer needed
+    \toprule
+    Authors, year & Inducing points & Hyperparameters & Complexity \\
+    \midrule
+    Titsias, 2009 \cite{DBLP:journals/jmlr/Titsias09} & variational & variational & $\mathcal{O}(nm^2)$ \\
+    Hensman et al., 2013 \cite{DBLP:conf/uai/HensmanFL13} & fixed & variational & $\mathcal{O}(m^3)$ \\
+    Gal et al., 2014 \cite{DBLP:conf/nips/GalWR14} & variational & variational & $\mathcal{O}(nm^2)$ \\
+    Hoang et al., 2015 \cite{DBLP:conf/icml/HoangHL15} & fixed & fixed & $\mathcal{O}(m^3)$ \\
+    Cheng and Boots, 2017 \cite{DBLP:conf/nips/ChengB17} & variational & variational & $\mathcal{O}(nm_\alpha + nm_\beta^2)$ \\
+    Hensman et al., 2017 \cite{DBLP:journals/jmlr/HensmanDS17} & fixed & variational & $\mathcal{O}(nm)$ \\
+    Peng et al., 2017 \cite{DBLP:conf/icml/PengZZQ17} & variational & variational & $\mathcal{O}(m^3)$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Summary of relevant VI approximations to GPs. For both inducing
+    points and hyperparameters, 'fixed' means 'chosen before the algorithm
+    starts', 'modelled' means 'represented by a probability distribution', and
+    'variational' means 'included amongst the variational parameters'.
+    Hyperparameters $m_\alpha$ and $m_\beta$ refer to the number of bases used
+    to represent the GP's mean and covariance, respectively.}
+  \label{table:approximations}
+\end{table}
+
+Table \ref{table:approximations} further summarises some of the recent and/or
+influential GP approximation approaches that might be suitable for our GP IRL
+model. In order to derive a reliable ELBO, the inducing points should be either
+fixed or modelled, while hyperparameters cannot be variational (the reason will
+be explained in Section \ref{sec:proposed_approach}).
+
+\begin{itemize}
+\item We would also like to avoid having the hyperparameters fixed, as learning
+  them efficiently would introduce a separate problem. As the approach by Hoang
+  et al. does not seem to be easily extendable to modelled hyperparameters, it
+  is unsuitable to our needs.
+\item (TODO: this will have comments about other papers as well and will be
+  restructured into a paragraph) The variational Fourier features (VFF)
+  algorithm by Hensman et al. \cite{DBLP:journals/jmlr/HensmanDS17} is only
+  defined for Mat\'ern kernels, which is likely to be too restrictive for our
+  situation (the original paper on using GPs for IRL
+  \cite{DBLP:conf/nips/LevinePK11} used the automatic relevance detection kernel
+  that has weights controlling how important each feature is). While extending
+  VFF to support a flexible class of kernels defined by Wilson and Adams
+  \cite{pmlr-v28-wilson13} is an interesting and promising avenue of work, it is
+  likely to be beyond the scope of this project.
+\item The derivation of the ELBO in the work of Peng et al.
+  \cite{DBLP:conf/icml/PengZZQ17} relies primarily on the fact that the evidence
+  for a GP is a Gaussian, while in our case the evidence can be defined in
+  several ways depending on the model, but must always involve $\mathcal{D}$,
+  making the main idea of the paper inapplicable to IRL.
+\end{itemize}
+
+Since we expect $\posterior$ to be highly irregular, we would like our
+approximation to be capable of representing more than just a unimodal Gaussian.
+The primary way to represent complex posteriors in VI is by using
+\emph{normalising flows}, i.e., a collection of invertible
+functions---parametrised by additional variational parameters---that are applied
+to latent variables \cite{DBLP:conf/icml/RezendeM15}. Unfortunately, this
+parametrisation also means that the gradient of the joint probability
+distribution w.r.t. variational parameters $\nabla_{\bm\nu}\pfull$ is no
+longer zero, making an analytic expression for ELBO impossible using the usual
+methods. % TODO: not full (I think) + discuss the possibility of making it
+         % variational
+
+\section{Proposed Approach} \label{sec:proposed_approach}
 
 %state how you propose to solve the software development problem. Show that your
 %proposed approach is feasible, but identify any risks.
 
-We begin by rewriting the posterior by using the chain rule and Bayes' theorem,
-trying to extract parts of the distribution we know how to compute, namely those
-in Equation \ref{full}:
+In order to properly investigate the difference between variational inference
+and maximum likelihood estimation for the model, we keep other parts of the
+model the same. Namely, we set the covariance function to a version of the
+automatic relevance detection kernel
+\cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
+\[ k_\Theta(\mathbf{x}_i, \mathbf{x}_j) = \zeta\exp\left(
+    -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^T\bm\Lambda(\mathbf{x}_i -
+    \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\Tr[\bm\Lambda] \right), \]
+where $\zeta$ is the overall ``scale'' factor for how similar or distant the
+states are,
+\[ \bm\Lambda = \diag(\lambda_1, \dots, \lambda_d) = \diag(\bm\lambda) \]
+is a diagonal matrix that determines how relevant each feature is (where $d$
+denotes the number of features), $\mathbbm{1}$ is defined as
+\[ \mathbbm{1}[b] = \begin{cases}
+    1 & \mbox{if $b$ is true} \\
+    0 & \mbox{otherwise},
+  \end{cases} \]
+and $\sigma^2$ is set to $10^{-2}/2$ (as the original paper noted that
+the value makes little difference to the performance of the algorithm
+\cite{DBLP:conf/nips/LevinePK11}). Thus we can set $\Theta = \{ \zeta,
+\bm\lambda \}$. Similarly, we keep the expression for the prior of $\Theta$:
+\[ p(\Theta | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr[\Kuu^{-2}] -
+    \sum_{i=1}^d \log(\lambda_i + 1) \right). \]
+
+Next, we can rewrite the posterior by using the chain rule and Bayes' theorem in
+order to get a better sense of what we are trying to approximate:
 \[
   \begin{split}
     \posterior &= p(\Theta | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u} |
@@ -214,11 +360,125 @@ in Equation \ref{full}:
 \]
 Note that now there are only two unknown probability distributions:
 $p(\mathcal{D} | \Theta, \mathbf{X_u})$ and $p(\mathcal{D} | \Theta,
-\mathbf{X_u}, \mathbf{u})$. They can be computed as follows:
+\mathbf{X_u}, \mathbf{u})$, which can be computed as follows:
 \begin{align*}
   p(\mathcal{D} | \Theta, \mathbf{X_u}, \mathbf{u}) = \int &p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \, d\mathbf{r}, \\
   p(\mathcal{D} | \Theta, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \Theta, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
 \end{align*}
+This suggests the following form for the approximation:
+\[ \approximation = q(\Theta) \times q(\mathbf{u} | \Theta) \times q(\mathbf{r}
+  | \Theta, \mathbf{u}). \]
+
+%where $q(\Theta)$ can be of the same form as $p(\Theta | \mathbf{X_u})$,
+%$q(\mathbf{u} | \Theta) = \mathcal{N}(\mathbf{0}, \bm\Sigma_{\mathbf{u}})$, and
+%$q(\mathbf{r} | \Theta, \mathbf{u}) = \mathcal{N}(\bm\mu_{\mathbf{r}},
+%\bm\Sigma_{\mathbf{r}})$.
+
+\subsection{The Structure of the Approximating Distribution}
+
+At this point we are forced to make assumptions about the approximate posterior
+in order to arrive at an implementable solution. Ways to relax the assumptions
+may be investigated towards the end of the project, if time permits.
+
+First, as is common in the literature for applying VI to GPs
+\cite{DBLP:conf/nips/ChengB17,DBLP:conf/uai/HensmanFL13,DBLP:conf/icml/HoangHL15,DBLP:journals/jmlr/Titsias09},
+we simply set
+\[ q(\mathbf{r} | \Theta, \mathbf{u}) = p(\mathbf{r} | \Theta, \mathbf{X_u},
+  \mathbf{u}). \]
+We can make a similarly justified choice for $q(\mathbf{u} | \Theta)$:
+\[ q(\mathbf{u} | \Theta) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) \]
+for some variational parameters $\mathbf{m} \in \mathbb{R}^{m}$ and $\mathbf{S}
+\in \mathbb{R}^{m \times m}$
+\cite{DBLP:conf/nips/ChengB17,DBLP:journals/jmlr/HensmanDS17,DBLP:conf/aaai/HoangHL17}.
+
+In order to have a reasonable way of calculating/approximating the ELBO (see
+Section \ref{vi_algs}), we need to have an approximating distribution for
+$\Theta$, but unfortunately all the papers in Table \ref{table:approximations}
+either fix it or treat it as a variational parameter. Hence we make our first
+assumption without justification from previous literature:
+\[ q(\Theta) = q(\zeta) \times q(\bm\lambda). \]
+As it is reasonable for $\bm\lambda$ to take any value in $\mathbb{R}^d$, we can
+approximate it simply as
+\[ q(\bm\lambda) = \mathcal{N}(\bm\lambda; \bm\mu, \bm\Sigma) \]
+for some variational parameters $\bm\mu \in \mathbb{R}^d$ and $\bm\Sigma \in
+\mathbb{R}^{d \times d}$. In contrast, as the covariance function must produce
+non-negative values, we want to restrict $\zeta$ to positive real numbers. At
+the same time, the distribution for $\zeta$ should have a flexible mean (i.e.,
+not be tied to zero, like in the exponential distribution) and tails that
+converge to zero as the value of the random variable moves away from the mean.
+We might want to support some right skew, but the distribution should be close
+to symmetric with at least some parameter values. This limits our choice of
+distributions quite significantly, and we decide to go with the gamma
+distribution as it is fairly flexible and commonly used
+\cite{hogg2018introduction}. We then define the probability density function of
+the gamma distribution as
+\[ q(\zeta) = \Gamma(\zeta; \alpha, \beta) =
+  \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta}, \]
+where $\alpha > 0$ and $\beta > 0$ are two parameters of the distribution, and
+$\Gamma(\cdot)$ is the gamma function. This gives us our list of variational
+parameters: $\mathbf{m}, \mathbf{S}, \bm\mu, \bm\Sigma, \alpha, \beta$.
+
+\subsection{Evidence Lower Bound}
+
+In this section we derive and simplify the ELBO for this (now fully specified)
+model. We begin with a lemma that will be useful during the derivation.
+
+\begin{lemma}
+  Let $\mathbf{x} \sim \mathcal{N}(\bm\mu, \bm\Sigma)$ be a random Gaussian
+  vector with $n$ elements, and let $f$ be its probability density function.
+  Then
+  \[ \mathbb{E}[\log f(\mathbf{x})] = -\frac{1}{2}\log |\bm\Sigma| + c, \]
+  where $c \in \mathbb{R}$ is a constant w.r.t. $\bm\mu$ and $\bm\Sigma$.
+\end{lemma}
+
+\begin{proof} % TODO: cite the matrix cookbook
+  Similarly to \eqref{eq:normal}, we can write
+  \[ \mathbb{E}[\log f(\mathbf{x})] = \mathbb{E}\left[ -\frac{1}{2}(\mathbf{x} -
+      \bm\mu)^T\bm\Sigma^{-1}(\mathbf{x} - \bm\mu) - \frac{1}{2}\log |\bm\Sigma|
+      - \frac{n}{2}\log 2\pi \right]. \]
+  Note that the term
+  \[ \mathbb{E}\left[ -\frac{n}{2}\log 2\pi \right] = -\frac{n}{2}\log 2\pi \]
+  can be absorbed into $c$. Now
+  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^T\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
+    \Tr(\bm\Sigma^{-1}\mathbf{M}) + \mathbf{c}^T\bm\Sigma^{-1}\mathbf{c}, \]
+  where $\mathbf{M} = \Var[\mathbf{x} - \bm\mu]$ and $\mathbf{c} =
+  \mathbb{E}[\mathbf{x} - \bm\mu]$ \cite{petersen2008matrix}. But
+  \[ \mathbf{c} = \mathbb{E}[\mathbf{x} - \bm\mu] = \mathbb{E}[\mathbf{x}] -
+    \bm\mu = \bm\mu - \bm\mu = \mathbf{0}, \]
+  so
+  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^T\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
+    \Tr(\bm\Sigma^{-1}\mathbf{M}) = \Tr(\mathbf{I}), \]
+  since
+  \[ \mathbf{M} = \Var[\mathbf{x} - \bm\mu] = \Var[\mathbf{x}] = \bm\Sigma. \]
+  Thus, since we have that
+  \[ \mathbb{E}\left[ -\frac{1}{2}\log |\bm\Sigma| \right] = -\frac{1}{2}\log
+    |\bm\Sigma|, \]
+  we get that
+  \[ \mathbb{E}[\log f(\mathbf{x})] = -\frac{1}{2}\log |\bm\Sigma| + c \]
+  for some $c \in \mathbb{R}$ that depends on $n$, but not on $\bm\mu$ or
+  $\bm\Sigma$.
+\end{proof}
+
+\subsection{Variational Inference Algorithms} \label{vi_algs}
+
+% TODO: will need to make this equation more precise, once I know what
+% approximation I want to use
+The typical way to optimise a quantity (the ELBO, in this case) involves
+computing its gradient \cite{blei2017variational}. Due to terms involving
+$\mathcal{D}$ that are computed by solving an MDP and do not resemble a typical
+probability distribution, we turn our attention to the \emph{black box
+  variational inference} \cite{DBLP:conf/aistats/RanganathGB14} paper that
+suggests a convenient trick:
+\[ \nabla_{\bm\nu} \mathcal{L} = \Eq[\nabla_{\bm\nu} \log \approximation
+  (\log \pfull - \log \approximation)]. \]
+With this trick in mind, we only need to evaluate $\log \pfull$ and take the
+gradient of $\log \approximation$. Following the same paper,
+$\nabla_{\bm\nu} \mathcal{L}$ then has an unbiased estimate
+\[ \nabla_{\bm\nu} \mathcal{L} \approx \frac{1}{S} \sum_{s=1}^S
+  \nabla_{\bm\nu} \log \approximationS (\log \pfullS - \log
+  \approximationS) \]
+computed by drawing $S$ Monte Carlo samples $(\Theta_s, \mathbf{u}_s,
+\mathbf{r}_s) \sim \approximation$.
 
 \section{Work Plan}
 
@@ -239,8 +499,6 @@ The PhD thesis behind maximum causal entropy \cite{Ziebart:2010:MPA:2049078}
 \subsection{Gaussian Processes}
 
 Simple introduction to GPs for time-series modelling \cite{Roberts2013GaussianPF}
-
-Spectral kernels \cite{pmlr-v28-wilson13}
 
 GPs over graphs instead of vectors (haven't actually read)
 \cite{DBLP:journals/corr/abs-1803-05776}
@@ -291,23 +549,45 @@ There are more, but I haven't gotten to them yet.
 
 Part IV on probabilities and inference \cite{MacKay:2002:ITI:971143}
 
-Normalizing flows \cite{DBLP:conf/icml/RezendeM15}
-
-Linear VI for GPs \cite{DBLP:conf/nips/ChengB17}
-
 Stochastic VI \cite{DBLP:journals/jmlr/HoffmanBWP13}
 
-Structured stochastic VI (haven't read) \cite{DBLP:conf/aistats/HoffmanB15}
+Structured stochastic VI \cite{DBLP:conf/aistats/HoffmanB15}
 
 Another review of recent advances \cite{DBLP:journals/corr/abs-1711-05597}
 
+Tighter ELBOs are not necessarily better \cite{DBLP:conf/icml/RainforthKLMIWT18}
+
+For details on Lebesgue's dominated convergence theorem \cite{cinlar_probability}
+
+Still looking for the relevant version of the theorem \cite{knill2017probability}
+
+Approximation as a multivariate Gaussian (haven't read) \cite{DBLP:journals/sac/TanN18}
+
+How black box VI can be even more black box \cite{li2016wild}
+
+Evaluating VI \cite{DBLP:conf/icml/YaoVSG18}
+
+\subsubsection{for GPs}
+
+Linear VI for GPs \cite{DBLP:conf/nips/ChengB17}
+
 Sparse VI for GP \cite{DBLP:journals/jmlr/HensmanDS17}
 
-Sparse GPs \cite{DBLP:journals/jmlr/CandelaR05}.
+Stochastic VI for sparse spectral GPs (no inducing points, so not that relevant) \cite{DBLP:conf/aaai/HoangHL17}
 
-Tighter ELBOs are not necessarily better \cite{DBLP:conf/icml/RainforthKLMIWT18}.
+Sparse GPs 2 \cite{DBLP:conf/nips/GalWR14}
 
-\cite{DBLP:books/lib/Bishop07}
+The 3 papers I need to focus on:
+
+SVI for sparse GPs \cite{DBLP:conf/uai/HensmanFL13}
+
+distributed 1 \cite{DBLP:conf/icml/HoangHL15}
+
+distributed 2 (haven't read) \cite{DBLP:conf/icml/PengZZQ17}
+
+The paper at the core of the 3 approaches (approximates posterior) \cite{DBLP:journals/jmlr/Titsias09}
+
+Generalized version? \cite{DBLP:conf/icml/ShethWK15}
 
 \bibliographystyle{plain}
 \bibliography{mprop}

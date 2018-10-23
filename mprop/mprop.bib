@@ -29,7 +29,7 @@ booktitle = "Proceedings of the MLIS-2014 collocated with The Twenty-Eighth AAAI
 } 
 
 @book{DBLP:books/lib/RasmussenW06,
-  author    = {Carl Edward Rasmussen and
+  author    = {Carl E. Rasmussen and
                Christopher K. I. Williams},
   title     = {Gaussian processes for machine learning},
   series    = {Adaptive computation and machine learning},
@@ -67,7 +67,8 @@ booktitle = "Proceedings of the MLIS-2014 collocated with The Twenty-Eighth AAAI
   publisher = 	 {PMLR},
   pdf = 	 {http://proceedings.mlr.press/v28/wilson13.pdf},
   url = 	 {http://proceedings.mlr.press/v28/wilson13.html},
-  abstract = 	 {Gaussian processes are rich distributions over functions, which provide a Bayesian nonparametric approach to smoothing and interpolation.  We introduce simple closed form kernels that can be used with Gaussian processes to discover patterns and enable extrapolation.  These kernels are derived by modelling a spectral density – the Fourier transform of a kernel – with a Gaussian mixture.  The proposed kernels support a broad class of stationary covariances, but Gaussian process inference remains simple and analytic.  We demonstrate the proposed kernels by discovering patterns and performing long range extrapolation on synthetic examples, as well as atmospheric CO2 trends and airline passenger data.  We also show that it is possible to reconstruct several popular standard covariances within our framework.}
+  abstract = 	 {Gaussian processes are rich distributions over functions, which provide a Bayesian nonparametric approach to smoothing and interpolation.  We introduce simple closed form kernels that can be used with Gaussian processes to discover patterns and enable extrapolation.  These kernels are derived by modelling a spectral density – the Fourier transform of a kernel – with a Gaussian mixture.  The proposed kernels support a broad class of stationary covariances, but Gaussian process inference remains simple and analytic.  We demonstrate the proposed kernels by discovering patterns and performing long range extrapolation on synthetic examples, as well as atmospheric CO2 trends and airline passenger data.  We also show that it is possible to reconstruct several popular standard covariances within our framework.},
+  note = {A class of kernels generated from a mixture of Gaussian spectral densities.}
 }
 
 @article{DBLP:journals/corr/abs-1803-05776,
@@ -528,7 +529,7 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   timestamp = {Wed, 26 Apr 2017 17:48:52 +0200},
   biburl    = {https://dblp.org/rec/bib/books/lib/Bishop07},
   bibsource = {dblp computer science bibliography, https://dblp.org},
-%  note = {Cited for the definition of KL divergence.}
+  note = {Describes VI and KL divergence.}
 }
 
 @book{MacKay:2002:ITI:971143,
@@ -553,7 +554,7 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
 }
 
 @inproceedings{DBLP:conf/icml/RezendeM15,
-  author    = {Danilo Jimenez Rezende and
+  author    = {Danilo J. Rezende and
                Shakir Mohamed},
   title     = {Variational Inference with Normalizing Flows},
   booktitle = {Proceedings of the 32nd International Conference on Machine Learning,
@@ -564,7 +565,8 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   url       = {http://jmlr.org/proceedings/papers/v37/rezende15.html},
   timestamp = {Wed, 29 Mar 2017 16:45:25 +0200},
   biburl    = {https://dblp.org/rec/bib/conf/icml/RezendeM15},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {How to use VI to approximate distorted posterior distributions.}
 }
 @proceedings{DBLP:conf/icml/2015,
   editor    = {Francis R. Bach and
@@ -674,7 +676,8 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   eprint    = {1711.05597},
   timestamp = {Mon, 13 Aug 2018 16:47:30 +0200},
   biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1711-05597},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {Another recent review, focusing more on comparing algorithms.}
 }
 
 @article{DBLP:journals/jmlr/HensmanDS17,
@@ -693,8 +696,8 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
 }
 
 @article{DBLP:journals/jmlr/CandelaR05,
-  author    = {Joaquin Qui{\~{n}}onero Candela and
-               Carl Edward Rasmussen},
+  author    = {Joaquin Qui{\~{n}}onero-Candela and
+               Carl E. Rasmussen},
   title     = {A Unifying View of Sparse Approximate {Gaussian} Process Regression},
   journal   = {Journal of Machine Learning Research},
   volume    = {6},
@@ -703,7 +706,8 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   url       = {http://www.jmlr.org/papers/v6/quinonero-candela05a.html},
   timestamp = {Wed, 21 Feb 2007 09:15:37 +0100},
   biburl    = {https://dblp.org/rec/bib/journals/jmlr/CandelaR05},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {A review of sparse approximations for GP regression.}
 }
 
 @inproceedings{DBLP:conf/uai/JinDAS17,
@@ -719,7 +723,8 @@ booktitle = {NATO Adv Stud Inst Ser F Comput Syst Sci}
   url       = {http://auai.org/uai2017/proceedings/papers/48.pdf},
   timestamp = {Thu, 07 Jun 2018 16:42:55 +0200},
   biburl    = {https://dblp.org/rec/bib/conf/uai/JinDAS17},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {This paper builds on top of the original GPIRL paper to add an extra layer of latent variables.}
 }
 @proceedings{DBLP:conf/uai/2017,
   editor    = {Gal Elidan and
@@ -1035,4 +1040,585 @@ year = {2017}
   timestamp = {Fri, 13 Jul 2018 14:57:00 +0200},
   biburl    = {https://dblp.org/rec/bib/conf/icml/2018},
   bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/aaai/HoangHL17,
+  author    = {Quang Minh Hoang and
+               Trong Nghia Hoang and
+               Kian Hsiang Low},
+  title     = {A Generalized Stochastic Variational {Bayesian} Hyperparameter Learning
+               Framework for Sparse Spectrum {Gaussian} Process Regression},
+  booktitle = {Proceedings of the Thirty-First {AAAI} Conference on Artificial Intelligence,
+               February 4-9, 2017, San Francisco, California, {USA.}},
+  pages     = {2007--2014},
+  year      = {2017},
+  crossref  = {DBLP:conf/aaai/2017},
+  url       = {http://aaai.org/ocs/index.php/AAAI/AAAI17/paper/view/14200},
+  timestamp = {Mon, 06 Mar 2017 11:36:24 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/aaai/HoangHL17},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/aaai/2017,
+  editor    = {Satinder P. Singh and
+               Shaul Markovitch},
+  title     = {Proceedings of the Thirty-First {AAAI} Conference on Artificial Intelligence,
+               February 4-9, 2017, San Francisco, California, {USA}},
+  publisher = {{AAAI} Press},
+  year      = {2017},
+  url       = {http://www.aaai.org/Library/AAAI/aaai17contents.php},
+  timestamp = {Mon, 06 Mar 2017 08:17:31 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/aaai/2017},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/aistats/RanganathGB14,
+  author    = {Rajesh Ranganath and
+               Sean Gerrish and
+               David M. Blei},
+  title     = {Black Box Variational Inference},
+  booktitle = {Proceedings of the Seventeenth International Conference on Artificial
+               Intelligence and Statistics, {AISTATS} 2014, Reykjavik, Iceland, April
+               22-25, 2014},
+  pages     = {814--822},
+  year      = {2014},
+  crossref  = {DBLP:conf/aistats/2014},
+  url       = {http://jmlr.org/proceedings/papers/v33/ranganath14.html},
+  timestamp = {Tue, 12 Jul 2016 21:51:16 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/aistats/RanganathGB14},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {A basis for any algorithm I can come up with.}
+}
+@proceedings{DBLP:conf/aistats/2014,
+  title     = {Proceedings of the Seventeenth International Conference on Artificial
+               Intelligence and Statistics, {AISTATS} 2014, Reykjavik, Iceland, April
+               22-25, 2014},
+  series    = {{JMLR} Workshop and Conference Proceedings},
+  volume    = {33},
+  publisher = {JMLR.org},
+  year      = {2014},
+  url       = {http://jmlr.org/proceedings/papers/v33/},
+  timestamp = {Tue, 12 Jul 2016 21:51:16 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/aistats/2014},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@book{cinlar_probability,
+  title={Probability and Stochastics},
+  author={{\c{C}}{\i}nlar, E.},
+  isbn={9780387878591},
+  lccn={2011921929},
+  series={Graduate Texts in Mathematics},
+  url={https://books.google.co.uk/books?id=7VtAx56r8CAC},
+  year={2011},
+  publisher={Springer New York}
+}
+
+% not actually second edition
+@book{knill2017probability,
+  title={Probability Theory and Stochastic Processes with Applications (Second Edition)},
+  author={Knill, O.},
+  isbn={9789813109490},
+  url={https://books.google.co.uk/books?id=AHSJDAEACAAJ},
+  year={2017},
+  publisher={World Scientific Publishing Company Pte Limited}
+}
+
+@article{DBLP:journals/sac/TanN18,
+  author    = {Linda S. L. Tan and
+               David J. Nott},
+  title     = {Gaussian variational approximation with sparse precision matrices},
+  journal   = {Statistics and Computing},
+  volume    = {28},
+  number    = {2},
+  pages     = {259--275},
+  year      = {2018},
+  url       = {https://doi.org/10.1007/s11222-017-9729-7},
+  doi       = {10.1007/s11222-017-9729-7},
+  timestamp = {Thu, 25 Jan 2018 11:13:07 +0100},
+  biburl    = {https://dblp.org/rec/bib/journals/sac/TanN18},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/nips/GalWR14,
+  author    = {Yarin Gal and
+               Mark van der Wilk and
+               Carl E. Rasmussen},
+  title     = {Distributed Variational Inference in Sparse {Gaussian} Process Regression
+               and Latent Variable Models},
+  booktitle = {Advances in Neural Information Processing Systems 27: Annual Conference
+               on Neural Information Processing Systems 2014, December 8-13 2014,
+               Montreal, Quebec, Canada},
+  pages     = {3257--3265},
+  year      = {2014},
+  crossref  = {DBLP:conf/nips/2014},
+  url       = {http://papers.nips.cc/paper/5593-distributed-variational-inference-in-sparse-gaussian-process-regression-and-latent-variable-models},
+  timestamp = {Wed, 10 Dec 2014 21:34:12 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/GalWR14},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/nips/2014,
+  editor    = {Zoubin Ghahramani and
+               Max Welling and
+               Corinna Cortes and
+               Neil D. Lawrence and
+               Kilian Q. Weinberger},
+  title     = {Advances in Neural Information Processing Systems 27: Annual Conference
+               on Neural Information Processing Systems 2014, December 8-13 2014,
+               Montreal, Quebec, Canada},
+  year      = {2014},
+  url       = {http://papers.nips.cc/book/advances-in-neural-information-processing-systems-27-2014},
+  timestamp = {Wed, 10 Dec 2014 21:34:12 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/2014},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/uai/HensmanFL13,
+  author    = {James Hensman and
+               Nicol{\'{o}} Fusi and
+               Neil D. Lawrence},
+  title     = {Gaussian Processes for Big Data},
+  booktitle = {Proceedings of the Twenty-Ninth Conference on Uncertainty in Artificial
+               Intelligence, {UAI} 2013, Bellevue, WA, USA, August 11-15, 2013},
+  year      = {2013},
+  crossref  = {DBLP:conf/uai/2013},
+  url       = {https://dslpitt.org/uai/displayArticleDetails.jsp?mmnu=1\&smnu=2\&article\_id=2389\&proceeding\_id=29},
+  timestamp = {Mon, 27 Jul 2015 18:21:36 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/uai/HensmanFL13},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/uai/2013,
+  editor    = {Ann Nicholson and
+               Padhraic Smyth},
+  title     = {Proceedings of the Twenty-Ninth Conference on Uncertainty in Artificial
+               Intelligence, {UAI} 2013, Bellevue, WA, USA, August 11-15, 2013},
+  publisher = {{AUAI} Press},
+  year      = {2013},
+  url       = {https://dslpitt.org/uai/displayArticles.jsp?mmnu=1\&smnu=1\&proceeding\_id=29},
+  timestamp = {Mon, 27 Jul 2015 18:21:36 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/uai/2013},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/icml/HoangHL15,
+  author    = {Trong Nghia Hoang and
+               Quang Minh Hoang and
+               Bryan Kian Hsiang Low},
+  title     = {A Unifying Framework of Anytime Sparse Gaussian Process Regression
+               Models with Stochastic Variational Inference for Big Data},
+  booktitle = {Proceedings of the 32nd International Conference on Machine Learning,
+               {ICML} 2015, Lille, France, 6-11 July 2015},
+  pages     = {569--578},
+  year      = {2015},
+  crossref  = {DBLP:conf/icml/2015},
+  url       = {http://jmlr.org/proceedings/papers/v37/hoang15.html},
+  timestamp = {Wed, 29 Mar 2017 16:45:25 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/HoangHL15},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/icml/2015,
+  editor    = {Francis R. Bach and
+               David M. Blei},
+  title     = {Proceedings of the 32nd International Conference on Machine Learning,
+               {ICML} 2015, Lille, France, 6-11 July 2015},
+  series    = {{JMLR} Workshop and Conference Proceedings},
+  volume    = {37},
+  publisher = {JMLR.org},
+  year      = {2015},
+  url       = {http://jmlr.org/proceedings/papers/v37/},
+  timestamp = {Wed, 29 Mar 2017 16:45:25 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/2015},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/icml/PengZZQ17,
+  author    = {Hao Peng and
+               Shandian Zhe and
+               Xiao Zhang and
+               Yuan Qi},
+  title     = {Asynchronous Distributed Variational {Gaussian} Process for Regression},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning,
+               {ICML} 2017, Sydney, NSW, Australia, 6-11 August 2017},
+  pages     = {2788--2797},
+  year      = {2017},
+  crossref  = {DBLP:conf/icml/2017},
+  url       = {http://proceedings.mlr.press/v70/peng17a.html},
+  timestamp = {Wed, 16 Aug 2017 11:08:55 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/PengZZQ17},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/icml/2017,
+  editor    = {Doina Precup and
+               Yee Whye Teh},
+  title     = {Proceedings of the 34th International Conference on Machine Learning,
+               {ICML} 2017, Sydney, NSW, Australia, 6-11 August 2017},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {70},
+  publisher = {{PMLR}},
+  year      = {2017},
+  url       = {http://jmlr.org/proceedings/papers/v70/},
+  timestamp = {Wed, 16 Aug 2017 11:08:55 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/2017},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:journals/jmlr/Titsias09,
+  author    = {Michalis K. Titsias},
+  title     = {Variational Learning of Inducing Variables in Sparse {Gaussian} Processes},
+  booktitle = {Proceedings of the Twelfth International Conference on Artificial
+               Intelligence and Statistics, {AISTATS} 2009, Clearwater Beach, Florida,
+               USA, April 16-18, 2009},
+  pages     = {567--574},
+  year      = {2009},
+  crossref  = {DBLP:conf/aistats/2009},
+  url       = {http://www.jmlr.org/proceedings/papers/v5/titsias09a.html},
+  timestamp = {Thu, 11 Sep 2014 07:28:56 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/jmlr/Titsias09},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/aistats/2009,
+  editor    = {David A. Van Dyk and
+               Max Welling},
+  title     = {Proceedings of the Twelfth International Conference on Artificial
+               Intelligence and Statistics, {AISTATS} 2009, Clearwater Beach, Florida,
+               USA, April 16-18, 2009},
+  series    = {{JMLR} Proceedings},
+  volume    = {5},
+  publisher = {JMLR.org},
+  year      = {2009},
+  url       = {http://jmlr.org/proceedings/papers/v5/},
+  timestamp = {Thu, 11 Sep 2014 07:28:56 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/aistats/2009},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{li2016wild,
+  title={Wild variational approximations},
+  author={Li, Yingzhen and Liu, Qiang},
+  booktitle={NIPS workshop on advances in approximate Bayesian inference},
+  year={2016}
+}
+
+@article{silverman1985some,
+  title={Some aspects of the spline smoothing approach to non-parametric regression curve fitting},
+  author={Silverman, Bernhard W},
+  journal={Journal of the Royal Statistical Society. Series B (Methodological)},
+  pages={1--52},
+  year={1985},
+  publisher={JSTOR},
+  note = {First paper about the subset of regressors approximation.}
+}
+
+@inproceedings{DBLP:conf/nips/WahbaLGXKK98,
+  author    = {Grace Wahba and
+               Xiwu Lin and
+               Fangyu Gao and
+               Dong Xiang and
+               Ronald Klein and
+               Barbara E. Klein},
+  title     = {The Bias-Variance Tradeoff and the Randomized {GACV}},
+  booktitle = {Advances in Neural Information Processing Systems 11, {[NIPS} Conference,
+               Denver, Colorado, USA, November 30 - December 5, 1998]},
+  pages     = {620--626},
+  year      = {1998},
+  crossref  = {DBLP:conf/nips/1998},
+  url       = {http://papers.nips.cc/paper/1483-the-bias-variance-tradeoff-and-the-randomized-gacv},
+  timestamp = {Wed, 23 Aug 2017 08:19:37 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/WahbaLGXKK98},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The second paper about the subset of regressors approximation.}
+}
+@proceedings{DBLP:conf/nips/1998,
+  editor    = {Michael J. Kearns and
+               Sara A. Solla and
+               David A. Cohn},
+  title     = {Advances in Neural Information Processing Systems 11, {[NIPS} Conference,
+               Denver, Colorado, USA, November 30 - December 5, 1998]},
+  publisher = {The {MIT} Press},
+  year      = {1999},
+  url       = {http://papers.nips.cc/book/advances-in-neural-information-processing-systems-11-1998},
+  isbn      = {0-262-11245-0},
+  timestamp = {Thu, 11 Dec 2014 17:34:08 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/1998},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/nips/SmolaB00,
+  author    = {Alexander J. Smola and
+               Peter L. Bartlett},
+  title     = {Sparse Greedy {Gaussian} Process Regression},
+  booktitle = {Advances in Neural Information Processing Systems 13, Papers from
+               Neural Information Processing Systems {(NIPS)} 2000, Denver, CO, {USA}},
+  pages     = {619--625},
+  year      = {2000},
+  crossref  = {DBLP:conf/nips/2000},
+  url       = {http://papers.nips.cc/paper/1880-sparse-greedy-gaussian-process-regression},
+  timestamp = {Thu, 07 May 2015 20:04:44 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/SmolaB00},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The third paper about the subset of regressors approximation.}
+}
+@proceedings{DBLP:conf/nips/2000,
+  editor    = {Todd K. Leen and
+               Thomas G. Dietterich and
+               Volker Tresp},
+  title     = {Advances in Neural Information Processing Systems 13, Papers from
+               Neural Information Processing Systems {(NIPS)} 2000, Denver, CO, {USA}},
+  publisher = {{MIT} Press},
+  year      = {2001},
+  url       = {http://papers.nips.cc/book/advances-in-neural-information-processing-systems-13-2000},
+  timestamp = {Thu, 11 Dec 2014 17:34:07 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/2000},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/aistats/SeegerWL03,
+  author    = {Matthias W. Seeger and
+               Christopher K. I. Williams and
+               Neil D. Lawrence},
+  title     = {Fast Forward Selection to Speed Up Sparse {Gaussian} Process Regression},
+  booktitle = {Proceedings of the Ninth International Workshop on Artificial Intelligence
+               and Statistics, {AISTATS} 2003, Key West, Florida, USA, January 3-6,
+               2003},
+  year      = {2003},
+  crossref  = {DBLP:conf/aistats/2003},
+  url       = {http://research.microsoft.com/en-us/um/cambridge/events/aistats2003/proceedings/176.pdf},
+  timestamp = {Wed, 06 May 2015 20:33:27 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/aistats/SeegerWL03},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The paper on the deterministic training conditional GP approximation.}
+}
+@proceedings{DBLP:conf/aistats/2003,
+  editor    = {Christopher M. Bishop and
+               Brendan J. Frey},
+  title     = {Proceedings of the Ninth International Workshop on Artificial Intelligence
+               and Statistics, {AISTATS} 2003, Key West, Florida, USA, January 3-6,
+               2003},
+  publisher = {Society for Artificial Intelligence and Statistics},
+  year      = {2003},
+  url       = {http://research.microsoft.com/conferences/aistats2003/},
+  isbn      = {0-9727358-0-1},
+  timestamp = {Wed, 06 May 2015 20:33:21 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/aistats/2003},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{DBLP:conf/nips/SnelsonG05,
+  author    = {Edward Snelson and
+               Zoubin Ghahramani},
+  title     = {Sparse {Gaussian} Processes using Pseudo-inputs},
+  booktitle = {Advances in Neural Information Processing Systems 18 [Neural Information
+               Processing Systems, {NIPS} 2005, December 5-8, 2005, Vancouver, British
+               Columbia, Canada]},
+  pages     = {1257--1264},
+  year      = {2005},
+  crossref  = {DBLP:conf/nips/2005},
+  url       = {http://papers.nips.cc/paper/2857-sparse-gaussian-processes-using-pseudo-inputs},
+  timestamp = {Thu, 11 Dec 2014 17:34:08 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/SnelsonG05},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The paper on the fully independent training conditional GP approximation.}
+}
+@proceedings{DBLP:conf/nips/2005,
+  title     = {Advances in Neural Information Processing Systems 18 [Neural Information
+               Processing Systems, {NIPS} 2005, December 5-8, 2005, Vancouver, British
+               Columbia, Canada]},
+  year      = {2005},
+  url       = {http://papers.nips.cc/book/advances-in-neural-information-processing-systems-18-2005},
+  timestamp = {Thu, 11 Dec 2014 17:34:08 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/2005},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{DBLP:journals/neco/Tresp00,
+  author    = {Volker Tresp},
+  title     = {A {Bayesian} Committee Machine},
+  journal   = {Neural Computation},
+  volume    = {12},
+  number    = {11},
+  pages     = {2719--2741},
+  year      = {2000},
+  url       = {https://doi.org/10.1162/089976600300014908},
+  doi       = {10.1162/089976600300014908},
+  timestamp = {Sun, 28 May 2017 13:18:59 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/neco/Tresp00},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The first paper on the partially independent training conditional approximation.}
+}
+
+@inproceedings{DBLP:conf/nips/SchwaighoferT02,
+  author    = {Anton Schwaighofer and
+               Volker Tresp},
+  title     = {Transductive and Inductive Methods for Approximate {Gaussian} Process
+               Regression},
+  booktitle = {Advances in Neural Information Processing Systems 15 [Neural Information
+               Processing Systems, {NIPS} 2002, December 9-14, 2002, Vancouver, British
+               Columbia, Canada]},
+  pages     = {953--960},
+  year      = {2002},
+  crossref  = {DBLP:conf/nips/2002},
+  url       = {http://papers.nips.cc/paper/2230-transductive-and-inductive-methods-for-approximate-gaussian-process-regression},
+  timestamp = {Thu, 11 Dec 2014 17:34:07 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/SchwaighoferT02},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The second paper on the partially independent training conditional approximation.}
+}
+@proceedings{DBLP:conf/nips/2002,
+  editor    = {Suzanna Becker and
+               Sebastian Thrun and
+               Klaus Obermayer},
+  title     = {Advances in Neural Information Processing Systems 15 [Neural Information
+               Processing Systems, {NIPS} 2002, December 9-14, 2002, Vancouver, British
+               Columbia, Canada]},
+  publisher = {{MIT} Press},
+  year      = {2003},
+  url       = {http://papers.nips.cc/book/advances-in-neural-information-processing-systems-15-2002},
+  isbn      = {0-262-02550-7},
+  timestamp = {Thu, 11 Dec 2014 17:34:07 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/2002},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{rasmussen2002reduced,
+  title={Reduced rank {Gaussian} process learning},
+  author={Rasmussen, Carl E.},
+  journal={Unpublished manuscript},
+  year={2002},
+  note = {The first time augmentation was suggested.}
+}
+
+@inproceedings{DBLP:conf/nips/WilliamsS00,
+  author    = {Christopher K. I. Williams and
+               Matthias W. Seeger},
+  title     = {Using the {Nystr{\"{o}}m} Method to Speed Up Kernel Machines},
+  booktitle = {Advances in Neural Information Processing Systems 13, Papers from
+               Neural Information Processing Systems {(NIPS)} 2000, Denver, CO, {USA}},
+  pages     = {682--688},
+  year      = {2000},
+  crossref  = {DBLP:conf/nips/2000},
+  url       = {http://papers.nips.cc/paper/1866-using-the-nystrom-method-to-speed-up-kernel-machines},
+  timestamp = {Wed, 06 May 2015 17:27:08 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/WilliamsS00},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The paper on Nystr{\"{o}}m approximation.}
+}
+@proceedings{DBLP:conf/nips/2000,
+  editor    = {Todd K. Leen and
+               Thomas G. Dietterich and
+               Volker Tresp},
+  title     = {Advances in Neural Information Processing Systems 13, Papers from
+               Neural Information Processing Systems {(NIPS)} 2000, Denver, CO, {USA}},
+  publisher = {{MIT} Press},
+  year      = {2001},
+  url       = {http://papers.nips.cc/book/advances-in-neural-information-processing-systems-13-2000},
+  timestamp = {Thu, 11 Dec 2014 17:34:07 +0100},
+  biburl    = {https://dblp.org/rec/bib/conf/nips/2000},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{DBLP:journals/jmlr/Tipping01,
+  author    = {Michael E. Tipping},
+  title     = {Sparse {Bayesian} Learning and the Relevance Vector Machine},
+  journal   = {Journal of Machine Learning Research},
+  volume    = {1},
+  pages     = {211--244},
+  year      = {2001},
+  url       = {http://www.ai.mit.edu/projects/jmlr/papers/volume1/tipping01a/abstract.html},
+  timestamp = {Tue, 12 Feb 2002 16:24:17 +0100},
+  biburl    = {https://dblp.org/rec/bib/journals/jmlr/Tipping01},
+  bibsource = {dblp computer science bibliography, https://dblp.org},
+  note = {The relevance vector machine as an approximation for a GP.}
+}
+
+@inproceedings{DBLP:conf/icml/ShethWK15,
+  author    = {Rishit Sheth and
+               Yuyang Wang and
+               Roni Khardon},
+  title     = {Sparse Variational Inference for Generalized {GP} Models},
+  booktitle = {Proceedings of the 32nd International Conference on Machine Learning,
+               {ICML} 2015, Lille, France, 6-11 July 2015},
+  pages     = {1302--1311},
+  year      = {2015},
+  crossref  = {DBLP:conf/icml/2015},
+  url       = {http://jmlr.org/proceedings/papers/v37/sheth15.html},
+  timestamp = {Wed, 29 Mar 2017 16:45:25 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/ShethWK15},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/icml/2015,
+  editor    = {Francis R. Bach and
+               David M. Blei},
+  title     = {Proceedings of the 32nd International Conference on Machine Learning,
+               {ICML} 2015, Lille, France, 6-11 July 2015},
+  series    = {{JMLR} Workshop and Conference Proceedings},
+  volume    = {37},
+  publisher = {JMLR.org},
+  year      = {2015},
+  url       = {http://jmlr.org/proceedings/papers/v37/},
+  timestamp = {Wed, 29 Mar 2017 16:45:25 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/2015},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@inproceedings{DBLP:conf/icml/YaoVSG18,
+  author    = {Yuling Yao and
+               Aki Vehtari and
+               Daniel Simpson and
+               Andrew Gelman},
+  title     = {Yes, but Did It Work?: Evaluating Variational Inference},
+  booktitle = {Proceedings of the 35th International Conference on Machine Learning,
+               {ICML} 2018, Stockholmsm{\"{a}}ssan, Stockholm, Sweden, July
+               10-15, 2018},
+  pages     = {5577--5586},
+  year      = {2018},
+  crossref  = {DBLP:conf/icml/2018},
+  url       = {http://proceedings.mlr.press/v80/yao18a.html},
+  timestamp = {Fri, 13 Jul 2018 14:58:25 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/YaoVSG18},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@proceedings{DBLP:conf/icml/2018,
+  editor    = {Jennifer G. Dy and
+               Andreas Krause},
+  title     = {Proceedings of the 35th International Conference on Machine Learning,
+               {ICML} 2018, Stockholmsm{\"{a}}ssan, Stockholm, Sweden, July
+               10-15, 2018},
+  series    = {{JMLR} Workshop and Conference Proceedings},
+  volume    = {80},
+  publisher = {JMLR.org},
+  year      = {2018},
+  url       = {http://proceedings.mlr.press/v80/},
+  timestamp = {Fri, 13 Jul 2018 14:57:00 +0200},
+  biburl    = {https://dblp.org/rec/bib/conf/icml/2018},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@book{neal2012bayesian,
+  title={Bayesian Learning for Neural Networks},
+  author={Neal, R.M.},
+  isbn={9781461207450},
+  lccn={96022079},
+  series={Lecture Notes in Statistics},
+  url={https://books.google.co.uk/books?id=LHHrBwAAQBAJ},
+  year={2012},
+  publisher={Springer New York},
+  note = {The first mention of automatic relevance detection/determination kernels.}
+}
+@book{hogg2018introduction,
+  title={Introduction to Mathematical Statistics},
+  author={Hogg, Robert V. and McKean, Joseph W. and Craig, Allen T.},
+  isbn={9780134686998},
+  lccn={2017033015},
+  series={What's New in Statistics Series},
+  url={https://books.google.co.uk/books?id=V1SzswEACAAJ},
+  year={2018},
+  publisher={Pearson},
+  note = {Used as a reference for the gamma distribution.}
+}
+@article{petersen2008matrix,
+  title={The matrix cookbook},
+  author={Petersen, Kaare Brandt and Pedersen, Michael Syskind and others},
+  journal={Technical University of Denmark},
+  volume={7},
+  number={15},
+  pages={510},
+  year={2008},
+  note = {Contains the formula for the expectation of a quadratic form.}
 }
