@@ -25,7 +25,6 @@
 \tableofcontents
 \newpage
 
-% TODO: table of notation?
 \newcommand{\Kuu}{\mathbf{K}_{\mathbf{u},\mathbf{u}}}
 \newcommand{\Krr}{\mathbf{K}_{\mathbf{r},\mathbf{r}}}
 \newcommand{\Kru}{\mathbf{K}_{\mathbf{r},\mathbf{u}}}
@@ -91,15 +90,17 @@ matches the actions in $\mathcal{D}$.
 The likelihood of the data can be written down as
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
 \begin{equation} \label{pDr}
-  p(\mathcal{D} | r) = \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) = \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q(s_{i,t}, a_{i,t}; r) - V(s_{i,t}; r) \right),
+  p(\mathcal{D} | r) = \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) = \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_r(s_{i,t}, a_{i,t}) - V_r(s_{i,t}) \right),
 \end{equation}
 where
-\[ Q(s_{i,t}, a_{i,t}; r) = r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
-  \mathcal{T}(s_{i,t}, a_{i,t}, s')V(s'; r), \]
-and $V(s; r)$ can be obtained by repeatedly applying the equation
+\begin{equation}
+  Q_r(s_{i,t}, a_{i,t}) = r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
+  \mathcal{T}(s_{i,t}, a_{i,t}, s')V_r(s'),
+\end{equation}
+and $V_r(s)$ can be obtained by repeatedly applying the equation
 \cite{supplementary_material}
-\[ V(s; r) = \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in
-      \mathcal{S}} \mathcal{T}(s, a, s')V(s'; r) \right). \]
+\[ V_r(s) = \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in
+      \mathcal{S}} \mathcal{T}(s, a, s')V_r(s') \right). \]
 However, a reward function learned by maximising this likelihood is not
 transferable to new situations
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}. One needs to model the
@@ -115,7 +116,7 @@ $k_{\Theta}$, which uses a set of hyperparameters $\Theta$. Covariance functions
 take two state feature vectors as input and quantify how similar the two states
 are, in a sense that we would expect them to have similar rewards.
 
-% TODO: import info from the MSci paper
+% TODO: positive definite
 As training a GP with $n$ data points has a time complexity of
 $\mathcal{O}(n^3)$ \cite{DBLP:books/lib/RasmussenW06}, numerous approximation
 methods have been suggested, many of which select a subset of data called
@@ -132,14 +133,15 @@ probability distribution can be factorised as
 Here $p(\mathbf{X_u})$ and $p(\Theta | \mathbf{X_u})$ are freely chosen priors,
 \begin{align}
   p(\mathbf{u} | \Theta, \mathbf{X_u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \nonumber \\
-                                       &= \frac{1}{(2\pi)^{n/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^T\Kuu^{-1}\mathbf{u} \right) \nonumber \\
-                                       &= \exp\left(-\frac{1}{2}\mathbf{u}^T\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right) \label{eq:normal}
-  \end{align} % TODO: introduce m here, deleting later introduction
-is the GP prior \cite{DBLP:books/lib/RasmussenW06}, the GP posterior is a
+                                       &= \frac{1}{(2\pi)^{m/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} \right) \nonumber \\
+                                       &= \exp\left(-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right) \label{eq:normal}
+\end{align}
+is the GP prior \cite{DBLP:books/lib/RasmussenW06}, where $m \in \mathbb{N}$ is
+the number of inducing points. The GP posterior is a
 multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11}
 \begin{equation} \label{eq:r}
   p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) =
-  \mathcal{N}(\mathbf{r}; \Kru^T\Kuu^{-1}\mathbf{u}, \Krr - \Kru^T\Kuu^{-1}\Kru),
+  \mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal\Kuu^{-1}\Kru),
 \end{equation}
 and $p(\mathcal{D} | r)$ is as in \eqref{pDr}. The matrices such as
 $\Kru$ are called \emph{covariance matrices} and are defined as
@@ -169,14 +171,14 @@ different the two distributions are and in this case can be defined as follows
 Since KL divergence is typically hard to compute, instead of minimising it, VI
 typically tries to maximise the \emph{evidence lower bound} (ELBO) defined as
 \cite{DBLP:books/lib/Bishop07,blei2017variational}
-\[
+\begin{equation} \label{eq:elbo}
   \begin{split}
     \mathcal{L}(\bm\nu) &= \Eq \left[ \log \frac{\pfull}{\approximation}
     \right] \\
     &= \iiint \approximation \log
     \frac{\pfull}{\approximation}\,d\Theta\,d\mathbf{u}\,d\mathbf{r}.
   \end{split}
-\]
+\end{equation}
 
 By considering full probability distributions instead of point estimates,---as
 long as the approximations are able to capture important features of the
@@ -202,11 +204,10 @@ approaches applied specifically to GP regression. Based on a recent review of
 scalable GPs \cite{DBLP:journals/corr/abs-1711-05597}, we will concentrate on
 \emph{stochastic variational sparse approximations}, as they have achieved
 modelling accuracy close to that of the full GP with no approximations, while
-providing a time complexity of $\mathcal{O}(m^3)$, where $m$ is the number of
-inducing points. Below we provide a short overview of various assumptions that
-have been used in approximating \emph{sparse} GPs (i.e., GPs that use inducing
-points), following on a paper by Qui\~{n}onero-Candela and Rasmussen
-\cite{DBLP:journals/jmlr/CandelaR05}.
+providing a time complexity of $\mathcal{O}(m^3)$. Below we provide a short
+overview of various assumptions that have been used in approximating
+\emph{sparse} GPs (i.e., GPs that use inducing points), following on a paper by
+Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
 
 \begin{description}
   \item [Subset of data ($\mathcal{O}(m^3)$)] is a baseline method of simply
@@ -246,8 +247,8 @@ points), following on a paper by Qui\~{n}onero-Candela and Rasmussen
 \end{description}
 
 \begin{table}
-  \centering % TODO: recheck and explain
-  \begin{tabular}{llllll} % Lower bound? Model? % TODO: comment about 'modelled' no longer needed
+  \centering % TODO: recheck
+  \begin{tabular}{llllll}
     \toprule
     Authors, year & Inducing points & Hyperparameters & Complexity \\
     \midrule
@@ -262,18 +263,19 @@ points), following on a paper by Qui\~{n}onero-Candela and Rasmussen
   \end{tabular}
   \caption{Summary of relevant VI approximations to GPs. For both inducing
     points and hyperparameters, 'fixed' means 'chosen before the algorithm
-    starts', 'modelled' means 'represented by a probability distribution', and
-    'variational' means 'included amongst the variational parameters'.
-    Hyperparameters $m_\alpha$ and $m_\beta$ refer to the number of bases used
-    to represent the GP's mean and covariance, respectively.}
+    starts' and 'variational' means 'included amongst the variational
+    parameters'. Hyperparameters $m_\alpha$ and $m_\beta$ refer to the number of
+    bases used to represent the GP's mean and covariance, respectively.}
   \label{table:approximations}
 \end{table}
 
+% TODO: expand on this
 Table \ref{table:approximations} further summarises some of the recent and/or
 influential GP approximation approaches that might be suitable for our GP IRL
 model. In order to derive a reliable ELBO, the inducing points should be either
-fixed or modelled, while hyperparameters cannot be variational (the reason will
-be explained in Section \ref{sec:proposed_approach}).
+fixed or modelled by a probability distribution (none of the approaches do
+that), while hyperparameters cannot be variational (the reason will be explained
+in Section \ref{sec:proposed_approach}).
 
 \begin{itemize}
 \item We would also like to avoid having the hyperparameters fixed, as learning
@@ -298,16 +300,17 @@ be explained in Section \ref{sec:proposed_approach}).
 \end{itemize}
 
 Since we expect $\posterior$ to be highly irregular, we would like our
-approximation to be capable of representing more than just a unimodal Gaussian.
-The primary way to represent complex posteriors in VI is by using
+approximation to be capable of representing a wide range of possible probability
+distributions. The primary way to represent complex posteriors in VI is by using
 \emph{normalising flows}, i.e., a collection of invertible
 functions---parametrised by additional variational parameters---that are applied
 to latent variables \cite{DBLP:conf/icml/RezendeM15}. Unfortunately, this
 parametrisation also means that the gradient of the joint probability
 distribution w.r.t. variational parameters $\nabla_{\bm\nu}\pfull$ is no
 longer zero, making an analytic expression for ELBO impossible using the usual
-methods. % TODO: not full (I think) + discuss the possibility of making it
-         % variational
+methods. While it may be possible to have an approximating distribution for the
+flow parameters, it is uncertain how such an algorithm would behave, as it
+would have to perform optimisation in a space with significantly more dimensions.
 
 \section{Proposed Approach} \label{sec:proposed_approach}
 
@@ -320,7 +323,7 @@ model the same. Namely, we set the covariance function to a version of the
 automatic relevance detection kernel
 \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
 \[ k_\Theta(\mathbf{x}_i, \mathbf{x}_j) = \zeta\exp\left(
-    -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^T\bm\Lambda(\mathbf{x}_i -
+    -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i -
     \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\Tr[\bm\Lambda] \right), \]
 where $\zeta$ is the overall ``scale'' factor for how similar or distant the
 states are,
@@ -335,8 +338,10 @@ and $\sigma^2$ is set to $10^{-2}/2$ (as the original paper noted that
 the value makes little difference to the performance of the algorithm
 \cite{DBLP:conf/nips/LevinePK11}). Thus we can set $\Theta = \{ \zeta,
 \bm\lambda \}$. Similarly, we keep the expression for the prior of $\Theta$:
-\[ p(\Theta | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr[\Kuu^{-2}] -
-    \sum_{i=1}^d \log(\lambda_i + 1) \right). \]
+\begin{equation} \label{eq:theta_prior}
+  p(\Theta | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr[\Kuu^{-2}] -
+    \sum_{i=1}^d \log(\lambda_i + 1) \right).
+\end{equation}
 
 Next, we can rewrite the posterior by using the chain rule and Bayes' theorem in
 order to get a better sense of what we are trying to approximate:
@@ -366,8 +371,10 @@ $p(\mathcal{D} | \Theta, \mathbf{X_u})$ and $p(\mathcal{D} | \Theta,
   p(\mathcal{D} | \Theta, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \Theta, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
 \end{align*}
 This suggests the following form for the approximation:
-\[ \approximation = q(\Theta) \times q(\mathbf{u} | \Theta) \times q(\mathbf{r}
-  | \Theta, \mathbf{u}). \]
+\begin{equation} \label{eq:approximation}
+  \approximation = q(\Theta) \times q(\mathbf{u} | \Theta) \times q(\mathbf{r}
+  | \Theta, \mathbf{u}).
+\end{equation}
 
 %where $q(\Theta)$ can be of the same form as $p(\Theta | \mathbf{X_u})$,
 %$q(\mathbf{u} | \Theta) = \mathcal{N}(\mathbf{0}, \bm\Sigma_{\mathbf{u}})$, and
@@ -383,10 +390,14 @@ may be investigated towards the end of the project, if time permits.
 First, as is common in the literature for applying VI to GPs
 \cite{DBLP:conf/nips/ChengB17,DBLP:conf/uai/HensmanFL13,DBLP:conf/icml/HoangHL15,DBLP:journals/jmlr/Titsias09},
 we simply set
-\[ q(\mathbf{r} | \Theta, \mathbf{u}) = p(\mathbf{r} | \Theta, \mathbf{X_u},
-  \mathbf{u}). \]
+\begin{equation}
+  q(\mathbf{r} | \Theta, \mathbf{u}) = p(\mathbf{r} | \Theta, \mathbf{X_u},
+  \mathbf{u}).
+\end{equation}
 We can make a similarly justified choice for $q(\mathbf{u} | \Theta)$:
-\[ q(\mathbf{u} | \Theta) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) \]
+\begin{equation}
+  q(\mathbf{u} | \Theta) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
+\end{equation}
 for some variational parameters $\mathbf{m} \in \mathbb{R}^{m}$ and $\mathbf{S}
 \in \mathbb{R}^{m \times m}$
 \cite{DBLP:conf/nips/ChengB17,DBLP:journals/jmlr/HensmanDS17,DBLP:conf/aaai/HoangHL17}.
@@ -396,10 +407,14 @@ Section \ref{vi_algs}), we need to have an approximating distribution for
 $\Theta$, but unfortunately all the papers in Table \ref{table:approximations}
 either fix it or treat it as a variational parameter. Hence we make our first
 assumption without justification from previous literature:
-\[ q(\Theta) = q(\zeta) \times q(\bm\lambda). \]
+\begin{equation} \label{eq:theta}
+  q(\Theta) = q(\zeta) \times q(\bm\lambda).
+\end{equation}
 As it is reasonable for $\bm\lambda$ to take any value in $\mathbb{R}^d$, we can
 approximate it simply as
-\[ q(\bm\lambda) = \mathcal{N}(\bm\lambda; \bm\mu, \bm\Sigma) \]
+\begin{equation} \label{eq:lambda}
+  q(\bm\lambda) = \mathcal{N}(\bm\lambda; \bm\mu, \bm\Sigma)
+\end{equation}
 for some variational parameters $\bm\mu \in \mathbb{R}^d$ and $\bm\Sigma \in
 \mathbb{R}^{d \times d}$. In contrast, as the covariance function must produce
 non-negative values, we want to restrict $\zeta$ to positive real numbers. At
@@ -412,18 +427,22 @@ distributions quite significantly, and we decide to go with the gamma
 distribution as it is fairly flexible and commonly used
 \cite{hogg2018introduction}. We then define the probability density function of
 the gamma distribution as
-\[ q(\zeta) = \Gamma(\zeta; \alpha, \beta) =
-  \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta}, \]
+\begin{equation} \label{eq:zeta}
+  q(\zeta) = \Gamma(\zeta; \alpha, \beta) =
+  \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta},
+\end{equation}
 where $\alpha > 0$ and $\beta > 0$ are two parameters of the distribution, and
-$\Gamma(\cdot)$ is the gamma function. This gives us our list of variational
-parameters: $\mathbf{m}, \mathbf{S}, \bm\mu, \bm\Sigma, \alpha, \beta$.
+$\Gamma(\cdot)$ is the gamma function. This gives us our vector of variational
+parameters $\bm\nu = (\mathbf{m}, \mathbf{S}, \bm\mu, \bm\Sigma, \alpha,
+\beta)^\intercal$.
 
 \subsection{Evidence Lower Bound}
 
 In this section we derive and simplify the ELBO for this (now fully specified)
 model. We begin with a lemma that will be useful during the derivation.
 
-\begin{lemma}
+% TODO: this is actually the entropy of the multivariate Gaussian
+\begin{lemma} \label{expectation_lemma}
   Let $\mathbf{x} \sim \mathcal{N}(\bm\mu, \bm\Sigma)$ be a random Gaussian
   vector with $n$ elements, and let $f$ be its probability density function.
   Then
@@ -431,22 +450,22 @@ model. We begin with a lemma that will be useful during the derivation.
   where $c \in \mathbb{R}$ is a constant w.r.t. $\bm\mu$ and $\bm\Sigma$.
 \end{lemma}
 
-\begin{proof} % TODO: cite the matrix cookbook
+\begin{proof}
   Similarly to \eqref{eq:normal}, we can write
   \[ \mathbb{E}[\log f(\mathbf{x})] = \mathbb{E}\left[ -\frac{1}{2}(\mathbf{x} -
-      \bm\mu)^T\bm\Sigma^{-1}(\mathbf{x} - \bm\mu) - \frac{1}{2}\log |\bm\Sigma|
+      \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{x} - \bm\mu) - \frac{1}{2}\log |\bm\Sigma|
       - \frac{n}{2}\log 2\pi \right]. \]
   Note that the term
   \[ \mathbb{E}\left[ -\frac{n}{2}\log 2\pi \right] = -\frac{n}{2}\log 2\pi \]
   can be absorbed into $c$. Now
-  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^T\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
-    \Tr(\bm\Sigma^{-1}\mathbf{M}) + \mathbf{c}^T\bm\Sigma^{-1}\mathbf{c}, \]
+  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
+    \Tr(\bm\Sigma^{-1}\mathbf{M}) + \mathbf{c}^\intercal\bm\Sigma^{-1}\mathbf{c}, \]
   where $\mathbf{M} = \Var[\mathbf{x} - \bm\mu]$ and $\mathbf{c} =
   \mathbb{E}[\mathbf{x} - \bm\mu]$ \cite{petersen2008matrix}. But
   \[ \mathbf{c} = \mathbb{E}[\mathbf{x} - \bm\mu] = \mathbb{E}[\mathbf{x}] -
     \bm\mu = \bm\mu - \bm\mu = \mathbf{0}, \]
   so
-  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^T\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
+  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
     \Tr(\bm\Sigma^{-1}\mathbf{M}) = \Tr(\mathbf{I}), \]
   since
   \[ \mathbf{M} = \Var[\mathbf{x} - \bm\mu] = \Var[\mathbf{x}] = \bm\Sigma. \]
@@ -458,6 +477,70 @@ model. We begin with a lemma that will be useful during the derivation.
   for some $c \in \mathbb{R}$ that depends on $n$, but not on $\bm\mu$ or
   $\bm\Sigma$.
 \end{proof}
+
+In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
+write\footnote{At this point, we will drop the subscript denoting which
+  variables the expectation is taken over. Also note that during the derivation
+  equality is taken to mean ``equality up to an additive constant''.}
+\[ \mathcal{L}(\bm\nu) = \mathbb{E}[\log\pfull] -
+  \mathbb{E}[\log\approximation]. \]
+By plugging in \eqref{full} and \eqref{eq:approximation}, we get
+\[
+  \begin{split}
+    \mathcal{L}(\bm\nu) &= \mathbb{E}[\log p(\mathbf{X_u}) + \log p(\Theta |
+    \mathbf{X_u}) + \log p(\mathbf{u} | \Theta, \mathbf{X_u}) + \log
+    p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) + \log p(\mathcal{D} | r)] \\
+    &- \mathbb{E}[\log q(\Theta) + \log q(\mathbf{u}) + \log q(\mathbf{r} |
+    \Theta, \mathbf{u})].
+  \end{split}
+\]
+Note that $\mathbb{E}[\log p(\mathbf{X_u})]$ is just a constant, so we can
+simply drop it from the expression. Furthermore, since $q(\mathbf{r} | \Theta,
+\mathbf{u}) = p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u})$, they cancel
+each other out. Then we can substitute various terms with their definitions to
+get
+\begin{alignat*}{3}
+  \mathcal{L}(\bm\nu) &= \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] -
+    \sum_{i=1}^d \log(\lambda_i + 1)\right] &&+ \mathbb{E}[\log
+  \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)] \\
+  &+ \mathbb{E}\left[ \sum_{i=1}^N \sum_{t=1}^T Q_r(s_{i,t}, a_{i,t}) -
+    V_r(s_{i,t}) \right] &&-
+  \mathbb{E}\left[\log\left(\frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha -
+        1}e^{-\beta\zeta}\right)\right] \\
+  &- \mathbb{E}[\log\mathcal{N}(\bm\lambda; \bm\mu, \bm\Sigma)] &&-
+  \mathbb{E}[\log\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})].
+\end{alignat*}
+Next, we can plug in the definitions of $\mathcal{N}(\mathbf{u}; \mathbf{0},
+\Kuu)$ and $Q_r$, distribute the log across the gamma distribution, and apply
+Lemma \ref{expectation_lemma} to the last two terms\footnote{We cannot
+  apply the lemma to $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0},
+  \Kuu)]$ because $\Kuu$ depends on $\Theta$.} to get
+\begin{align*}
+  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] -
+    \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
+  &+ \mathbb{E}\left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
+    \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right] \\
+  &+ \mathbb{E}\left[\sum_{i=1}^N \sum_{t=1}^T r(s_{i,t}) - V_r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
+    \mathcal{T}(s_{i,t}, a_{i,t}, s')V_r(s') \right] \\
+  &- \mathbb{E}[\alpha\log\beta - \log\Gamma(\alpha) + (\alpha - 1)\log\zeta - \beta\zeta].
+\end{align*}
+Now we can remove $\mathbb{E}\left[-\frac{m}{2}\log2\pi\right]$ since it is
+constant w.r.t. both the variational parameters and the variables the
+expectation is over, and move constants (or variational parameters) independent
+of the approximated variables outside of the expectations. Also note that
+$\mathbb{E}[\zeta] = \alpha/\beta$ and
+$\mathbb{E}[\log \zeta] = \psi(\alpha) - \log \beta$, where $\psi$ is the
+digamma function defined as $\psi(x) =
+\frac{d}{dx}\log\Gamma(x)$\cite{DBLP:books/lib/Bishop07}. This allows us to
+simplify the expression to the following:
+\begin{align*}
+  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| - \frac{1}{2} \mathbb{E}[\Tr[\Kuu^{-2}]] -
+    \sum_{i=1}^d \mathbb{E}[\log(\lambda_i + 1)] \\
+  &- \frac{1}{2}\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] - \frac{1}{2}\mathbb{E}[\log|\Kuu|] + \alpha - \log\beta + \log\Gamma(\alpha) + (1 - \alpha)\psi(\alpha) \\
+  &+ \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] - \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]. \\
+\end{align*}
+
+\subsection{Derivatives}
 
 \subsection{Variational Inference Algorithms} \label{vi_algs}
 
