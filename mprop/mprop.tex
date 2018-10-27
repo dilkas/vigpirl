@@ -28,16 +28,29 @@
 \newcommand{\Kuu}{\mathbf{K}_{\mathbf{u},\mathbf{u}}}
 \newcommand{\Krr}{\mathbf{K}_{\mathbf{r},\mathbf{r}}}
 \newcommand{\Kru}{\mathbf{K}_{\mathbf{r},\mathbf{u}}}
+
 \newcommand{\DKL}{D_{\mathrm{KL}}}
+
 \newcommand{\pfull}{p(\mathcal{D}, \Theta, \mathbf{X_u}, \mathbf{u}, \mathbf{r})}
 \newcommand{\pfullS}{p(\mathcal{D}, \Theta_s, \mathbf{X_u}, \mathbf{u}_s, \mathbf{r}_s)}
 \newcommand{\posterior}{p(\Theta, \mathbf{u}, \mathbf{r} | \mathcal{D}, \mathbf{X_u})}
 \newcommand{\approximation}{q_{\bm\nu}(\Theta, \mathbf{u}, \mathbf{r})}
 \newcommand{\approximationS}{q_{\bm\nu}(\Theta_s, \mathbf{u}_s, \mathbf{r}_s)}
+
 \newcommand{\Eq}{\mathbb{E}_{(\Theta, \mathbf{u}, \mathbf{r}) \sim \approximation}}
+
+\newcommand{\dm}{\frac{\partial}{\partial\mathbf{m}}}
+\newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
+\newcommand{\da}{\frac{\partial}{\partial\alpha}}
+\newcommand{\db}{\frac{\partial}{\partial\beta}}
 
 \section{Introduction}
 %briefly explain the context of the project problem
+% TODO: introduce a data set
+% TODO: example application for motivation (why would the world be better)
+% TODO: (possibly) a figure with my notation
+% TODO: explain the MDP Q/V stuff
+% TODO: introduce research questions
 
 Inverse reinforcement learning (IRL)---a problem proposed by Russell in 1998
 \cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a Markov
@@ -130,7 +143,7 @@ probability distribution can be factorised as
   | \Theta, \mathbf{X_u}) \times p(\mathbf{r} | \Theta, \mathbf{X_u},
   \mathbf{u}) \times p(\mathcal{D} | r).
 \end{equation}
-Here $p(\mathbf{X_u})$ and $p(\Theta | \mathbf{X_u})$ are freely chosen priors,
+Here $p(\mathbf{X_u})$ and $p(\Theta | \mathbf{X_u})$ are customisable priors,
 \begin{align}
   p(\mathbf{u} | \Theta, \mathbf{X_u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \nonumber \\
                                        &= \frac{1}{(2\pi)^{m/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} \right) \nonumber \\
@@ -150,6 +163,7 @@ where $\mathbf{x}_{\mathbf{r},i}$ and $\mathbf{x}_{\mathbf{u},j}$ denote feature
 vectors for the $i$th state in $\mathcal{S}$ and the $j$th state in
 $\mathbf{X_u}$, respectively \cite{DBLP:conf/uai/JinDAS17}.
 
+% TODO: where does the lower bound come from?
 Given this model, data $\mathcal{D}$, and inducing feature matrix
 $\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
 $\Theta$, inducing rewards $\mathbf{u}$, and the reward function $r$. While the
@@ -192,6 +206,8 @@ speed and model fit.
 %present an overview of relevant previous work including articles, books, and
 %existing software products. Critically evaluate the strengths and weaknesses of
 %the previous work.
+
+% TODO: review IRL papers, their weaknesses
 
 Variational inference has seen a recent increase in interest among academics,
 with different approaches focusing on different goals: better time complexity,
@@ -384,8 +400,8 @@ This suggests the following form for the approximation:
 \subsection{The Structure of the Approximating Distribution}
 
 At this point we are forced to make assumptions about the approximate posterior
-in order to arrive at an implementable solution. Ways to relax the assumptions
-may be investigated towards the end of the project, if time permits.
+in order to arrive at an implementable solution. Time permitting, ways to relax
+the assumptions may be investigated towards the end of the project.
 
 First, as is common in the literature for applying VI to GPs
 \cite{DBLP:conf/nips/ChengB17,DBLP:conf/uai/HensmanFL13,DBLP:conf/icml/HoangHL15,DBLP:journals/jmlr/Titsias09},
@@ -398,10 +414,11 @@ We can make a similarly justified choice for $q(\mathbf{u} | \Theta)$:
 \begin{equation}
   q(\mathbf{u} | \Theta) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
 \end{equation}
-for some variational parameters $\mathbf{m} \in \mathbb{R}^{m}$ and $\mathbf{S}
-\in \mathbb{R}^{m \times m}$
+for some variational parameters $\mathbf{m} \in \mathbb{R}^{m}$ and a positive
+semi-definite matrix $\mathbf{S} \in \mathbb{R}^{m \times m}$.
 \cite{DBLP:conf/nips/ChengB17,DBLP:journals/jmlr/HensmanDS17,DBLP:conf/aaai/HoangHL17}.
 
+% TODO: uncorrelated gammas instead of a multivariate Gaussian? review several options
 In order to have a reasonable way of calculating/approximating the ELBO (see
 Section \ref{vi_algs}), we need to have an approximating distribution for
 $\Theta$, but unfortunately all the papers in Table \ref{table:approximations}
@@ -437,50 +454,12 @@ parameters $\bm\nu = (\mathbf{m}, \mathbf{S}, \bm\mu, \bm\Sigma, \alpha,
 \beta)^\intercal$.
 
 \subsection{Evidence Lower Bound}
+% TODO: remove/add niu from/to q everywhere
 
 In this section we derive and simplify the ELBO for this (now fully specified)
-model. We begin with a lemma that will be useful during the derivation.
-
-% TODO: this is actually the entropy of the multivariate Gaussian
-\begin{lemma} \label{expectation_lemma}
-  Let $\mathbf{x} \sim \mathcal{N}(\bm\mu, \bm\Sigma)$ be a random Gaussian
-  vector with $n$ elements, and let $f$ be its probability density function.
-  Then
-  \[ \mathbb{E}[\log f(\mathbf{x})] = -\frac{1}{2}\log |\bm\Sigma| + c, \]
-  where $c \in \mathbb{R}$ is a constant w.r.t. $\bm\mu$ and $\bm\Sigma$.
-\end{lemma}
-
-\begin{proof}
-  Similarly to \eqref{eq:normal}, we can write
-  \[ \mathbb{E}[\log f(\mathbf{x})] = \mathbb{E}\left[ -\frac{1}{2}(\mathbf{x} -
-      \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{x} - \bm\mu) - \frac{1}{2}\log |\bm\Sigma|
-      - \frac{n}{2}\log 2\pi \right]. \]
-  Note that the term
-  \[ \mathbb{E}\left[ -\frac{n}{2}\log 2\pi \right] = -\frac{n}{2}\log 2\pi \]
-  can be absorbed into $c$. Now
-  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
-    \Tr(\bm\Sigma^{-1}\mathbf{M}) + \mathbf{c}^\intercal\bm\Sigma^{-1}\mathbf{c}, \]
-  where $\mathbf{M} = \Var[\mathbf{x} - \bm\mu]$ and $\mathbf{c} =
-  \mathbb{E}[\mathbf{x} - \bm\mu]$ \cite{petersen2008matrix}. But
-  \[ \mathbf{c} = \mathbb{E}[\mathbf{x} - \bm\mu] = \mathbb{E}[\mathbf{x}] -
-    \bm\mu = \bm\mu - \bm\mu = \mathbf{0}, \]
-  so
-  \[ \mathbb{E}[(\mathbf{x} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{x} - \bm\mu)] =
-    \Tr(\bm\Sigma^{-1}\mathbf{M}) = \Tr(\mathbf{I}), \]
-  since
-  \[ \mathbf{M} = \Var[\mathbf{x} - \bm\mu] = \Var[\mathbf{x}] = \bm\Sigma. \]
-  Thus, since we have that
-  \[ \mathbb{E}\left[ -\frac{1}{2}\log |\bm\Sigma| \right] = -\frac{1}{2}\log
-    |\bm\Sigma|, \]
-  we get that
-  \[ \mathbb{E}[\log f(\mathbf{x})] = -\frac{1}{2}\log |\bm\Sigma| + c \]
-  for some $c \in \mathbb{R}$ that depends on $n$, but not on $\bm\mu$ or
-  $\bm\Sigma$.
-\end{proof}
-
-In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
+model. In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
 write\footnote{At this point, we will drop the subscript denoting which
-  variables the expectation is taken over. Also note that during the derivation
+  variables the expectation is taken over. Also note that throughout the derivation
   equality is taken to mean ``equality up to an additive constant''.}
 \[ \mathcal{L}(\bm\nu) = \mathbb{E}[\log\pfull] -
   \mathbb{E}[\log\approximation]. \]
@@ -510,11 +489,13 @@ get
   &- \mathbb{E}[\log\mathcal{N}(\bm\lambda; \bm\mu, \bm\Sigma)] &&-
   \mathbb{E}[\log\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})].
 \end{alignat*}
-Next, we can plug in the definitions of $\mathcal{N}(\mathbf{u}; \mathbf{0},
-\Kuu)$ and $Q_r$, distribute the log across the gamma distribution, and apply
-Lemma \ref{expectation_lemma} to the last two terms\footnote{We cannot
-  apply the lemma to $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0},
-  \Kuu)]$ because $\Kuu$ depends on $\Theta$.} to get
+For the last two terms we can use the fact that, e.g., $-\mathbb{E}[\log
+\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})] = \frac{1}{2}\log|\mathbf{S}|$
+up to an additive constant that depends on the number of dimensions of the
+distribution \cite{DBLP:journals/tit/AhmedG89}. Note that we cannot use this
+fact for $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)]$  because
+$\Kuu$ depends on $\Theta$. We also plug in the definitions of
+$\mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)$ and $Q_r$, and get:
 \begin{align*}
   \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] -
     \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
@@ -530,8 +511,8 @@ expectation is over, and move constants (or variational parameters) independent
 of the approximated variables outside of the expectations. Also note that
 $\mathbb{E}[\zeta] = \alpha/\beta$ and
 $\mathbb{E}[\log \zeta] = \psi(\alpha) - \log \beta$, where $\psi$ is the
-digamma function defined as $\psi(x) =
-\frac{d}{dx}\log\Gamma(x)$\cite{DBLP:books/lib/Bishop07}. This allows us to
+digamma function defined as $\psi(x) = \frac{d}{dx}\log\Gamma(x)$
+\cite{DBLP:books/lib/Bishop07}. This allows us to
 simplify the expression to the following:
 \begin{align*}
   \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| - \frac{1}{2} \mathbb{E}[\Tr[\Kuu^{-2}]] -
@@ -541,9 +522,247 @@ simplify the expression to the following:
 \end{align*}
 
 \subsection{Derivatives}
+% TODO: integrals always mean "on all range"
+% TODO: some kind of intro
+
+\subsubsection{$\partial/\partial\mathbf{m}$}
+
+We begin by removing terms independent of $\mathbf{m}$:
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\mathbf{m}} =
+    &-\frac{1}{2}\dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] \\
+    &+ \dm\left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
+      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
+      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]\right],
+  \end{split}
+\]
+where
+\begin{equation} \label{eq:1}
+\begin{split} % TODO: dominated convergence theorem
+    \dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] &=
+    \dm\iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\mathcal{N}(\mathbf{u};
+    \mathbf{m},
+    \mathbf{S})q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda \\
+    &= \iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{m}} q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda.
+  \end{split}
+\end{equation}
+$\frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{m}}$ can be calculated as
+follows: % TODO: by the cookbook
+\[
+  \begin{split}
+    \frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial\mathbf{m}} &=
+    \mathcal{N}(\mathbf{u}; \mathbf{m},
+    \mathbf{S})\dm\left[-\frac{1}{2}(\mathbf{u} -
+      \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right] \\
+    &= \mathcal{N}(\mathbf{u}; \mathbf{m},
+    \mathbf{S})\left(-\frac{1}{2}\right)(\mathbf{S}^{-1} +
+    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})\dm[\mathbf{u} -
+    \mathbf{m}] \\
+    &= \mathcal{N}(\mathbf{u}; \mathbf{m},
+    \mathbf{S})\frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u}
+    - \mathbf{m}).
+  \end{split}
+\]
+Plugging it back to \eqref{eq:1} gives:
+\[
+  \begin{split}
+    \dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] &=
+    \iiint(\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u})\frac{1}{2}(\mathbf{S}^{-1} +
+    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})\mathcal{N}(\mathbf{u};
+    \mathbf{m},
+    \mathbf{S})q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda \\
+    &=
+    \frac{1}{2}\mathbb{E}[(\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u})(\mathbf{S}^{-1}
+    + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})]
+  \end{split}
+\]
+
+\subsubsection{$\partial/\partial\mathbf{S}$}
+
+Similarly to the previous section,
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
+    \frac{1}{2}\dS[\log|\mathbf{S}|]
+    -\frac{1}{2}\dS\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] \\
+    &+ \dS\left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
+      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
+      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]\right],
+  \end{split}
+\]
+where % TODO: cite cookbook
+\[ \dS[\log|\mathbf{S}|] =
+  \frac{1}{|\mathbf{S}|}\frac{\partial|\mathbf{S}|}{\partial \mathbf{S}} =
+  \frac{1}{|\mathbf{S}|}|\mathbf{S}|\mathbf{S}^{-\intercal} =
+  \mathbf{S}^{-\intercal} \]
+and
+\[
+  \begin{split}
+    \dS\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] &=
+    \dS\iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\mathcal{N}(\mathbf{u};
+    \mathbf{m},
+    \mathbf{S})q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda \\
+    &=
+    \iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\frac{\partial \mathcal{N}(\mathbf{u};
+      \mathbf{m}, \mathbf{S})}{\partial \mathbf{S}}q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda.
+  \end{split}
+\]
+$\frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{S}}$ can be simplified to
+\[
+  \begin{split}
+    \frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{S}} &=
+    \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\exp \left( -\frac{1}{2}
+        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+        \mathbf{m})\right)\right] \\
+    &= \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\right]\exp \left( -\frac{1}{2}
+        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+        \mathbf{m})\right) \\
+      &+ \frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\dS\left[\exp\left( -\frac{1}{2}
+        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+        \mathbf{m})\right)\right] \\
+    &=
+    \frac{1}{(2\pi)^{m/2}}\dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right]\exp
+    \left( -\frac{1}{2} (\mathbf{u} -
+      \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right) \\
+    &- \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})\dS[(\mathbf{u}
+    - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})], \\
+  \end{split}
+\]
+where
+\[ \dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right] =
+  -\frac{1}{2}|\mathbf{S}|^{-3/2}\frac{\partial |\mathbf{S}|}{\partial \mathbf{S}} =
+  -\frac{1}{2}|\mathbf{S}|^{-3/2}|\mathbf{S}|\mathbf{S}^{-\intercal} =
+  -\frac{1}{2|\mathbf{S}|^{1/2}}\mathbf{S}^{-\intercal} \]
+and
+\[ \dS[(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+  \mathbf{m})] = -\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
+  \mathbf{m})^\intercal\mathbf{S}^{-\intercal} \]
+according to \textit{The Matrix Cookbook} \cite{petersen2008matrix}. Plugging
+the two expression back in gives
+\[ \frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial
+    \mathbf{S}} = -\frac{1}{2}\mathbf{S}^{-\intercal}\mathcal{N}(\mathbf{u};
+  \mathbf{m}, \mathbf{S}) + \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m},
+  \mathbf{S})\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
+  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}. \]
+Thus
+\[ \dS\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] =
+  \frac{1}{2}\mathbb{E}[(\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u})(\mathbf{S}^{-\intercal}(\mathbf{u}
+  - \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
+  \mathbf{S}^{-\intercal})]. \]
+
+\subsubsection{$\partial/\partial\alpha$}
+
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\alpha} = &-
+    \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-2}]] -
+    \frac{1}{2}\da\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] -
+    \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
+    &+ \da [\alpha + \log\Gamma(\alpha) + (1 -
+      \alpha)\psi(\alpha)] \\
+    &+ \da \left[ \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
+      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
+      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \right].
+  \end{split}
+\]
+The first three terms can all be treated in the same way, since all three
+expectations contain expressions without $\alpha$, but $\alpha$ appears in
+$q(\zeta)$. Thus we can work with an abstract function as follows:
+\[
+  \begin{split}
+    \da\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \da \iiint f(k_\Theta, \mathbf{u})
+    \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} e^{-\beta\zeta}
+    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
+    &= \iiint f(k_\Theta, \mathbf{u})
+    \da \left[ \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} \right]
+      e^{-\beta\zeta}
+    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u}.
+  \end{split}
+\]
+Then
+\[
+  \begin{split}
+    \da \left[ \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} \right] &=
+    \frac{\da[\beta^\alpha\zeta^{\alpha - 1}]\Gamma(\alpha) -
+      \beta^\alpha\zeta^{\alpha - 1}\Gamma'(\alpha)}{(\Gamma(\alpha))^2} \\
+    &= \frac{\beta^\alpha\zeta^{\alpha - 1}\da[\alpha\log\beta + (\alpha -
+      1)\log\zeta]\Gamma(\alpha) - \beta^\alpha\zeta^{\alpha -
+        1}\Gamma'(\alpha)}{(\Gamma(\alpha))^2} \\
+    &= \frac{\beta^\alpha\zeta^{\alpha - 1}(\log\beta + \log\zeta)\Gamma(\alpha)
+      - \beta^\alpha\zeta^{\alpha - 1}\Gamma'(\alpha)}{(\Gamma(\alpha))^2} \\
+    &= \frac{\beta^\alpha\zeta^{\alpha - 1}}{\Gamma(\alpha)}\left(\log\beta +
+    \log\zeta - \frac{\Gamma'(\alpha)}{\Gamma(\alpha)}\right),
+  \end{split}
+\]
+which means that
+\[
+  \begin{split}
+    \da\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \iiint f(k_\Theta, \mathbf{u})
+    \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta} \left(
+      \log\beta + \log\zeta - \frac{\Gamma'(\alpha)}{\Gamma(\alpha)} \right)
+    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
+    &= \iiint f(k_\Theta, \mathbf{u}) \left(\log\beta + \log\zeta -
+      \frac{\Gamma'(\alpha)}{\Gamma(\alpha)} \right) q(\zeta) q(\bm\lambda)
+    q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
+    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{u}) \left(\log\beta + \log\zeta -
+        \frac{\Gamma'(\alpha)}{\Gamma(\alpha)} \right) \right] \\
+    &= \left( \log\beta - \frac{\Gamma'(\alpha)}{\Gamma(\alpha)}
+    \right)\mathbb{E}[f(k_\Theta, \mathbf{u})] + \mathbb{E}[f(k_\Theta,
+    \mathbf{u})\log\zeta].
+  \end{split}
+\]
+Next,
+\[ \da [\alpha + \log\Gamma(\alpha) + (1 - \alpha)\psi(\alpha)] =
+  1 + \psi(\alpha) - \psi(\alpha) + (1 - \alpha)\psi'(\alpha) = 1 + (1 -
+  \alpha)\psi'(\alpha). \]
+
+\subsubsection{$\partial/\partial\beta$}
+
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\beta} = &-
+    \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-2}]] -
+    \frac{1}{2}\db\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] -
+    \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] - \db[\log\beta] \\
+    &+ \db \left[ \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
+      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
+      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \right].
+  \end{split}
+\]
+Similarly to the previous section, we can deal with three cases at once:
+\[
+  \begin{split}
+    \db\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \db \iiint f(k_\Theta, \mathbf{u})
+    \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} e^{-\beta\zeta}
+    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
+    &= \iiint f(k_\Theta, \mathbf{u}) \frac{\zeta^{\alpha - 1}}{\Gamma(\alpha)}
+    \db [\beta^\alpha e^{-\beta\zeta}] q(\bm\lambda)
+    q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u}.
+  \end{split}
+\]
+Since
+\[ \db [\beta^\alpha e^{-\beta\zeta}] = \alpha\beta^{\alpha - 1}e^{-\beta\zeta}
+  - \beta^\alpha e^{-\beta\zeta}\beta = \beta^\alpha
+  e^{-\beta\zeta} \left( \frac{\alpha}{\beta} - \beta \right), \]
+we have that
+\[
+  \begin{split}
+    \db\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \iiint f(k_\Theta, \mathbf{u})
+    \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta} \left(
+      \frac{\alpha}{\beta} - \beta \right)  q(\bm\lambda)
+    q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
+    &= \iiint f(k_\Theta, \mathbf{u}) \left(\frac{\alpha}{\beta} - \beta \right)
+    q(\zeta)q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
+    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{u}) \left( \frac{\alpha}{\beta} -
+        \beta \right) \right] =  \left( \frac{\alpha}{\beta} - \beta \right)
+    \mathbb{E} [f(k_\Theta, \mathbf{u})].
+  \end{split}
+\]
 
 \subsection{Variational Inference Algorithms} \label{vi_algs}
 
+% TODO: integrate this into the previous subsection
 % TODO: will need to make this equation more precise, once I know what
 % approximation I want to use
 The typical way to optimise a quantity (the ELBO, in this case) involves
