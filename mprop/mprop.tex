@@ -497,8 +497,7 @@ fact for $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)]$  because
 $\Kuu$ depends on $\Theta$. We also plug in the definitions of
 $\mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)$ and $Q_r$, and get:
 \begin{align*}
-  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] -
-    \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
+  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] - \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
   &+ \mathbb{E}\left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
     \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right] \\
   &+ \mathbb{E}\left[\sum_{i=1}^N \sum_{t=1}^T r(s_{i,t}) - V_r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
@@ -512,13 +511,26 @@ of the approximated variables outside of the expectations. Also note that
 $\mathbb{E}[\zeta] = \alpha/\beta$ and
 $\mathbb{E}[\log \zeta] = \psi(\alpha) - \log \beta$, where $\psi$ is the
 digamma function defined as $\psi(x) = \frac{d}{dx}\log\Gamma(x)$
-\cite{DBLP:books/lib/Bishop07}. This allows us to
-simplify the expression to the following:
+\cite{DBLP:books/lib/Bishop07}. Finally, we can simplify
+$\sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t})$ by choosing to represent all visited states
+in $\mathbf{r} = (r_1, \dots, r_k)^\intercal$, and defining a new vector
+$\mathbf{t} = (t_1, \dots, t_k)^\intercal$, where $t_i$ is the number of times
+the state associated with the reward $r_i$ has been visited across all
+demonstrations. Then
+\begin{align*}
+\mathbb{E} \left[ \sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t}) \right] &=
+    \mathbb{E}[\mathbf{t}^\intercal\mathbf{r}] =
+    \mathbf{t}^\intercal\mathbb{E}[\mathbf{r}] =
+    \mathbf{t}^\intercal\mathbb{E}_{(\Theta, \mathbf{u}) \sim
+  q(\Theta)q(\mathbf{u})}[\Kru^\intercal\Kuu^{-1}\mathbf{u}] \\
+  &= \mathbf{t}^\intercal\mathbb{E}_{\Theta \sim q(\Theta)}[\Kru^\intercal\Kuu^{-1}\mathbf{m}] = \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}.
+\end{align*}
+This allows us to simplify $\mathcal{L}(\bm\nu)$ to the following:
 \begin{align*}
   \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| - \frac{1}{2} \mathbb{E}[\Tr[\Kuu^{-2}]] -
     \sum_{i=1}^d \mathbb{E}[\log(\lambda_i + 1)] \\
   &- \frac{1}{2}\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] - \frac{1}{2}\mathbb{E}[\log|\Kuu|] + \alpha - \log\beta + \log\Gamma(\alpha) + (1 - \alpha)\psi(\alpha) \\
-  &+ \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] - \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]. \\
+  &+ \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} - \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]. \\
 \end{align*}
 
 \subsection{Derivatives}
@@ -531,10 +543,11 @@ We begin by removing terms independent of $\mathbf{m}$:
 \[
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\mathbf{m}} =
-    &-\frac{1}{2}\dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] \\
-    &+ \dm\left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
-      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
-      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]\right],
+    &-\frac{1}{2}\dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}]
+    + \dm[\mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}] \\
+    &- \sum_{i=1}^N \sum_{t=1}^T \dm\mathbb{E}[V_r(s_{i,t})] -
+      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
+      s')\dm\mathbb{E}[V_r(s')],
   \end{split}
 \]
 where
@@ -586,9 +599,9 @@ Similarly to the previous section,
     \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
     \frac{1}{2}\dS[\log|\mathbf{S}|]
     -\frac{1}{2}\dS\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] \\
-    &+ \dS\left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
-      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
-      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]\right],
+    &- \dS \left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] -
+      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
+      s')\mathbb{E}[V_r(s')] \right],
   \end{split}
 \]
 where % TODO: cite cookbook
@@ -659,14 +672,14 @@ Thus
     \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-2}]] -
     \frac{1}{2}\da\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] -
     \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
-    &+ \da [\alpha + \log\Gamma(\alpha) + (1 -
-      \alpha)\psi(\alpha)] \\
-    &+ \da \left[ \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
-      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
-      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \right].
+    &+ \mathbf{t}^\intercal\da\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} +
+    \da [\alpha + \log\Gamma(\alpha) + (1 - \alpha)\psi(\alpha)] \\
+      &- \da \left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] -
+        \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
+        s')\mathbb{E}[V_r(s')] \right].
   \end{split}
 \]
-The first three terms can all be treated in the same way, since all three
+The first four terms can all be treated in the same way, since all four
 expectations contain expressions without $\alpha$, but $\alpha$ appears in
 $q(\zeta)$. Thus we can work with an abstract function as follows:
 \[
@@ -724,13 +737,14 @@ Next,
     \frac{\partial\mathcal{L}}{\partial\beta} = &-
     \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-2}]] -
     \frac{1}{2}\db\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] -
-    \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] - \db[\log\beta] \\
-    &+ \db \left[ \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[r(s_{i,t})] -
-      \mathbb{E}[V_r(s_{i,t})] + \gamma\sum_{s' \in \mathcal{S}}
+    \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] +
+    \mathbf{t}^\intercal\db\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} \\
+    &- \db[\log\beta] - \db \left[\sum_{i=1}^N \sum_{t=1}^T
+      \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in \mathcal{S}}
       \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \right].
   \end{split}
 \]
-Similarly to the previous section, we can deal with three cases at once:
+Similarly to the previous section, we can deal with four cases at once:
 \[
   \begin{split}
     \db\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \db \iiint f(k_\Theta, \mathbf{u})
