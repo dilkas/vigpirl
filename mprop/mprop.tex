@@ -31,13 +31,13 @@
 
 \newcommand{\DKL}{D_{\mathrm{KL}}}
 
-\newcommand{\pfull}{p(\mathcal{D}, \Theta, \mathbf{X_u}, \mathbf{u}, \mathbf{r})}
-\newcommand{\pfullS}{p(\mathcal{D}, \Theta_s, \mathbf{X_u}, \mathbf{u}_s, \mathbf{r}_s)}
-\newcommand{\posterior}{p(\Theta, \mathbf{u}, \mathbf{r} | \mathcal{D}, \mathbf{X_u})}
-\newcommand{\approximation}{q_{\bm\nu}(\Theta, \mathbf{u}, \mathbf{r})}
-\newcommand{\approximationS}{q_{\bm\nu}(\Theta_s, \mathbf{u}_s, \mathbf{r}_s)}
+\newcommand{\pfull}{p(\mathcal{D}, \bm\lambda, \mathbf{X_u}, \mathbf{u}, \mathbf{r})}
+\newcommand{\pfullS}{p(\mathcal{D}, \bm\lambda_s, \mathbf{X_u}, \mathbf{u}_s, \mathbf{r}_s)}
+\newcommand{\posterior}{p(\bm\lambda, \mathbf{u}, \mathbf{r} | \mathcal{D}, \mathbf{X_u})}
+\newcommand{\approximation}{q_{\bm\nu}(\bm\lambda, \mathbf{u}, \mathbf{r})}
+\newcommand{\approximationS}{q_{\bm\nu}(\bm\lambda_s, \mathbf{u}_s, \mathbf{r}_s)}
 
-\newcommand{\Eq}{\mathbb{E}_{(\Theta, \mathbf{u}, \mathbf{r}) \sim \approximation}}
+\newcommand{\Eq}{\mathbb{E}_{(\bm\lambda, \mathbf{u}, \mathbf{r}) \sim \approximation}}
 
 \newcommand{\dm}{\frac{\partial}{\partial\mathbf{m}}}
 \newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
@@ -48,8 +48,6 @@
 %briefly explain the context of the project problem
 % TODO: introduce a data set
 % TODO: example application for motivation (why would the world be better)
-% TODO: (possibly) a figure with my notation
-% TODO: explain the MDP Q/V stuff
 % TODO: introduce research questions
 
 Inverse reinforcement learning (IRL)---a problem proposed by Russell in 1998
@@ -96,24 +94,29 @@ state-action pairs representing the actions taken by the expert during a
 particular recorded session. Each state is also characterised by a number of
 features. The goal of IRL is then to find $r$ such that the optimal policy under
 $r$
-\[ \pi^* = \argmax_\pi \mathbb{E}\left[ \sum_{t=0}^\infty \gamma^t r(s_t) | \pi
-  \right] \]
+\[ \pi^* = \argmax_\pi \mathbb{E}\left[ \left. \sum_{t=0}^\infty \gamma^t r(s_t)
+    \right| \pi \right] \]
 matches the actions in $\mathcal{D}$.
 
-The likelihood of the data can be written down as
-\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
-\begin{equation} \label{pDr}
-  p(\mathcal{D} | r) = \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) = \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_r(s_{i,t}, a_{i,t}) - V_r(s_{i,t}) \right),
-\end{equation}
+Following previous work on GP IRL
+\cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}, we use a maximum
+entropy IRL model \cite{ziebart2008maximum}, under which we have that
+\[ P(a | s) \propto \exp(Q_r(s, a)), \]
 where
 \begin{equation}
-  Q_r(s_{i,t}, a_{i,t}) = r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
-  \mathcal{T}(s_{i,t}, a_{i,t}, s')V_r(s'),
+  Q_r(s, a) = r(s) + \gamma\sum_{s' \in \mathcal{S}}
+  \mathcal{T}(s, a, s')V_r(s'),
 \end{equation}
-and $V_r(s)$ can be obtained by repeatedly applying the equation
-\cite{supplementary_material}
+and $V_r(s)$ is a ``soft'' version of the Bellman backup operator, which can be
+obtained by repeatedly applying the following equation until convergence:
+\cite{DBLP:conf/nips/LevinePK11,supplementary_material}
 \[ V_r(s) = \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in
       \mathcal{S}} \mathcal{T}(s, a, s')V_r(s') \right). \]
+The likelihood of the data can then be written down as
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
+\begin{equation} \label{pDr}
+  p(\mathcal{D} | r) = \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) = \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_r(s_{i,t}, a_{i,t}) - V_r(s_{i,t}) \right).
+\end{equation}
 However, a reward function learned by maximising this likelihood is not
 transferable to new situations
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}. One needs to model the
@@ -124,12 +127,12 @@ One way to model rewards without assumptions of linearity is with a
 \emph{Gaussian process} (GP). A GP is a collection of random variables, any
 finite combination of which has a joint Gaussian distribution
 \cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0,
-k_{\Theta})$ to say that $r$ is a GP with mean $0$ and covariance function
-$k_{\Theta}$, which uses a set of hyperparameters $\Theta$. Covariance functions
-take two state feature vectors as input and quantify how similar the two states
-are, in a sense that we would expect them to have similar rewards.
+k_{\bm\lambda})$ to say that $r$ is a GP with mean $0$ and covariance function
+$k_{\bm\lambda}$, which uses a vector of hyperparameters $\bm\lambda$.
+Covariance functions take two state feature vectors as input and quantify how
+similar the two states are, in a sense that we would expect them to have similar
+rewards.
 
-% TODO: positive definite
 As training a GP with $n$ data points has a time complexity of
 $\mathcal{O}(n^3)$ \cite{DBLP:books/lib/RasmussenW06}, numerous approximation
 methods have been suggested, many of which select a subset of data called
@@ -139,13 +142,13 @@ features at inducing states, $\mathbf{u}$ the rewards at those states, and
 $\mathbf{r}$ a vector with $r(\mathcal{S})$ as elements. Then the full joint
 probability distribution can be factorised as
 \begin{equation} \label{full}
-  \pfull = p(\mathbf{X_u}) \times p(\Theta | \mathbf{X_u}) \times p(\mathbf{u}
-  | \Theta, \mathbf{X_u}) \times p(\mathbf{r} | \Theta, \mathbf{X_u},
+  \pfull = p(\mathbf{X_u}) \times p(\bm\lambda | \mathbf{X_u}) \times p(\mathbf{u}
+  | \bm\lambda, \mathbf{X_u}) \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u},
   \mathbf{u}) \times p(\mathcal{D} | r).
 \end{equation}
-Here $p(\mathbf{X_u})$ and $p(\Theta | \mathbf{X_u})$ are customisable priors,
+Here $p(\mathbf{X_u})$ and $p(\bm\lambda | \mathbf{X_u})$ are customisable priors,
 \begin{align}
-  p(\mathbf{u} | \Theta, \mathbf{X_u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \nonumber \\
+  p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \nonumber \\
                                        &= \frac{1}{(2\pi)^{m/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} \right) \nonumber \\
                                        &= \exp\left(-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right) \label{eq:normal}
 \end{align}
@@ -153,29 +156,30 @@ is the GP prior \cite{DBLP:books/lib/RasmussenW06}, where $m \in \mathbb{N}$ is
 the number of inducing points. The GP posterior is a
 multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11}
 \begin{equation} \label{eq:r}
-  p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) =
+  p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) =
   \mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal\Kuu^{-1}\Kru),
 \end{equation}
 and $p(\mathcal{D} | r)$ is as in \eqref{pDr}. The matrices such as
 $\Kru$ are called \emph{covariance matrices} and are defined as
-$[\Kru]_{i,j} = k_\Theta(\mathbf{x}_{\mathbf{r},i}, \mathbf{x}_{\mathbf{u},j})$,
-where $\mathbf{x}_{\mathbf{r},i}$ and $\mathbf{x}_{\mathbf{u},j}$ denote feature
-vectors for the $i$th state in $\mathcal{S}$ and the $j$th state in
-$\mathbf{X_u}$, respectively \cite{DBLP:conf/uai/JinDAS17}.
+$[\Kru]_{i,j} = k_{\bm\lambda}(\mathbf{x}_{\mathbf{r},i},
+\mathbf{x}_{\mathbf{u},j})$, where $\mathbf{x}_{\mathbf{r},i}$ and
+$\mathbf{x}_{\mathbf{u},j}$ denote feature vectors for the $i$th state in
+$\mathcal{S}$ and the $j$th state in $\mathbf{X_u}$, respectively
+\cite{DBLP:conf/uai/JinDAS17}.
 
 % TODO: where does the lower bound come from?
 Given this model, data $\mathcal{D}$, and inducing feature matrix
 $\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
-$\Theta$, inducing rewards $\mathbf{u}$, and the reward function $r$. While the
-previous paper that considered this IRL model computed maximum likelihood estimates
-for $\Theta$ and $\mathbf{u}$, and made an assumption that $\mathbf{r}$ in
-\eqref{eq:r} has zero variance \cite{DBLP:conf/nips/LevinePK11}, we aim to
-avoid this assumption and use variational inference to approximate the full
-posterior distribution $\posterior$. \emph{Variational inference} (VI) is an
-approximation technique for probability densities \cite{blei2017variational}.
+$\bm\lambda$, inducing rewards $\mathbf{u}$, and the reward function $r$. While
+the previous paper that considered this IRL model computed maximum likelihood
+estimates for $\bm\lambda$ and $\mathbf{u}$, and made an assumption that
+$\mathbf{r}$ in \eqref{eq:r} has zero variance \cite{DBLP:conf/nips/LevinePK11},
+we aim to avoid this assumption and use variational inference to approximate the
+full posterior distribution $\posterior$. \emph{Variational inference} (VI) is
+an approximation technique for probability densities \cite{blei2017variational}.
 Let $\approximation$ be our approximating family of probability distributions
-for $\posterior$ with its own hyperparameter vector $\bm\nu$. Then it is up
-to VI algorithms to optimise $\bm\nu$ in order to minimise the
+for $\posterior$ with its own hyperparameter vector $\bm\nu$. Then it is up to
+VI algorithms to optimise $\bm\nu$ in order to minimise the
 \emph{Kullback-Leibler} (KL) divergence between the original probability
 distribution and our approximation.  KL divergence (asymmetrically) measures how
 different the two distributions are and in this case can be defined as follows
@@ -190,7 +194,7 @@ typically tries to maximise the \emph{evidence lower bound} (ELBO) defined as
     \mathcal{L}(\bm\nu) &= \Eq \left[ \log \frac{\pfull}{\approximation}
     \right] \\
     &= \iiint \approximation \log
-    \frac{\pfull}{\approximation}\,d\Theta\,d\mathbf{u}\,d\mathbf{r}.
+    \frac{\pfull}{\approximation}\,d\bm\lambda\,d\mathbf{u}\,d\mathbf{r}.
   \end{split}
 \end{equation}
 
@@ -263,7 +267,7 @@ Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
 \end{description}
 
 \begin{table}
-  \centering % TODO: recheck
+  \centering
   \begin{tabular}{llllll}
     \toprule
     Authors, year & Inducing points & Hyperparameters & Complexity \\
@@ -332,14 +336,13 @@ would have to perform optimisation in a space with significantly more dimensions
 
 %state how you propose to solve the software development problem. Show that your
 %proposed approach is feasible, but identify any risks.
-% TODO: Theta should be equal to lambda
 
 In order to properly investigate the difference between variational inference
 and maximum likelihood estimation for the model, we keep other parts of the
 model the same. Namely, we set the covariance function to a version of the
 automatic relevance detection kernel
 \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
-\[ k_\Theta(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
+\[ k_{\bm\lambda}(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
     -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i -
     \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\Tr[\bm\Lambda] \right), \]
 where $\lambda_0$ is the overall ``scale'' factor for how similar or distant the
@@ -353,11 +356,12 @@ denotes the number of features), $\mathbbm{1}$ is defined as
   \end{cases} \]
 and $\sigma^2$ is set to $10^{-2}/2$ (as the original paper noted that
 the value makes little difference to the performance of the algorithm
-\cite{DBLP:conf/nips/LevinePK11}). Thus we can set $\bm\lambda = (\lambda_0,
-\dots, \lambda_d)^\intercal$, and $\Theta = \{ \bm\lambda \}$. Similarly, we
-keep the expression for the prior of $\Theta$:
+\cite{DBLP:conf/nips/LevinePK11}). Our vector of hyperparameters for the
+covariance function is then $\bm\lambda = (\lambda_0, \dots,
+\lambda_d)^\intercal$. Similarly, we keep the expression for the prior of
+$\bm\lambda$:
 \begin{equation} \label{eq:theta_prior}
-  p(\Theta | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr[\Kuu^{-2}] -
+  p(\bm\lambda | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr[\Kuu^{-2}] -
     \sum_{i=1}^d \log(\lambda_i + 1) \right).
 \end{equation}
 
@@ -365,39 +369,34 @@ Next, we can rewrite the posterior by using the chain rule and Bayes' theorem in
 order to get a better sense of what we are trying to approximate:
 \[
   \begin{split}
-    \posterior &= p(\Theta | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u} |
-    \Theta, \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{r} | \Theta,
+    \posterior &= p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u}
+    | \bm\lambda, \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}, \mathcal{D}) \\
-    &\propto p(\Theta | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u} | \Theta,
-    \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} | r) \times p(\mathbf{r} |
-    \Theta, \mathbf{X_u}, \mathbf{u}) \\
-    &\propto p(\Theta | \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} |
-    \Theta, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \Theta,
-    \mathbf{X_u}) \times p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta,
+    &\propto p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u} |
+    \bm\lambda, \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} | r) \times
+    p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \\
+    &\propto p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} |
+    \bm\lambda, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \bm\lambda,
+    \mathbf{X_u}) \times p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}) \\
-    &\propto p(\mathcal{D} | \Theta, \mathbf{X_u}) \times p(\Theta |
-    \mathbf{X_u}) \times p(\mathcal{D} | \Theta, \mathbf{X_u}, \mathbf{u})
-    \times p(\mathbf{u} | \Theta, \mathbf{X_u}) \times p(\mathcal{D} | r) \times
-    p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u})
+    &\propto p(\mathcal{D} | \bm\lambda, \mathbf{X_u}) \times p(\bm\lambda |
+    \mathbf{X_u}) \times p(\mathcal{D} | \bm\lambda, \mathbf{X_u}, \mathbf{u})
+    \times p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) \times p(\mathcal{D} | r)
+    \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u})
   \end{split}
 \]
 Note that now there are only two unknown probability distributions:
-$p(\mathcal{D} | \Theta, \mathbf{X_u})$ and $p(\mathcal{D} | \Theta,
+$p(\mathcal{D} | \bm\lambda, \mathbf{X_u})$ and $p(\mathcal{D} | \bm\lambda,
 \mathbf{X_u}, \mathbf{u})$, which can be computed as follows:
 \begin{align*}
-  p(\mathcal{D} | \Theta, \mathbf{X_u}, \mathbf{u}) = \int &p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \, d\mathbf{r}, \\
-  p(\mathcal{D} | \Theta, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) \times p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \Theta, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
+  p(\mathcal{D} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) = \int &p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \, d\mathbf{r}, \\
+  p(\mathcal{D} | \bm\lambda, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
 \end{align*}
 This suggests the following form for the approximation:
 \begin{equation} \label{eq:approximation}
-  \approximation = q(\Theta) \times q(\mathbf{u} | \Theta) \times q(\mathbf{r}
-  | \Theta, \mathbf{u}).
+  \approximation = q(\bm\lambda) \times q(\mathbf{u} | \bm\lambda) \times q(\mathbf{r}
+  | \bm\lambda, \mathbf{u}).
 \end{equation}
-
-%where $q(\Theta)$ can be of the same form as $p(\Theta | \mathbf{X_u})$,
-%$q(\mathbf{u} | \Theta) = \mathcal{N}(\mathbf{0}, \bm\Sigma_{\mathbf{u}})$, and
-%$q(\mathbf{r} | \Theta, \mathbf{u}) = \mathcal{N}(\bm\mu_{\mathbf{r}},
-%\bm\Sigma_{\mathbf{r}})$.
 
 \subsection{The Structure of the Approximating Distribution}
 
@@ -409,12 +408,12 @@ First, as is common in the literature for applying VI to GPs
 \cite{DBLP:conf/nips/ChengB17,DBLP:conf/uai/HensmanFL13,DBLP:conf/icml/HoangHL15,DBLP:journals/jmlr/Titsias09},
 we simply set
 \begin{equation}
-  q(\mathbf{r} | \Theta, \mathbf{u}) = p(\mathbf{r} | \Theta, \mathbf{X_u},
+  q(\mathbf{r} | \bm\lambda, \mathbf{u}) = p(\mathbf{r} | \bm\lambda, \mathbf{X_u},
   \mathbf{u}).
 \end{equation}
-We can make a similarly justified choice for $q(\mathbf{u} | \Theta)$:
+We can make a similarly justified choice for $q(\mathbf{u} | \bm\lambda)$:
 \begin{equation}
-  q(\mathbf{u} | \Theta) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
+  q(\mathbf{u} | \bm\lambda) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
 \end{equation}
 for some variational parameters $\mathbf{m} \in \mathbb{R}^{m}$ and a positive
 semi-definite matrix $\mathbf{S} \in \mathbb{R}^{m \times m}$.
@@ -422,24 +421,24 @@ semi-definite matrix $\mathbf{S} \in \mathbb{R}^{m \times m}$.
 
 In order to have a reasonable way of calculating/approximating the ELBO (see
 Section \ref{vi_algs}), we need to have an approximating distribution for
-$\Theta$, but unfortunately all the papers in Table \ref{table:approximations}
+$\bm\lambda$, but unfortunately all the papers in Table \ref{table:approximations}
 either fix it or treat it as a variational parameter. Hence we make our first
 assumption without justification from previous literature:
 \begin{equation} \label{eq:theta}
-  q(\Theta) = \prod_{i=0}^dq(\lambda_i).
+  q(\bm\lambda) = \prod_{i=0}^dq(\lambda_i).
 \end{equation}
-We want to restrict $\lambda_0$ to be positive so that $k_\Theta$ would produce
-non-negative values and not become trivial. Similarly, we want that $\lambda_i
-\ge 0$ for $i = 1, \dots, d$ so that $\bm\Lambda$ is a positive-definite matrix.
-Considering the possible distributions for all $d + 1$ variables, we would like
-the mean to be flexible (i.e., not tied to zero, like with the exponential
-distribution), and the tails to converge to zero as the value of the random
-variable moves away from the mean. We might want to support some right skew, but
-the distribution should be close to symmetric with at least some parameter
-values. This limits our choice of distributions quite significantly, and we
-decide to go with the gamma distribution as it is fairly flexible and commonly
-used \cite{hogg2018introduction}. We then define the probability density
-functions as
+We want to restrict $\lambda_0$ to be positive so that $k_{\bm\lambda}$ would
+produce non-negative values and not become trivial. Similarly, we want that
+$\lambda_i \ge 0$ for $i = 1, \dots, d$ so that $\bm\Lambda$ is a
+positive-definite matrix. Considering the possible distributions for all $d + 1$
+variables, we would like the mean to be flexible (i.e., not tied to zero, like
+with the exponential distribution), and the tails to converge to zero as the
+value of the random variable moves away from the mean. We might want to support
+some right skew, but the distribution should be close to symmetric with at least
+some parameter values. This limits our choice of distributions quite
+significantly, and we decide to go with the gamma distribution as it is fairly
+flexible and commonly used \cite{hogg2018introduction}. We then define the
+probability density functions as
 \begin{equation} \label{eq:zeta}
   q(\lambda_i) = \Gamma(\lambda_i; \alpha_i, \beta_i) =
   \frac{\beta_i^{\alpha_i}}{\Gamma(\alpha_i)}\lambda_i^{\alpha_i - 1}e^{-\beta_i\lambda_i}, \quad i = 0, \dots, d,
@@ -450,7 +449,6 @@ vector of variational parameters $\bm\nu = (\mathbf{m}, \mathbf{S}, \alpha_0,
 \beta_0, \dots, \alpha_d, \beta_d)^\intercal$.
 
 \subsection{Evidence Lower Bound}
-% TODO: remove/add niu from/to q everywhere
 
 In this section we derive and simplify the ELBO for this (now fully specified)
 model. In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
@@ -462,16 +460,16 @@ write\footnote{At this point, we will drop the subscript denoting which
 By plugging in \eqref{full} and \eqref{eq:approximation}, we get
 \[
   \begin{split}
-    \mathcal{L}(\bm\nu) &= \mathbb{E}[\log p(\mathbf{X_u}) + \log p(\Theta |
-    \mathbf{X_u}) + \log p(\mathbf{u} | \Theta, \mathbf{X_u}) + \log
-    p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) + \log p(\mathcal{D} | r)] \\
-    &- \mathbb{E}[\log q(\Theta) + \log q(\mathbf{u}) + \log q(\mathbf{r} |
-    \Theta, \mathbf{u})].
+    \mathcal{L}(\bm\nu) &= \mathbb{E}[\log p(\mathbf{X_u}) + \log p(\bm\lambda |
+    \mathbf{X_u}) + \log p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) + \log
+    p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) + \log p(\mathcal{D} | r)] \\
+    &- \mathbb{E}[\log q(\bm\lambda) + \log q(\mathbf{u}) + \log q(\mathbf{r} |
+    \bm\lambda, \mathbf{u})].
   \end{split}
 \]
 Note that $\mathbb{E}[\log p(\mathbf{X_u})]$ is just a constant, so we can
-simply drop it from the expression. Furthermore, since $q(\mathbf{r} | \Theta,
-\mathbf{u}) = p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u})$, they cancel
+simply drop it from the expression. Furthermore, since $q(\mathbf{r} | \bm\lambda,
+\mathbf{u}) = p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u})$, they cancel
 each other out. Then we can substitute various terms with their definitions to
 get
 \begin{alignat*}{3}
@@ -490,7 +488,7 @@ We can simplify the last term by noting that $-\mathbb{E}[\log
 up to an additive constant that depends on the number of dimensions of the
 distribution \cite{DBLP:journals/tit/AhmedG89}. Also note that we cannot use
 this fact for $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)]$
-because $\Kuu$ depends on $\Theta$. We also plug in the definitions of
+because $\Kuu$ depends on $\bm\lambda$. We also plug in the definitions of
 $\mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)$ and $Q_r$, and get:
 \begin{align*}
   \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] - \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
@@ -517,13 +515,13 @@ demonstrations. Then
 \mathbb{E} \left[ \sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t}) \right] &=
     \mathbb{E}[\mathbf{t}^\intercal\mathbf{r}] =
     \mathbf{t}^\intercal\mathbb{E}[\mathbf{r}] =
-    \mathbf{t}^\intercal\mathbb{E}_{(\Theta, \mathbf{u}) \sim
-  q(\Theta)q(\mathbf{u})}[\Kru^\intercal\Kuu^{-1}\mathbf{u}] \\
-  &= \mathbf{t}^\intercal\mathbb{E}_{\Theta \sim q(\Theta)}[\Kru^\intercal\Kuu^{-1}\mathbf{m}] = \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}.
+    \mathbf{t}^\intercal\mathbb{E}_{(\bm\lambda, \mathbf{u}) \sim
+  q(\bm\lambda)q(\mathbf{u})}[\Kru^\intercal\Kuu^{-1}\mathbf{u}] \\
+  &= \mathbf{t}^\intercal\mathbb{E}_{\bm\lambda \sim q(\bm\lambda)}[\Kru^\intercal\Kuu^{-1}\mathbf{m}] = \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}.
 \end{align*}
 Finally, as $\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}$ is a function of
-$\mathbf{u}$ and $\Theta$, we can take the expectation of $\mathbf{u}$, leaving
-the expectation of $\Theta$:
+$\mathbf{u}$ and $\bm\lambda$, we can take the expectation of $\mathbf{u}$, leaving
+the expectation of $\bm\lambda$:
 \[ \mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] =
   \mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}] +
   \mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] =
@@ -539,7 +537,6 @@ This allows us to simplify $\mathcal{L}(\bm\nu)$ to the following:
 \subsection{Derivatives}
 % TODO: integrals always mean "on all range"
 % TODO: some kind of intro
-% TODO: prove each application of the dominated convergence theorem
 
 \subsubsection{$\partial/\partial\mathbf{m}$}
 
@@ -562,10 +559,10 @@ Here
 and
 \begin{equation} \label{eq:1}
   \begin{split}
-    \dm\mathbb{E}[V_r(s)] &= \dm\iiint V_r(s) p(\mathbf{r} | \Theta,
+    \dm\mathbb{E}[V_r(s)] &= \dm\iiint V_r(s) p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
     q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
-    &= \iiint V_r(s) p(\mathbf{r} | \Theta,
+    &= \iiint V_r(s) p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}) \dm\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
     q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda,
   \end{split}
@@ -591,7 +588,7 @@ Substituting it back into \eqref{eq:1} gives
   \begin{split}
     \dm\mathbb{E}[V_r(s)] &= \frac{1}{2}\iiint V_r(s)
     (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})
-    p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u};
+    p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u};
     \mathbf{m}, \mathbf{S})
     q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
     &= \frac{1}{2}\mathbb{E}[V_r(s) (\mathbf{S}^{-1} +
@@ -726,11 +723,11 @@ of $\alpha_j$, and $\alpha_j$ only occurs in $\Gamma(\lambda_j; \alpha_j,
 \beta_j)$. Thus we can work with an abstract function as follows:
 \[
   \begin{split}
-    \da\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \da \iiint f(k_\Theta, \mathbf{r})
-    q(\bm\lambda) q(\mathbf{r})
+    \da\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \da \iiint f(k_{\bm\lambda},
+    \mathbf{r}) q(\bm\lambda) q(\mathbf{r})
     q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
     &= \!\begin{multlined}[t]
-      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1}) \da
+      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1}) \da
       \left[ \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)} \lambda_j^{\alpha_j -
           1} \right] e^{-\beta_j\lambda_j} \\
       q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
@@ -756,22 +753,23 @@ Then
 which means that
 \[
   \begin{split}
-    \da\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \!\begin{multlined}[t]
-      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
+    \da\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \!\begin{multlined}[t]
+      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
       \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
         1}e^{-\beta_j\lambda_j} \left(\log\beta_j + \log\lambda_j -
         \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) \\
       q(\lambda_{j+1}) \cdots q(\lambda_d)
       q(\mathbf{r})q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}
     \end{multlined} \\
-    &= \iiint f(k_\Theta, \mathbf{r}) \left(\log\beta_j + \log\lambda_j -
+    &= \iiint f(k_{\bm\lambda}, \mathbf{r}) \left(\log\beta_j + \log\lambda_j -
       \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) q(\bm\lambda)
     q(\mathbf{r})q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{r}) \left(\log\beta_j + \log\lambda_j -
-        \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) \right] \\
+    &= \mathbb{E} \left[ f(k_{\bm\lambda}, \mathbf{r}) \left(\log\beta_j +
+        \log\lambda_j - \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right)
+    \right] \\
     &= \left( \log\beta_j - \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)}
-    \right)\mathbb{E}[f(k_\Theta, \mathbf{r})] + \mathbb{E}[f(k_\Theta,
-    \mathbf{r})\log\lambda_j].
+    \right)\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] +
+    \mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})\log\lambda_j].
   \end{split}
 \]
 With these results in mind, we can simplify the initial expression to
@@ -821,10 +819,11 @@ Similarly to the previous section, we can handle all derivatives of expectations
 in the same way:
 \[
   \begin{split}
-    \db\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \db \iiint f(k_\Theta, \mathbf{r})
-    q(\bm\lambda) q(\mathbf{r}) q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
+    \db\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \db \iiint f(k_{\bm\lambda},
+    \mathbf{r}) q(\bm\lambda) q(\mathbf{r})
+    q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
     &= \!\begin{multlined}[t]
-      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
+      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
       \frac{\lambda_j^{\alpha_j - 1}}{\Gamma(\alpha_j)} \db [\beta_j^{\alpha_j}
       e^{-\beta_j\lambda_j}] \\
       q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
@@ -839,8 +838,8 @@ Since
 we have that
 \[
   \begin{split}
-    \db\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \!\begin{multlined}[t]
-      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
+    \db\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \!\begin{multlined}[t]
+      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
       \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
         1}e^{-\beta_j\lambda_j} \left(\frac{\alpha_j}{\beta_j} - \lambda_j
       \right) \\
@@ -848,13 +847,13 @@ we have that
       q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}
     \end{multlined}
     \\
-    &= \iiint f(k_\Theta, \mathbf{r}) \left(\frac{\alpha_j}{\beta_j} - \lambda_j
-    \right) q(\bm\lambda) q(\mathbf{r})
+    &= \iiint f(k_{\bm\lambda}, \mathbf{r}) \left(\frac{\alpha_j}{\beta_j} -
+      \lambda_j \right) q(\bm\lambda) q(\mathbf{r})
     q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{r}) \left( \frac{\alpha_j}{\beta_j} -
-        \lambda_j \right) \right] =
-    \frac{\alpha_j}{\beta_j}\mathbb{E}[f(k_\Theta, \mathbf{r})] -
-    \mathbb{E}[f(k_\Theta, \mathbf{r})\lambda_j].
+    &= \mathbb{E} \left[ f(k_{\bm\lambda}, \mathbf{r})
+      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] =
+    \frac{\alpha_j}{\beta_j}\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] -
+    \mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})\lambda_j].
   \end{split}
 \]
 This gives us the final expression of $\frac{\partial\mathcal{L}}{\partial\beta_j}$:
@@ -897,13 +896,21 @@ $\nabla_{\bm\nu} \mathcal{L}$ then has an unbiased estimate
 \[ \nabla_{\bm\nu} \mathcal{L} \approx \frac{1}{S} \sum_{s=1}^S
   \nabla_{\bm\nu} \log \approximationS (\log \pfullS - \log
   \approximationS) \]
-computed by drawing $S$ Monte Carlo samples $(\Theta_s, \mathbf{u}_s,
+computed by drawing $S$ Monte Carlo samples $(\bm\lambda_s, \mathbf{u}_s,
 \mathbf{r}_s) \sim \approximation$.
 
 \section{Work Plan}
 
 show how you plan to organize your work, identifying intermediate deliverables
 and dates.
+
+1. prove all applications of the dominated convergence theorem
+
+2. develop the algorithm
+
+3. test in on some example problems, drawing some pretty graphs
+
+4. integrate a few extra improvements from various papers
 
 \section{Notes on papers (to be removed)}
 
