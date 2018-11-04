@@ -1,6 +1,6 @@
 \documentclass{mprop}
 \usepackage{graphicx}
-\usepackage{amssymb,amsmath,amsthm}
+\usepackage{amssymb,amsmath,amsthm,mathtools}
 \usepackage{url}
 \usepackage{bm}
 \usepackage{bbm}
@@ -41,8 +41,8 @@
 
 \newcommand{\dm}{\frac{\partial}{\partial\mathbf{m}}}
 \newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
-\newcommand{\da}{\frac{\partial}{\partial\alpha}}
-\newcommand{\db}{\frac{\partial}{\partial\beta}}
+\newcommand{\da}{\frac{\partial}{\partial\alpha_j}}
+\newcommand{\db}{\frac{\partial}{\partial\beta_j}}
 
 \section{Introduction}
 %briefly explain the context of the project problem
@@ -332,18 +332,19 @@ would have to perform optimisation in a space with significantly more dimensions
 
 %state how you propose to solve the software development problem. Show that your
 %proposed approach is feasible, but identify any risks.
+% TODO: Theta should be equal to lambda
 
 In order to properly investigate the difference between variational inference
 and maximum likelihood estimation for the model, we keep other parts of the
 model the same. Namely, we set the covariance function to a version of the
 automatic relevance detection kernel
 \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
-\[ k_\Theta(\mathbf{x}_i, \mathbf{x}_j) = \zeta\exp\left(
+\[ k_\Theta(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
     -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i -
     \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\Tr[\bm\Lambda] \right), \]
-where $\zeta$ is the overall ``scale'' factor for how similar or distant the
+where $\lambda_0$ is the overall ``scale'' factor for how similar or distant the
 states are,
-\[ \bm\Lambda = \diag(\lambda_1, \dots, \lambda_d) = \diag(\bm\lambda) \]
+\[ \bm\Lambda = \diag(\lambda_1, \dots, \lambda_d) \]
 is a diagonal matrix that determines how relevant each feature is (where $d$
 denotes the number of features), $\mathbbm{1}$ is defined as
 \[ \mathbbm{1}[b] = \begin{cases}
@@ -352,8 +353,9 @@ denotes the number of features), $\mathbbm{1}$ is defined as
   \end{cases} \]
 and $\sigma^2$ is set to $10^{-2}/2$ (as the original paper noted that
 the value makes little difference to the performance of the algorithm
-\cite{DBLP:conf/nips/LevinePK11}). Thus we can set $\Theta = \{ \zeta,
-\bm\lambda \}$. Similarly, we keep the expression for the prior of $\Theta$:
+\cite{DBLP:conf/nips/LevinePK11}). Thus we can set $\bm\lambda = (\lambda_0,
+\dots, \lambda_d)^\intercal$, and $\Theta = \{ \bm\lambda \}$. Similarly, we
+keep the expression for the prior of $\Theta$:
 \begin{equation} \label{eq:theta_prior}
   p(\Theta | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr[\Kuu^{-2}] -
     \sum_{i=1}^d \log(\lambda_i + 1) \right).
@@ -418,40 +420,34 @@ for some variational parameters $\mathbf{m} \in \mathbb{R}^{m}$ and a positive
 semi-definite matrix $\mathbf{S} \in \mathbb{R}^{m \times m}$.
 \cite{DBLP:conf/nips/ChengB17,DBLP:journals/jmlr/HensmanDS17,DBLP:conf/aaai/HoangHL17}.
 
-% TODO: uncorrelated gammas instead of a multivariate Gaussian? review several options
 In order to have a reasonable way of calculating/approximating the ELBO (see
 Section \ref{vi_algs}), we need to have an approximating distribution for
 $\Theta$, but unfortunately all the papers in Table \ref{table:approximations}
 either fix it or treat it as a variational parameter. Hence we make our first
 assumption without justification from previous literature:
 \begin{equation} \label{eq:theta}
-  q(\Theta) = q(\zeta) \times q(\bm\lambda).
+  q(\Theta) = \prod_{i=0}^dq(\lambda_i).
 \end{equation}
-As it is reasonable for $\bm\lambda$ to take any value in $\mathbb{R}^d$, we can
-approximate it simply as
-\begin{equation} \label{eq:lambda}
-  q(\bm\lambda) = \mathcal{N}(\bm\lambda; \bm\mu, \bm\Sigma)
-\end{equation}
-for some variational parameters $\bm\mu \in \mathbb{R}^d$ and $\bm\Sigma \in
-\mathbb{R}^{d \times d}$. In contrast, as the covariance function must produce
-non-negative values, we want to restrict $\zeta$ to positive real numbers. At
-the same time, the distribution for $\zeta$ should have a flexible mean (i.e.,
-not be tied to zero, like in the exponential distribution) and tails that
-converge to zero as the value of the random variable moves away from the mean.
-We might want to support some right skew, but the distribution should be close
-to symmetric with at least some parameter values. This limits our choice of
-distributions quite significantly, and we decide to go with the gamma
-distribution as it is fairly flexible and commonly used
-\cite{hogg2018introduction}. We then define the probability density function of
-the gamma distribution as
+We want to restrict $\lambda_0$ to be positive so that $k_\Theta$ would produce
+non-negative values and not become trivial. Similarly, we want that $\lambda_i
+\ge 0$ for $i = 1, \dots, d$ so that $\bm\Lambda$ is a positive-definite matrix.
+Considering the possible distributions for all $d + 1$ variables, we would like
+the mean to be flexible (i.e., not tied to zero, like with the exponential
+distribution), and the tails to converge to zero as the value of the random
+variable moves away from the mean. We might want to support some right skew, but
+the distribution should be close to symmetric with at least some parameter
+values. This limits our choice of distributions quite significantly, and we
+decide to go with the gamma distribution as it is fairly flexible and commonly
+used \cite{hogg2018introduction}. We then define the probability density
+functions as
 \begin{equation} \label{eq:zeta}
-  q(\zeta) = \Gamma(\zeta; \alpha, \beta) =
-  \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta},
+  q(\lambda_i) = \Gamma(\lambda_i; \alpha_i, \beta_i) =
+  \frac{\beta_i^{\alpha_i}}{\Gamma(\alpha_i)}\lambda_i^{\alpha_i - 1}e^{-\beta_i\lambda_i}, \quad i = 0, \dots, d,
 \end{equation}
-where $\alpha > 0$ and $\beta > 0$ are two parameters of the distribution, and
-$\Gamma(\cdot)$ is the gamma function. This gives us our vector of variational
-parameters $\bm\nu = (\mathbf{m}, \mathbf{S}, \bm\mu, \bm\Sigma, \alpha,
-\beta)^\intercal$.
+where $\alpha_i > 0$ and $\beta_i > 0$ are parameters of the distribution, and
+$\Gamma(\cdot)$ is the gamma function. This gives us our
+vector of variational parameters $\bm\nu = (\mathbf{m}, \mathbf{S}, \alpha_0,
+\beta_0, \dots, \alpha_d, \beta_d)^\intercal$.
 
 \subsection{Evidence Lower Bound}
 % TODO: remove/add niu from/to q everywhere
@@ -484,34 +480,34 @@ get
   \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)] \\
   &+ \mathbb{E}\left[ \sum_{i=1}^N \sum_{t=1}^T Q_r(s_{i,t}, a_{i,t}) -
     V_r(s_{i,t}) \right] &&-
-  \mathbb{E}\left[\log\left(\frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha -
-        1}e^{-\beta\zeta}\right)\right] \\
-  &- \mathbb{E}[\log\mathcal{N}(\bm\lambda; \bm\mu, \bm\Sigma)] &&-
+  \sum_{i=0}^d\mathbb{E}\left[\log\left(\frac{\beta_i^{\alpha_i}}{\Gamma(\alpha_i)}\lambda_i^{\alpha_i
+        - 1}e^{-\beta_i\lambda_i}\right)\right] \\
+  &-
   \mathbb{E}[\log\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})].
 \end{alignat*}
-For the last two terms we can use the fact that, e.g., $-\mathbb{E}[\log
+We can simplify the last term by noting that $-\mathbb{E}[\log
 \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})] = \frac{1}{2}\log|\mathbf{S}|$
 up to an additive constant that depends on the number of dimensions of the
-distribution \cite{DBLP:journals/tit/AhmedG89}. Note that we cannot use this
-fact for $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)]$  because
-$\Kuu$ depends on $\Theta$. We also plug in the definitions of
+distribution \cite{DBLP:journals/tit/AhmedG89}. Also note that we cannot use
+this fact for $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)]$
+because $\Kuu$ depends on $\Theta$. We also plug in the definitions of
 $\mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)$ and $Q_r$, and get:
 \begin{align*}
-  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] - \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
+  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] - \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
   &+ \mathbb{E}\left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
     \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right] \\
   &+ \mathbb{E}\left[\sum_{i=1}^N \sum_{t=1}^T r(s_{i,t}) - V_r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
     \mathcal{T}(s_{i,t}, a_{i,t}, s')V_r(s') \right] \\
-  &- \mathbb{E}[\alpha\log\beta - \log\Gamma(\alpha) + (\alpha - 1)\log\zeta - \beta\zeta].
+  &- \sum_{i=0}^d \mathbb{E}[\alpha_i\log\beta_i - \log\Gamma(\alpha_i) + (\alpha_i - 1)\log\lambda_i - \beta_i\lambda_i]
 \end{align*}
 Now we can remove $\mathbb{E}\left[-\frac{m}{2}\log2\pi\right]$ since it is
 constant w.r.t. both the variational parameters and the variables the
 expectation is over, and move constants (or variational parameters) independent
 of the approximated variables outside of the expectations. Also note that
-$\mathbb{E}[\zeta] = \alpha/\beta$ and
-$\mathbb{E}[\log \zeta] = \psi(\alpha) - \log \beta$, where $\psi$ is the
+$\mathbb{E}[\lambda_i] = \alpha_i/\beta_i$ and
+$\mathbb{E}[\log \lambda_i] = \psi(\alpha_i) - \log\beta_i$, where $\psi$ is the
 digamma function defined as $\psi(x) = \frac{d}{dx}\log\Gamma(x)$
-\cite{DBLP:books/lib/Bishop07}. Finally, we can simplify
+\cite{DBLP:books/lib/Bishop07}. Moreover, we can simplify
 $\sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t})$ by choosing to represent all visited states
 in $\mathbf{r} = (r_1, \dots, r_k)^\intercal$, and defining a new vector
 $\mathbf{t} = (t_1, \dots, t_k)^\intercal$, where $t_i$ is the number of times
@@ -525,17 +521,25 @@ demonstrations. Then
   q(\Theta)q(\mathbf{u})}[\Kru^\intercal\Kuu^{-1}\mathbf{u}] \\
   &= \mathbf{t}^\intercal\mathbb{E}_{\Theta \sim q(\Theta)}[\Kru^\intercal\Kuu^{-1}\mathbf{m}] = \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}.
 \end{align*}
+Finally, as $\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}$ is a function of
+$\mathbf{u}$ and $\Theta$, we can take the expectation of $\mathbf{u}$, leaving
+the expectation of $\Theta$:
+\[ \mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] =
+  \mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}] +
+  \mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] =
+  \Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] +
+  \mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}. \]
 This allows us to simplify $\mathcal{L}(\bm\nu)$ to the following:
 \begin{align*}
-  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\bm\Sigma| + \frac{1}{2}\log|\mathbf{S}| - \frac{1}{2} \mathbb{E}[\Tr[\Kuu^{-2}]] -
-    \sum_{i=1}^d \mathbb{E}[\log(\lambda_i + 1)] \\
-  &- \frac{1}{2}\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] - \frac{1}{2}\mathbb{E}[\log|\Kuu|] + \alpha - \log\beta + \log\Gamma(\alpha) + (1 - \alpha)\psi(\alpha) \\
+  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\mathbf{S}| - \frac{1}{2}\Tr[\mathbb{E}[\Kuu^{-2}]] - \sum_{i=1}^d \mathbb{E}[\log(\lambda_i + 1)] - \frac{1}{2}\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] \\
+  &- \frac{1}{2}\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m} - \frac{1}{2}\mathbb{E}[\log|\Kuu|] + \sum_{i=0}^d \alpha_i - \log\beta_i + \log\Gamma(\alpha_i) + (1 - \alpha_i)\psi(\alpha_i) \\
   &+ \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} - \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]. \\
 \end{align*}
 
 \subsection{Derivatives}
 % TODO: integrals always mean "on all range"
 % TODO: some kind of intro
+% TODO: prove each application of the dominated convergence theorem
 
 \subsubsection{$\partial/\partial\mathbf{m}$}
 
@@ -543,28 +547,33 @@ We begin by removing terms independent of $\mathbf{m}$:
 \[
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\mathbf{m}} =
-    &-\frac{1}{2}\dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}]
+    &- \frac{1}{2}\dm[\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}]
     + \dm[\mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}] \\
     &- \sum_{i=1}^N \sum_{t=1}^T \dm\mathbb{E}[V_r(s_{i,t})] -
       \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-      s')\dm\mathbb{E}[V_r(s')],
+      s')\dm\mathbb{E}[V_r(s')].
   \end{split}
 \]
-where
+Here
+\begin{align*}
+  \dm[\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}] &= (\mathbb{E}[\Kuu^{-1}] + \mathbb{E}[\Kuu^{-1}]^\intercal)\mathbf{m}, \\
+  \dm[\mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}] &= \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}],
+\end{align*}
+and
 \begin{equation} \label{eq:1}
-\begin{split} % TODO: dominated convergence theorem
-    \dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] &=
-    \dm\iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\mathcal{N}(\mathbf{u};
-    \mathbf{m},
-    \mathbf{S})q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda \\
-    &= \iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{m}} q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda.
+  \begin{split}
+    \dm\mathbb{E}[V_r(s)] &= \dm\iiint V_r(s) p(\mathbf{r} | \Theta,
+    \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
+    q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
+    &= \iiint V_r(s) p(\mathbf{r} | \Theta,
+    \mathbf{X_u}, \mathbf{u}) \dm\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
+    q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda,
   \end{split}
 \end{equation}
-$\frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{m}}$ can be calculated as
-follows: % TODO: by the cookbook
+where
 \[
   \begin{split}
-    \frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial\mathbf{m}} &=
+    \dm\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) &=
     \mathcal{N}(\mathbf{u}; \mathbf{m},
     \mathbf{S})\dm\left[-\frac{1}{2}(\mathbf{u} -
       \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right] \\
@@ -577,18 +586,31 @@ follows: % TODO: by the cookbook
     - \mathbf{m}).
   \end{split}
 \]
-Plugging it back to \eqref{eq:1} gives:
+Substituting it back into \eqref{eq:1} gives
 \[
   \begin{split}
-    \dm\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] &=
-    \iiint(\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u})\frac{1}{2}(\mathbf{S}^{-1} +
-    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})\mathcal{N}(\mathbf{u};
-    \mathbf{m},
-    \mathbf{S})q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda \\
-    &=
-    \frac{1}{2}\mathbb{E}[(\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u})(\mathbf{S}^{-1}
-    + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})]
-  \end{split}
+    \dm\mathbb{E}[V_r(s)] &= \frac{1}{2}\iiint V_r(s)
+    (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})
+    p(\mathbf{r} | \Theta, \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u};
+    \mathbf{m}, \mathbf{S})
+    q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
+    &= \frac{1}{2}\mathbb{E}[V_r(s) (\mathbf{S}^{-1} +
+    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})].
+\end{split}
+\]
+Hence
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\mathbf{m}} =
+    &-\frac{1}{2}(\mathbb{E}[\Kuu^{-1}] +
+    \mathbb{E}[\Kuu^{-1}]^\intercal)\mathbf{m} +
+    \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}] \\
+    &- \frac{1}{2}\sum_{i=1}^N\sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})
+    (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})] \\
+    &- \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')
+    \mathbb{E}[V_r(s') (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
+    \mathbf{m})].
+\end{split}
 \]
 
 \subsubsection{$\partial/\partial\mathbf{S}$}
@@ -597,34 +619,24 @@ Similarly to the previous section,
 \[
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
-    \frac{1}{2}\dS[\log|\mathbf{S}|]
-    -\frac{1}{2}\dS\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] \\
-    &- \dS \left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] -
+    \frac{1}{2}\dS\log|\mathbf{S}|
+    -\frac{1}{2}\dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] \\
+    &- \sum_{i=1}^N \sum_{t=1}^T \dS\mathbb{E}[V_r(s_{i,t})] -
       \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-      s')\mathbb{E}[V_r(s')] \right],
+      s')\dS\mathbb{E}[V_r(s')],
   \end{split}
 \]
-where % TODO: cite cookbook
-\[ \dS[\log|\mathbf{S}|] =
-  \frac{1}{|\mathbf{S}|}\frac{\partial|\mathbf{S}|}{\partial \mathbf{S}} =
-  \frac{1}{|\mathbf{S}|}|\mathbf{S}|\mathbf{S}^{-\intercal} =
-  \mathbf{S}^{-\intercal} \]
+where
+\[ \dS\log|\mathbf{S}| = \mathbf{S}^{-\intercal}, \]
 and
+\[ \dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] = \mathbb{E}[\Kuu^{-1}]^\intercal \]
+by \emph{The Matrix Cookbook} \cite{petersen2008matrix}. Then
+\[ \dS\mathbb{E}[V_r(s)] = \iiint V_r(s) q(\mathbf{r}) \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
+  q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda, \]
+where
 \[
   \begin{split}
-    \dS\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] &=
-    \dS\iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\mathcal{N}(\mathbf{u};
-    \mathbf{m},
-    \mathbf{S})q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda \\
-    &=
-    \iiint\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}\frac{\partial \mathcal{N}(\mathbf{u};
-      \mathbf{m}, \mathbf{S})}{\partial \mathbf{S}}q(\zeta)q(\bm\lambda)\,d\mathbf{u}\,d\zeta\,d\bm\lambda.
-  \end{split}
-\]
-$\frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{S}}$ can be simplified to
-\[
-  \begin{split}
-    \frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathbf{S}} &=
+    \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) &=
     \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\exp \left( -\frac{1}{2}
         (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
         \mathbf{m})\right)\right] \\
@@ -639,138 +651,230 @@ $\frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial \mathb
     \left( -\frac{1}{2} (\mathbf{u} -
       \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right) \\
     &- \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})\dS[(\mathbf{u}
-    - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})], \\
+    - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})]. \\
   \end{split}
 \]
-where
-\[ \dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right] =
+The two remaining derivatives can be taken with the help of \emph{The Matrix
+  Cookbook} \cite{petersen2008matrix}:
+\begin{align*}
+  \dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right] =
   -\frac{1}{2}|\mathbf{S}|^{-3/2}\frac{\partial |\mathbf{S}|}{\partial \mathbf{S}} =
-  -\frac{1}{2}|\mathbf{S}|^{-3/2}|\mathbf{S}|\mathbf{S}^{-\intercal} =
-  -\frac{1}{2|\mathbf{S}|^{1/2}}\mathbf{S}^{-\intercal} \]
-and
-\[ \dS[(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-  \mathbf{m})] = -\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-  \mathbf{m})^\intercal\mathbf{S}^{-\intercal} \]
-according to \textit{The Matrix Cookbook} \cite{petersen2008matrix}. Plugging
-the two expression back in gives
-\[ \frac{\partial \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})}{\partial
-    \mathbf{S}} = -\frac{1}{2}\mathbf{S}^{-\intercal}\mathcal{N}(\mathbf{u};
+  -\frac{1}{2}|\mathbf{S}|^{-3/2}|\mathbf{S}|\mathbf{S}^{-\intercal} &=
+  -\frac{1}{2|\mathbf{S}|^{1/2}}\mathbf{S}^{-\intercal}, \\
+  \dS[(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+  \mathbf{m})] &= -\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
+  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
+\end{align*}
+Plugging them back in gives
+\[ \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) =
+  -\frac{1}{2}\mathbf{S}^{-\intercal}\mathcal{N}(\mathbf{u};
   \mathbf{m}, \mathbf{S}) + \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m},
   \mathbf{S})\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}. \]
-Thus
-\[ \dS\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] =
-  \frac{1}{2}\mathbb{E}[(\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u})(\mathbf{S}^{-\intercal}(\mathbf{u}
-  - \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
-  \mathbf{S}^{-\intercal})]. \]
-
-\subsubsection{$\partial/\partial\alpha$}
-
+  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}, \]
+and
 \[
   \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\alpha} = &-
-    \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-2}]] -
-    \frac{1}{2}\da\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] -
-    \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
-    &+ \mathbf{t}^\intercal\da\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} +
-    \da [\alpha + \log\Gamma(\alpha) + (1 - \alpha)\psi(\alpha)] \\
-      &- \da \left[\sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] -
-        \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-        s')\mathbb{E}[V_r(s')] \right].
+    \dS\mathbb{E}[V_r(s)] &= \frac{1}{2}\iiint V_r(s)
+    (\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
+    \mathbf{m})^\intercal\mathbf{S}^{-\intercal} - \mathbf{S}^{-\intercal})
+    q(\mathbf{r}) \mathcal{N}(\mathbf{u};
+    \mathbf{m}, \mathbf{S}) q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda
+    \\
+    &= \frac{1}{2}\mathbb{E}[V_r(s)(\mathbf{S}^{-\intercal}(\mathbf{u} -
+    \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
+    \mathbf{S}^{-\intercal})].
   \end{split}
 \]
-The first four terms can all be treated in the same way, since all four
-expectations contain expressions without $\alpha$, but $\alpha$ appears in
-$q(\zeta)$. Thus we can work with an abstract function as follows:
+Therefore
 \[
   \begin{split}
-    \da\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \da \iiint f(k_\Theta, \mathbf{u})
-    \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} e^{-\beta\zeta}
-    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
-    &= \iiint f(k_\Theta, \mathbf{u})
-    \da \left[ \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} \right]
-      e^{-\beta\zeta}
-    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u}.
+    \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
+    \frac{1}{2}\mathbf{S}^{-\intercal} -
+    \frac{1}{2}\mathbb{E}[\Kuu^{-1}]^\intercal - \frac{1}{2}
+    \sum_{i=1}^N\sum_{t=1}^T
+    \mathbb{E}[V_r(s_{i,t})(\mathbf{S}^{-\intercal}(\mathbf{u} -
+    \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
+    \mathbf{S}^{-\intercal})] \\
+    &- \gamma\sum_{s' \in \mathcal{S}}\mathcal{T}(s_{i,t}, a_{i,t}, s')
+    \mathbb{E}[V_r(s')(\mathbf{S}^{-\intercal}(\mathbf{u} -
+    \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
+    \mathbf{S}^{-\intercal})].
+  \end{split}
+\]
+
+\subsubsection{$\partial/\partial\alpha_j$}
+
+We begin in the usual way:
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\alpha_j} = &-
+    \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-2}]] - \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]] - \frac{1}{2}\da\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] - \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
+    &+ \da\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] +
+    \da [\alpha_j + \log\Gamma(\alpha_j) + (1 - \alpha_j)\psi(\alpha_j)] \\
+      &- \sum_{i=1}^N \sum_{t=1}^T \da\mathbb{E}[V_r(s_{i,t})] -
+        \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
+        s')\da\mathbb{E}[V_r(s')].
+  \end{split}
+\]
+First,
+\[ \da [\alpha_j + \log\Gamma(\alpha_j) + (1 - \alpha_j)\psi(\alpha_j)] = 1 +
+  \psi(\alpha_j) - \psi(\alpha_j) + (1 - \alpha_j)\psi'(\alpha_j) = 1 + (1 -
+  \alpha_j)\psi'(\alpha_j) \]
+by the definition of $\psi$. The remaining terms can all be treated in the same
+way, as they all contain expectations of scalar functions that are independent
+of $\alpha_j$, and $\alpha_j$ only occurs in $\Gamma(\lambda_j; \alpha_j,
+\beta_j)$. Thus we can work with an abstract function as follows:
+\[
+  \begin{split}
+    \da\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \da \iiint f(k_\Theta, \mathbf{r})
+    q(\bm\lambda) q(\mathbf{r})
+    q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
+    &= \!\begin{multlined}[t]
+      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1}) \da
+      \left[ \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)} \lambda_j^{\alpha_j -
+          1} \right] e^{-\beta_j\lambda_j} \\
+      q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
+      q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}.
+    \end{multlined}
   \end{split}
 \]
 Then
 \[
   \begin{split}
-    \da \left[ \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} \right] &=
-    \frac{\da[\beta^\alpha\zeta^{\alpha - 1}]\Gamma(\alpha) -
-      \beta^\alpha\zeta^{\alpha - 1}\Gamma'(\alpha)}{(\Gamma(\alpha))^2} \\
-    &= \frac{\beta^\alpha\zeta^{\alpha - 1}\da[\alpha\log\beta + (\alpha -
-      1)\log\zeta]\Gamma(\alpha) - \beta^\alpha\zeta^{\alpha -
-        1}\Gamma'(\alpha)}{(\Gamma(\alpha))^2} \\
-    &= \frac{\beta^\alpha\zeta^{\alpha - 1}(\log\beta + \log\zeta)\Gamma(\alpha)
-      - \beta^\alpha\zeta^{\alpha - 1}\Gamma'(\alpha)}{(\Gamma(\alpha))^2} \\
-    &= \frac{\beta^\alpha\zeta^{\alpha - 1}}{\Gamma(\alpha)}\left(\log\beta +
-    \log\zeta - \frac{\Gamma'(\alpha)}{\Gamma(\alpha)}\right),
+    \da \left[ \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)} \lambda_j^{\alpha_j - 1} \right] &=
+    \frac{\da[\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}]\Gamma(\alpha_j) -
+      \beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}\Gamma'(\alpha_j)}{(\Gamma(\alpha_j))^2} \\
+    &= \frac{\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}\da[\alpha_j\log\beta_j + (\alpha_j -
+      1)\log\lambda_j]\Gamma(\alpha_j) - \beta_j^{\alpha_j}\lambda_j^{\alpha_j -
+        1}\Gamma'(\alpha_j)}{(\Gamma(\alpha_j))^2} \\
+    &= \frac{\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}(\log\beta_j + \log\lambda_i)\Gamma(\alpha_j)
+      - \beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}\Gamma'(\alpha_j)}{(\Gamma(\alpha_j))^2} \\
+    &= \frac{\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}}{\Gamma(\alpha_j)}\left(\log\beta_j +
+    \log\lambda_j - \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)}\right),
   \end{split}
 \]
 which means that
 \[
   \begin{split}
-    \da\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \iiint f(k_\Theta, \mathbf{u})
-    \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta} \left(
-      \log\beta + \log\zeta - \frac{\Gamma'(\alpha)}{\Gamma(\alpha)} \right)
-    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
-    &= \iiint f(k_\Theta, \mathbf{u}) \left(\log\beta + \log\zeta -
-      \frac{\Gamma'(\alpha)}{\Gamma(\alpha)} \right) q(\zeta) q(\bm\lambda)
-    q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
-    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{u}) \left(\log\beta + \log\zeta -
-        \frac{\Gamma'(\alpha)}{\Gamma(\alpha)} \right) \right] \\
-    &= \left( \log\beta - \frac{\Gamma'(\alpha)}{\Gamma(\alpha)}
-    \right)\mathbb{E}[f(k_\Theta, \mathbf{u})] + \mathbb{E}[f(k_\Theta,
-    \mathbf{u})\log\zeta].
+    \da\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \!\begin{multlined}[t]
+      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
+      \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
+        1}e^{-\beta_j\lambda_j} \left(\log\beta_j + \log\lambda_j -
+        \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) \\
+      q(\lambda_{j+1}) \cdots q(\lambda_d)
+      q(\mathbf{r})q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}
+    \end{multlined} \\
+    &= \iiint f(k_\Theta, \mathbf{r}) \left(\log\beta_j + \log\lambda_j -
+      \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) q(\bm\lambda)
+    q(\mathbf{r})q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
+    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{r}) \left(\log\beta_j + \log\lambda_j -
+        \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) \right] \\
+    &= \left( \log\beta_j - \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)}
+    \right)\mathbb{E}[f(k_\Theta, \mathbf{r})] + \mathbb{E}[f(k_\Theta,
+    \mathbf{r})\log\lambda_j].
   \end{split}
 \]
-Next,
-\[ \da [\alpha + \log\Gamma(\alpha) + (1 - \alpha)\psi(\alpha)] =
-  1 + \psi(\alpha) - \psi(\alpha) + (1 - \alpha)\psi'(\alpha) = 1 + (1 -
-  \alpha)\psi'(\alpha). \]
-
-\subsubsection{$\partial/\partial\beta$}
-
+With these results in mind, we can simplify the initial expression to
 \[
   \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\beta} = &-
+    \frac{\partial\mathcal{L}}{\partial\alpha_j} &= 1 + (1 -
+    \alpha_j)\psi'(\alpha_j) + \left( \log\beta_j -
+      \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right)
+    \left(\vphantom{\sum_{i=1}^N} \right. - \frac{1}{2}
+    \mathbb{E}[\Tr[\Kuu^{-2}]] - \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]]
+    \\
+    &- \frac{1}{2}\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] -
+    \frac{1}{2}\mathbb{E}[\log|\Kuu|] +
+    \mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] \\
+    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in
+      \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \left.
+      \vphantom{\sum_{i=1}^N} \right) \\
+    & - \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-2}]\log\lambda_j] -
+    \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]\log\lambda_j] -
+    \frac{1}{2}\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}\log\lambda_j]
+    \\
+    &- \frac{1}{2}\mathbb{E}[\log|\Kuu|\log\lambda_j] +
+    \mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}\log\lambda_j]
+    \\
+    &- \sum_{i=1}^N\sum_{t=1}^T\mathbb{E}[V_r(s_{i,t})\log\lambda_j] -
+    \gamma\sum_{s' \in \mathcal{S}}\mathcal{T}(s_{i,t}, a_{i,t},
+    s')\mathbb{E}[V_r(s')\log\lambda_j].
+  \end{split}
+\]
+
+\subsubsection{$\partial/\partial\beta_j$}
+Finally,
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\beta_j} = &-
     \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-2}]] -
-    \frac{1}{2}\db\mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] -
-    \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] +
-    \mathbf{t}^\intercal\db\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} \\
-    &- \db[\log\beta] - \db \left[\sum_{i=1}^N \sum_{t=1}^T
-      \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in \mathcal{S}}
-      \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \right].
+    \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]] -
+    \frac{1}{2}\db\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] \\
+    &- \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] +
+    \db\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] -
+    \db[\log\beta_j] \\
+    &- \sum_{i=1}^N \sum_{t=1}^T \db \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s'
+      \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\db\mathbb{E}[V_r(s')].
   \end{split}
 \]
-Similarly to the previous section, we can deal with four cases at once:
+Similarly to the previous section, we can handle all derivatives of expectations
+in the same way:
 \[
   \begin{split}
-    \db\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \db \iiint f(k_\Theta, \mathbf{u})
-    \frac{\beta^\alpha}{\Gamma(\alpha)} \zeta^{\alpha - 1} e^{-\beta\zeta}
-    q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
-    &= \iiint f(k_\Theta, \mathbf{u}) \frac{\zeta^{\alpha - 1}}{\Gamma(\alpha)}
-    \db [\beta^\alpha e^{-\beta\zeta}] q(\bm\lambda)
-    q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u}.
+    \db\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \db \iiint f(k_\Theta, \mathbf{r})
+    q(\bm\lambda) q(\mathbf{r}) q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
+    &= \!\begin{multlined}[t]
+      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
+      \frac{\lambda_j^{\alpha_j - 1}}{\Gamma(\alpha_j)} \db [\beta_j^{\alpha_j}
+      e^{-\beta_j\lambda_j}] \\
+      q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
+      q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}.
+    \end{multlined}
   \end{split}
 \]
 Since
-\[ \db [\beta^\alpha e^{-\beta\zeta}] = \alpha\beta^{\alpha - 1}e^{-\beta\zeta}
-  - \beta^\alpha e^{-\beta\zeta}\beta = \beta^\alpha
-  e^{-\beta\zeta} \left( \frac{\alpha}{\beta} - \beta \right), \]
+\[ \db [\beta_j^{\alpha_j} e^{-\beta_j\lambda_j}] = \alpha_j\beta_j^{\alpha_j - 1}e^{-\beta_j\lambda_j}
+  - \beta_j^{\alpha_j} e^{-\beta_j\lambda_j}\lambda_j = \beta_j^{\alpha_j}
+  e^{-\beta_j\lambda_j} \left( \frac{\alpha_j}{\beta_j} - \lambda_j \right), \]
 we have that
 \[
   \begin{split}
-    \db\mathbb{E}[f(k_\Theta, \mathbf{u})] &= \iiint f(k_\Theta, \mathbf{u})
-    \frac{\beta^\alpha}{\Gamma(\alpha)}\zeta^{\alpha - 1}e^{-\beta\zeta} \left(
-      \frac{\alpha}{\beta} - \beta \right)  q(\bm\lambda)
-    q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
-    &= \iiint f(k_\Theta, \mathbf{u}) \left(\frac{\alpha}{\beta} - \beta \right)
-    q(\zeta)q(\bm\lambda) q(\mathbf{u})\,d\zeta\,d\bm\lambda\,d\mathbf{u} \\
-    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{u}) \left( \frac{\alpha}{\beta} -
-        \beta \right) \right] =  \left( \frac{\alpha}{\beta} - \beta \right)
-    \mathbb{E} [f(k_\Theta, \mathbf{u})].
+    \db\mathbb{E}[f(k_\Theta, \mathbf{r})] &= \!\begin{multlined}[t]
+      \iiint f(k_\Theta, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
+      \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
+        1}e^{-\beta_j\lambda_j} \left(\frac{\alpha_j}{\beta_j} - \lambda_j
+      \right) \\
+      q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
+      q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}
+    \end{multlined}
+    \\
+    &= \iiint f(k_\Theta, \mathbf{r}) \left(\frac{\alpha_j}{\beta_j} - \lambda_j
+    \right) q(\bm\lambda) q(\mathbf{r})
+    q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
+    &= \mathbb{E} \left[ f(k_\Theta, \mathbf{r}) \left( \frac{\alpha_j}{\beta_j} -
+        \lambda_j \right) \right] =
+    \frac{\alpha_j}{\beta_j}\mathbb{E}[f(k_\Theta, \mathbf{r})] -
+    \mathbb{E}[f(k_\Theta, \mathbf{r})\lambda_j].
+  \end{split}
+\]
+This gives us the final expression of $\frac{\partial\mathcal{L}}{\partial\beta_j}$:
+\[
+  \begin{split}
+    \frac{\partial\mathcal{L}}{\partial\beta_j} = &- \frac{1}{\beta_j} -
+    \frac{1}{2}\mathbb{E} \left[ \Tr[\Kuu^{-2}] \left( \frac{\alpha_j}{\beta_j}
+        - \lambda_j \right) \right] - \frac{1}{2}\mathbb{E} \left[
+      \Tr[\Kuu^{-1}\mathbf{S}] \left(\frac{\alpha_j}{\beta_j} - \lambda_j
+      \right) \right] \\
+    &- \frac{1}{2}\mathbb{E} \left[ \mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}
+      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] -
+    \frac{1}{2}\mathbb{E} \left[ \log|\Kuu| \left(\frac{\alpha_j}{\beta_j} -
+        \lambda_j \right) \right] \\
+    &+ \mathbb{E} \left[ \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}
+      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] \\
+    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E} \left[ V_r(s_{i,t})
+      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] -
+    \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}
+    \left[V_r(s') \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right].
   \end{split}
 \]
 
