@@ -167,27 +167,34 @@ $\mathbf{x}_{\mathbf{u},j}$ denote feature vectors for the $i$th state in
 $\mathcal{S}$ and the $j$th state in $\mathbf{X_u}$, respectively
 \cite{DBLP:conf/uai/JinDAS17}.
 
-% TODO: where does the lower bound come from?
 Given this model, data $\mathcal{D}$, and inducing feature matrix
 $\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
-$\bm\lambda$, inducing rewards $\mathbf{u}$, and the reward function $r$. While
-the previous paper that considered this IRL model computed maximum likelihood
-estimates for $\bm\lambda$ and $\mathbf{u}$, and made an assumption that
-$\mathbf{r}$ in \eqref{eq:r} has zero variance \cite{DBLP:conf/nips/LevinePK11},
-we aim to avoid this assumption and use variational inference to approximate the
-full posterior distribution $\posterior$. \emph{Variational inference} (VI) is
-an approximation technique for probability densities \cite{blei2017variational}.
-Let $\approximation$ be our approximating family of probability distributions
-for $\posterior$ with its own hyperparameter vector $\bm\nu$. Then it is up to
-VI algorithms to optimise $\bm\nu$ in order to minimise the
-\emph{Kullback-Leibler} (KL) divergence between the original probability
-distribution and our approximation.  KL divergence (asymmetrically) measures how
-different the two distributions are and in this case can be defined as follows
-\cite{blei2017variational}:
-\[ \DKL(\approximation || \posterior) = \Eq \left[ \log
-  \frac{\approximation}{\posterior} \right]. \]
-Since KL divergence is typically hard to compute, instead of minimising it, VI
-typically tries to maximise the \emph{evidence lower bound} (ELBO) defined as
+$\bm\lambda$, inducing rewards $\mathbf{u}$, and the rewards for all relevant
+states $\mathbf{r}$. While the previous paper to consider this IRL model
+computed maximum likelihood estimates for $\bm\lambda$ and $\mathbf{u}$, and
+made an assumption that $\mathbf{r}$ in \eqref{eq:r} has zero variance
+\cite{DBLP:conf/nips/LevinePK11}, we aim to avoid this assumption and use
+variational inference to approximate the full posterior distribution
+$\posterior$. \emph{Variational inference} (VI) is an approximation technique
+for probability densities \cite{blei2017variational}. Let $\approximation$ be
+our approximating family of probability distributions for $\posterior$ with its
+own hyperparameter vector $\bm\nu$. Then the job of VI algorithms is to optimise
+$\bm\nu$ in order to minimise the \emph{Kullback-Leibler} (KL) divergence
+between the original probability distribution and our approximation.  KL
+divergence (asymmetrically) measures how different the two distributions are,
+and in this case can be defined as \cite{blei2017variational}
+\[ \begin{split}
+    \DKL(\approximation || \posterior) &= \Eq [\log\approximation -
+    \log\posterior ] \\
+    &= \Eq[\log\approximation - \log\pfull] \\
+    &+ \Eq[\log p(\mathcal{D}, \mathbf{X_u})].
+  \end{split}
+\]
+The last term is both hard to compute and constant w.r.t. $\approximation$
+\cite{blei2017variational}, so we can remove it from our optimisation objective.
+The negation of what remains is often called the \emph{evidence lower bound}
+(ELBO) and is defined as\footnote{Throughout the proposal, all integrals should
+  be interpreted as Lebesgue integrals over the entire sample space.}
 \cite{DBLP:books/lib/Bishop07,blei2017variational}
 \begin{equation} \label{eq:elbo}
   \begin{split}
@@ -198,20 +205,71 @@ typically tries to maximise the \emph{evidence lower bound} (ELBO) defined as
   \end{split}
 \end{equation}
 
-By considering full probability distributions instead of point estimates,---as
+By considering full probability distributions instead of point estimates---as
 long as the approximations are able to capture important features of the
 posterior---our predictions are likely to be more accurate and rely on fewer
 assumptions. Moreover, we hope to make use of various recent advancements in VI
 for both time complexity and approximation distribution fit (see Section
 \ref{literature}), making the resulting algorithm competitive both in terms of
-speed and model fit.
+running time and model fit.
 
 \section{Literature Survey} \label{literature}
 %present an overview of relevant previous work including articles, books, and
 %existing software products. Critically evaluate the strengths and weaknesses of
 %the previous work.
 
-% TODO: review IRL papers, their weaknesses
+As mentioned in the introduction, most IRL algorithms assume that the reward
+function can be represented as a linear combination of features. This assumption
+originated in one of the earliest papers on the topic by Ng and Russell
+\cite{DBLP:conf/icml/NgR00}, which introduced several linear programming
+approaches to the problem. The authors also noticed that often
+multiple reward functions can explain the same behaviour, and suggested
+heuristics for reward functions that are ``far away'' from reward functions that
+do not fit the data.
+
+A few years later, Abbeel and Ng \cite{DBLP:conf/icml/PieterN04} developed an
+algorithm for the same formulation of the problem with a guarantee to converge
+quickly. Neu and Szepesv\'ari \cite{DBLP:conf/uai/NeuS07} identified a weakness
+in Abbeel and Ng's approach: the algorithm requires features to be
+``appropriately'' scaled, and optimal scaling may not be known. Instead, they
+suggest a way to combine IRL with \emph{apprenticeship learning}, i.e., a
+supervised learning task for optimal \emph{policy} recovery (whereas IRL focuses
+on recovering the reward function).
+
+Ramachandran and Amir \cite{DBLP:conf/ijcai/RamachandranA07} were the first to
+formulate IRL in terms of Bayesian learning. While the model is easily
+interpretable and able to handle experts that make mistakes, the algorithm can
+only handle small state spaces and requires Monte Carlo Markov Chain (MCMC)
+sampling for inference.
+
+Ziebart et al. \cite{ziebart2008maximum} keep the linearity assumption, but
+introduce an influential idea: resolving the ambiguity when multiple reward
+functions explain the data by appealing to the maximum entropy principle.
+
+Choi and Kim \cite{DBLP:conf/ijcai/ChoiK13} extend the Bayesian model to learn
+good features as well as the reward function, trying to overcome the limitation
+of linearity. However, the approach is quite limiting: all features are assumed
+to have Boolean values, and the algorithm simply learns their conjunctions.
+
+Levine et al. \cite{DBLP:conf/nips/LevinePK11} are the first to suggest a way to
+learn nonlinear reward functions without harsh restrictions on the problem
+domain by using GPs. We base our work primarily on their paper, and the
+weaknesses we hope to address have already been covered in the previous section.
+A recent extension to their work by Jin et al. \cite{DBLP:conf/uai/JinDAS17}
+aims to harness the power of deep learning by using several layers of GPs,
+making the model less dependent on being provided good features. They also use
+VI, but with a few simplifying assumptions: deterministic training conditional
+for the reward vector, and fully independent training conditional for the latent
+state (see Section \ref{sec:vi_literature} for more details).
+
+%A different take on IRL with GPs \cite{DBLP:journals/corr/abs-1208-2112}
+%IRL for large state spaces (haven't read) \cite{DBLP:journals/jmlr/BoulariasKP11}
+%Multiple reward functions \cite{DBLP:conf/nips/ChoiK12}
+%A recent survey \cite{DBLP:journals/corr/abs-1806-06877}
+%EM clustering \cite{DBLP:conf/icml/BabesMLS11}
+%Structured priors \cite{DBLP:conf/ewrl/DimitrakakisR11}
+
+\subsection{Variational Inference} \label{sec:vi_literature}
 
 Variational inference has seen a recent increase in interest among academics,
 with different approaches focusing on different goals: better time complexity,
@@ -535,7 +593,6 @@ This allows us to simplify $\mathcal{L}(\bm\nu)$ to the following:
 \end{align*}
 
 \subsection{Derivatives}
-% TODO: integrals always mean "on all range"
 % TODO: some kind of intro
 
 \subsubsection{$\partial/\partial\mathbf{m}$}
@@ -900,17 +957,46 @@ computed by drawing $S$ Monte Carlo samples $(\bm\lambda_s, \mathbf{u}_s,
 \mathbf{r}_s) \sim \approximation$.
 
 \section{Work Plan}
+%show how you plan to organize your work, identifying intermediate deliverables
+%and dates.
 
-show how you plan to organize your work, identifying intermediate deliverables
-and dates.
+\begin{enumerate}
+\item Prove all applications of the dominated convergence theorem.
+\item Implement the algorithm as a more specialised version of Algorithm 2 in
+  the black box VI paper.
+\item <Evaluation>
+\item Experiment with various improvements mentioned in the black box VI paper,
+  other VI papers, especially the ones about GPs.
+\item Write/finalise the paper.
+\end{enumerate}
 
-1. prove all applications of the dominated convergence theorem
+\subsection{Evaluation}
 
-2. develop the algorithm
+In order to evaluate our approach, we compare it to two related alternatives:
+the original GP IRL paper \cite{DBLP:conf/nips/LevinePK11} and the deep GP
+extension \cite{DBLP:conf/uai/JinDAS17}. To the best of our knowledge,... TODO: continue
+Against what? GPIRL and DGP-IRL.
 
-3. test in on some example problems, drawing some pretty graphs
+For what problems? GPIRL paper has a big toolkit, but with MATLAB.
+\begin{itemize}
+\item Object world. Fix one, vary the other: number of colours, number of
+  examples.
+\item Highway driving behaviour: both synthetic and human performance.
+\end{itemize}
 
-4. integrate a few extra improvements from various papers
+Using what metrics?
+\begin{itemize}
+\item Visualise the (true and learned) rewards as shades of grey.
+\item Also measure expected value difference in four situations:
+  \begin{itemize}
+  \item discrete features
+  \item discrete feature transfer
+  \item continuous features
+  \item continuous feature transfer
+  \end{itemize}
+\item Expected value difference over time rather than #examples (since VI tends
+  to be faster than MCMC).
+\end{itemize}
 
 \section{Notes on papers (to be removed)}
 
