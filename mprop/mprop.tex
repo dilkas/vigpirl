@@ -9,6 +9,7 @@
 %\usepackage[final]{pdfpages}
 
 \newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
 \DeclareMathOperator*{\argmax}{arg\,max}
@@ -39,35 +40,42 @@
 
 \newcommand{\Eq}{\mathbb{E}_{(\bm\lambda, \mathbf{u}, \mathbf{r}) \sim \approximation}}
 
-\newcommand{\dm}{\frac{\partial}{\partial\mathbf{m}}}
-\newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
-\newcommand{\da}{\frac{\partial}{\partial\alpha_j}}
-\newcommand{\db}{\frac{\partial}{\partial\beta_j}}
-
 \section{Introduction}
 %briefly explain the context of the project problem
-% TODO: introduce a data set
-% TODO: example application for motivation (why would the world be better)
-% TODO: introduce research questions
 
-Inverse reinforcement learning (IRL)---a problem proposed by Russell in 1998
-\cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a Markov
-decision process that best explains a set of given demonstrations. IRL is
+%Imagine a scenario where the agent is driving on a three-lane highway. The
+%features of the environment include the agent's speed, lane number, and
+%various distances to different types of vehicles in front of and behind the
+%agent. The agent can regulate its speed and position. The main objective is, of
+%course, to not crash into other vehicles, but one could also add objectives such
+%as staying within the speed limit when close to a police vehicle.
+
+Inverse reinforcement learning (IRL)---a problem proposed by Russell in
+1998 \cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a
+Markov decision process that best explains a set of given demonstrations. IRL is
 important because reward functions can be hard to define manually
 \cite{DBLP:conf/icml/PieterN04,DBLP:journals/corr/abs-1806-06877}, and rewards
 are not entirely specific to a given environment, allowing one to reuse the same
 reward structure in previously unseen environments
 \cite{DBLP:journals/corr/abs-1806-06877,DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}.
 Moreover, IRL has seen a wide array of applications in autonomous vehicle
-control
-\cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16}
-and learning to predict another agent's behaviour
+control \cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16} and
+learning to predict another agent's behaviour
 \cite{DBLP:journals/ai/BogertD18,DBLP:conf/aaai/VogelRGR12,ziebart2008maximum,DBLP:conf/huc/ZiebartMDB08,DBLP:conf/iros/ZiebartRGMPBHDS09}.
 Most approaches in the literature (see Section \ref{literature}) make a
 convenient yet unjustified assumption that the reward function can be expressed
 as a linear combination of features. One proven way to abandon this assumption
-is by representing the reward function as a Gaussian process
+is by representing the reward function as a Gaussian process (GP)
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11,DBLP:journals/corr/abs-1208-2112}.
+Our main goal is employ variational inference (VI) for recovering the reward
+function, which can prove useful in two ways:
+\begin{enumerate}
+\item As VI tends to be faster than Markov chain Monte Carlo
+  sampling \cite{blei2017variational}, we should be able to handle more data.
+\item Modelling full posterior distributions for various parameters can result
+  in more precise reward predictions, as the model simply holds more
+  information.
+\end{enumerate}
 
 \section{Statement of the Problem}
 %clearly state the problem to be addressed in your forthcoming project. Explain
@@ -174,15 +182,15 @@ states $\mathbf{r}$. While the previous paper to consider this IRL model
 computed maximum likelihood estimates for $\bm\lambda$ and $\mathbf{u}$, and
 made an assumption that $\mathbf{r}$ in \eqref{eq:r} has zero variance
 \cite{DBLP:conf/nips/LevinePK11}, we aim to avoid this assumption and use
-variational inference to approximate the full posterior distribution
-$\posterior$. \emph{Variational inference} (VI) is an approximation technique
-for probability densities \cite{blei2017variational}. Let $\approximation$ be
-our approximating family of probability distributions for $\posterior$ with its
-own hyperparameter vector $\bm\nu$. Then the job of VI algorithms is to optimise
-$\bm\nu$ in order to minimise the \emph{Kullback-Leibler} (KL) divergence
-between the original probability distribution and our approximation.  KL
-divergence (asymmetrically) measures how different the two distributions are,
-and in this case can be defined as \cite{blei2017variational}
+VI to approximate the full posterior distribution $\posterior$.
+\emph{Variational inference} is an approximation technique for probability
+densities \cite{blei2017variational}. Let $\approximation$ be our approximating
+family of probability distributions for $\posterior$ with its own hyperparameter
+vector $\bm\nu$. Then the job of VI algorithms is to optimise $\bm\nu$ in order
+to minimise the \emph{Kullback-Leibler} (KL) divergence between the original
+probability distribution and our approximation.  KL divergence (asymmetrically)
+measures how different the two distributions are, and in this case can be
+defined as \cite{blei2017variational}
 \[ \begin{split}
     \DKL(\approximation || \posterior) &= \Eq [\log\approximation -
     \log\posterior ] \\
@@ -204,6 +212,7 @@ The negation of what remains is often called the \emph{evidence lower bound}
     \frac{\pfull}{\approximation}\,d\bm\lambda\,d\mathbf{u}\,d\mathbf{r}.
   \end{split}
 \end{equation}
+% TODO: are they actually Lebesgue? What about notation?
 
 By considering full probability distributions instead of point estimates---as
 long as the approximations are able to capture important features of the
@@ -211,7 +220,18 @@ posterior---our predictions are likely to be more accurate and rely on fewer
 assumptions. Moreover, we hope to make use of various recent advancements in VI
 for both time complexity and approximation distribution fit (see Section
 \ref{literature}), making the resulting algorithm competitive both in terms of
-running time and model fit.
+running time and model fit. Therefore, we raise the following research
+questions\footnote{For each question, we are primarily comparing the original GP
+IRL approach \cite{DBLP:conf/nips/LevinePK11} with our variational version.}:
+\begin{enumerate}
+\item Does VI allow us to make more accurate reward predictions when given the
+  same amount of training time?
+\item How does the reward prediction accuracy differ between VI and sampling
+  approaches when given the same amount of training data?
+\item How well does our VI model approximate the real posterior distribution?
+\item Is VI better at learning behaviour driven by multiple goals?
+\item Is VI more robust at handling mistakes in demonstrations?
+\end{enumerate}
 
 \section{Literature Survey} \label{literature}
 %present an overview of relevant previous work including articles, books, and
@@ -262,6 +282,13 @@ VI, but with a few simplifying assumptions: deterministic training conditional
 for the reward vector, and fully independent training conditional for the latent
 state (see Section \ref{sec:vi_literature} for more details).
 
+Finally, instead of using GPs to model nonlinear reward functions, one can use a
+neural network (NN), as demonstrated by Wulfmeier et al.
+\cite{wulfmeier2015maximum}. Their approach benefits from constant time
+inference and the ability to learn complex features either from already-given
+features or even from raw data. The only disadvantage (as demonstrated in the
+paper) is that NNs take longer to learn compared to GPs.
+
 %A different take on IRL with GPs \cite{DBLP:journals/corr/abs-1208-2112}
 %IRL for large state spaces (haven't read) \cite{DBLP:journals/jmlr/BoulariasKP11}
 %Multiple reward functions \cite{DBLP:conf/nips/ChoiK12}
@@ -281,9 +308,9 @@ our IRL model is based on a GP, we will begin by reviewing some of the VI
 approaches applied specifically to GP regression. Based on a recent review of
 scalable GPs \cite{DBLP:journals/corr/abs-1711-05597}, we will concentrate on
 \emph{stochastic variational sparse approximations}, as they have achieved
-modelling accuracy close to that of the full GP with no approximations, while
-providing a time complexity of $\mathcal{O}(m^3)$. Below we provide a short
-overview of various assumptions that have been used in approximating
+modelling accuracy close to that of the full GP with no approximations, with
+many methods providing a time complexity of $\mathcal{O}(m^3)$. Below we provide
+a short overview of various assumptions that have been used in approximating
 \emph{sparse} GPs (i.e., GPs that use inducing points), following on a paper by
 Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
 
@@ -347,48 +374,47 @@ Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
   \label{table:approximations}
 \end{table}
 
-% TODO: expand on this
 Table \ref{table:approximations} further summarises some of the recent and/or
 influential GP approximation approaches that might be suitable for our GP IRL
 model. In order to derive a reliable ELBO, the inducing points should be either
 fixed or modelled by a probability distribution (none of the approaches do
-that), while hyperparameters cannot be variational (the reason will be explained
-in Section \ref{sec:proposed_approach}).
+that), while hyperparameters cannot be variational (the reason will become clear
+in Section \ref{sec:proposed_approach}). We would also like to avoid having the
+hyperparameters fixed, as learning them efficiently would introduce a separate
+problem. As the approach by Hoang et al. does not seem to be easily extendable
+to modelled hyperparameters, it is unsuitable to our needs.
 
-\begin{itemize}
-\item We would also like to avoid having the hyperparameters fixed, as learning
-  them efficiently would introduce a separate problem. As the approach by Hoang
-  et al. does not seem to be easily extendable to modelled hyperparameters, it
-  is unsuitable to our needs.
-\item (TODO: this will have comments about other papers as well and will be
-  restructured into a paragraph) The variational Fourier features (VFF)
-  algorithm by Hensman et al. \cite{DBLP:journals/jmlr/HensmanDS17} is only
-  defined for Mat\'ern kernels, which is likely to be too restrictive for our
-  situation (the original paper on using GPs for IRL
-  \cite{DBLP:conf/nips/LevinePK11} used the automatic relevance detection kernel
-  that has weights controlling how important each feature is). While extending
-  VFF to support a flexible class of kernels defined by Wilson and Adams
-  \cite{pmlr-v28-wilson13} is an interesting and promising avenue of work, it is
-  likely to be beyond the scope of this project.
-\item The derivation of the ELBO in the work of Peng et al.
-  \cite{DBLP:conf/icml/PengZZQ17} relies primarily on the fact that the evidence
-  for a GP is a Gaussian, while in our case the evidence can be defined in
-  several ways depending on the model, but must always involve $\mathcal{D}$,
-  making the main idea of the paper inapplicable to IRL.
-\end{itemize}
+The variational Fourier features (VFF) algorithm by Hensman et al.
+\cite{DBLP:journals/jmlr/HensmanDS17} is only defined for Mat\'ern kernels,
+which is likely to be too restrictive for our situation (the original paper on
+using GPs for IRL \cite{DBLP:conf/nips/LevinePK11} used the automatic relevance
+detection kernel that has weights controlling how important each feature is).
+While extending VFF to support a flexible class of kernels defined by Wilson and
+Adams \cite{pmlr-v28-wilson13} is an interesting and promising avenue of work,
+it is likely to be beyond the scope of this project.
 
-Since we expect $\posterior$ to be highly irregular, we would like our
+The derivation of the ELBO in the work of Peng et al.
+\cite{DBLP:conf/icml/PengZZQ17} relies primarily on the fact that the evidence
+for a GP is a Gaussian, while in our case the evidence can be defined in several
+ways depending on the model, but must always involve $\mathcal{D}$, making the
+main idea of the paper inapplicable to IRL. Remaining papers can be rejected for
+similar reasons, as they are all highly dependent on the specific situation of
+approximating a GP regression. Thus we cannot simply apply a GP VI model as a
+whole, although there might be some smaller ideas that we can use (some of which
+will be mentioned in the next section).
+
+Finally, since we expect $\posterior$ to be highly irregular, we would like our
 approximation to be capable of representing a wide range of possible probability
-distributions. The primary way to represent complex posteriors in VI is by using
-\emph{normalising flows}, i.e., a collection of invertible
+distributions. The primary way of representing complex posteriors in VI is by
+using \emph{normalising flows}, i.e., a collection of invertible
 functions---parametrised by additional variational parameters---that are applied
 to latent variables \cite{DBLP:conf/icml/RezendeM15}. Unfortunately, this
 parametrisation also means that the gradient of the joint probability
-distribution w.r.t. variational parameters $\nabla_{\bm\nu}\pfull$ is no
-longer zero, making an analytic expression for ELBO impossible using the usual
+distribution w.r.t. variational parameters $\nabla_{\bm\nu}\pfull$ is no longer
+zero, making an analytic expression for the ELBO impossible using the usual
 methods. While it may be possible to have an approximating distribution for the
-flow parameters, it is uncertain how such an algorithm would behave, as it
-would have to perform optimisation in a space with significantly more dimensions.
+flow parameters, it is uncertain how such an algorithm would behave, as it would
+have to perform optimisation in a space with significantly more dimensions.
 
 \section{Proposed Approach} \label{sec:proposed_approach}
 
@@ -456,7 +482,7 @@ This suggests the following form for the approximation:
   | \bm\lambda, \mathbf{u}).
 \end{equation}
 
-\subsection{The Structure of the Approximating Distribution}
+\subsection{Structure of the Approximating Distribution}
 
 At this point we are forced to make assumptions about the approximate posterior
 in order to arrive at an implementable solution. Time permitting, ways to relax
@@ -592,369 +618,30 @@ This allows us to simplify $\mathcal{L}(\bm\nu)$ to the following:
   &+ \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} - \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]. \\
 \end{align*}
 
-\subsection{Derivatives}
-% TODO: some kind of intro
+\subsection{Variational Inference} \label{vi_algs}
 
-\subsubsection{$\partial/\partial\mathbf{m}$}
-
-We begin by removing terms independent of $\mathbf{m}$:
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\mathbf{m}} =
-    &- \frac{1}{2}\dm[\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}]
-    + \dm[\mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \dm\mathbb{E}[V_r(s_{i,t})] -
-      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-      s')\dm\mathbb{E}[V_r(s')].
-  \end{split}
-\]
-Here
-\begin{align*}
-  \dm[\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}] &= (\mathbb{E}[\Kuu^{-1}] + \mathbb{E}[\Kuu^{-1}]^\intercal)\mathbf{m}, \\
-  \dm[\mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}] &= \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}],
-\end{align*}
-and
-\begin{equation} \label{eq:1}
-  \begin{split}
-    \dm\mathbb{E}[V_r(s)] &= \dm\iiint V_r(s) p(\mathbf{r} | \bm\lambda,
-    \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
-    q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
-    &= \iiint V_r(s) p(\mathbf{r} | \bm\lambda,
-    \mathbf{X_u}, \mathbf{u}) \dm\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
-    q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda,
-  \end{split}
-\end{equation}
-where
-\[
-  \begin{split}
-    \dm\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) &=
-    \mathcal{N}(\mathbf{u}; \mathbf{m},
-    \mathbf{S})\dm\left[-\frac{1}{2}(\mathbf{u} -
-      \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right] \\
-    &= \mathcal{N}(\mathbf{u}; \mathbf{m},
-    \mathbf{S})\left(-\frac{1}{2}\right)(\mathbf{S}^{-1} +
-    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})\dm[\mathbf{u} -
-    \mathbf{m}] \\
-    &= \mathcal{N}(\mathbf{u}; \mathbf{m},
-    \mathbf{S})\frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u}
-    - \mathbf{m}).
-  \end{split}
-\]
-Substituting it back into \eqref{eq:1} gives
-\[
-  \begin{split}
-    \dm\mathbb{E}[V_r(s)] &= \frac{1}{2}\iiint V_r(s)
-    (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})
-    p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u};
-    \mathbf{m}, \mathbf{S})
-    q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
-    &= \frac{1}{2}\mathbb{E}[V_r(s) (\mathbf{S}^{-1} +
-    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})].
-\end{split}
-\]
-Hence
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\mathbf{m}} =
-    &-\frac{1}{2}(\mathbb{E}[\Kuu^{-1}] +
-    \mathbb{E}[\Kuu^{-1}]^\intercal)\mathbf{m} +
-    \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}] \\
-    &- \frac{1}{2}\sum_{i=1}^N\sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})
-    (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})] \\
-    &- \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')
-    \mathbb{E}[V_r(s') (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
-    \mathbf{m})].
-\end{split}
-\]
-
-\subsubsection{$\partial/\partial\mathbf{S}$}
-
-Similarly to the previous section,
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
-    \frac{1}{2}\dS\log|\mathbf{S}|
-    -\frac{1}{2}\dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \dS\mathbb{E}[V_r(s_{i,t})] -
-      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-      s')\dS\mathbb{E}[V_r(s')],
-  \end{split}
-\]
-where
-\[ \dS\log|\mathbf{S}| = \mathbf{S}^{-\intercal}, \]
-and
-\[ \dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] = \mathbb{E}[\Kuu^{-1}]^\intercal \]
-by \emph{The Matrix Cookbook} \cite{petersen2008matrix}. Then
-\[ \dS\mathbb{E}[V_r(s)] = \iiint V_r(s) q(\mathbf{r}) \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
-  q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda, \]
-where
-\[
-  \begin{split}
-    \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) &=
-    \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\exp \left( -\frac{1}{2}
-        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-        \mathbf{m})\right)\right] \\
-    &= \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\right]\exp \left( -\frac{1}{2}
-        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-        \mathbf{m})\right) \\
-      &+ \frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\dS\left[\exp\left( -\frac{1}{2}
-        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-        \mathbf{m})\right)\right] \\
-    &=
-    \frac{1}{(2\pi)^{m/2}}\dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right]\exp
-    \left( -\frac{1}{2} (\mathbf{u} -
-      \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right) \\
-    &- \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})\dS[(\mathbf{u}
-    - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})]. \\
-  \end{split}
-\]
-The two remaining derivatives can be taken with the help of \emph{The Matrix
-  Cookbook} \cite{petersen2008matrix}:
-\begin{align*}
-  \dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right] =
-  -\frac{1}{2}|\mathbf{S}|^{-3/2}\frac{\partial |\mathbf{S}|}{\partial \mathbf{S}} =
-  -\frac{1}{2}|\mathbf{S}|^{-3/2}|\mathbf{S}|\mathbf{S}^{-\intercal} &=
-  -\frac{1}{2|\mathbf{S}|^{1/2}}\mathbf{S}^{-\intercal}, \\
-  \dS[(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-  \mathbf{m})] &= -\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
-\end{align*}
-Plugging them back in gives
-\[ \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) =
-  -\frac{1}{2}\mathbf{S}^{-\intercal}\mathcal{N}(\mathbf{u};
-  \mathbf{m}, \mathbf{S}) + \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m},
-  \mathbf{S})\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}, \]
-and
-\[
-  \begin{split}
-    \dS\mathbb{E}[V_r(s)] &= \frac{1}{2}\iiint V_r(s)
-    (\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-    \mathbf{m})^\intercal\mathbf{S}^{-\intercal} - \mathbf{S}^{-\intercal})
-    q(\mathbf{r}) \mathcal{N}(\mathbf{u};
-    \mathbf{m}, \mathbf{S}) q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda
-    \\
-    &= \frac{1}{2}\mathbb{E}[V_r(s)(\mathbf{S}^{-\intercal}(\mathbf{u} -
-    \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
-    \mathbf{S}^{-\intercal})].
-  \end{split}
-\]
-Therefore
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
-    \frac{1}{2}\mathbf{S}^{-\intercal} -
-    \frac{1}{2}\mathbb{E}[\Kuu^{-1}]^\intercal - \frac{1}{2}
-    \sum_{i=1}^N\sum_{t=1}^T
-    \mathbb{E}[V_r(s_{i,t})(\mathbf{S}^{-\intercal}(\mathbf{u} -
-    \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
-    \mathbf{S}^{-\intercal})] \\
-    &- \gamma\sum_{s' \in \mathcal{S}}\mathcal{T}(s_{i,t}, a_{i,t}, s')
-    \mathbb{E}[V_r(s')(\mathbf{S}^{-\intercal}(\mathbf{u} -
-    \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
-    \mathbf{S}^{-\intercal})].
-  \end{split}
-\]
-
-\subsubsection{$\partial/\partial\alpha_j$}
-
-We begin in the usual way:
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\alpha_j} = &-
-    \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-2}]] - \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]] - \frac{1}{2}\da\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] - \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
-    &+ \da\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] +
-    \da [\alpha_j + \log\Gamma(\alpha_j) + (1 - \alpha_j)\psi(\alpha_j)] \\
-      &- \sum_{i=1}^N \sum_{t=1}^T \da\mathbb{E}[V_r(s_{i,t})] -
-        \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-        s')\da\mathbb{E}[V_r(s')].
-  \end{split}
-\]
-First,
-\[ \da [\alpha_j + \log\Gamma(\alpha_j) + (1 - \alpha_j)\psi(\alpha_j)] = 1 +
-  \psi(\alpha_j) - \psi(\alpha_j) + (1 - \alpha_j)\psi'(\alpha_j) = 1 + (1 -
-  \alpha_j)\psi'(\alpha_j) \]
-by the definition of $\psi$. The remaining terms can all be treated in the same
-way, as they all contain expectations of scalar functions that are independent
-of $\alpha_j$, and $\alpha_j$ only occurs in $\Gamma(\lambda_j; \alpha_j,
-\beta_j)$. Thus we can work with an abstract function as follows:
-\[
-  \begin{split}
-    \da\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \da \iiint f(k_{\bm\lambda},
-    \mathbf{r}) q(\bm\lambda) q(\mathbf{r})
-    q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \!\begin{multlined}[t]
-      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1}) \da
-      \left[ \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)} \lambda_j^{\alpha_j -
-          1} \right] e^{-\beta_j\lambda_j} \\
-      q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
-      q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}.
-    \end{multlined}
-  \end{split}
-\]
-Then
-\[
-  \begin{split}
-    \da \left[ \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)} \lambda_j^{\alpha_j - 1} \right] &=
-    \frac{\da[\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}]\Gamma(\alpha_j) -
-      \beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}\Gamma'(\alpha_j)}{(\Gamma(\alpha_j))^2} \\
-    &= \frac{\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}\da[\alpha_j\log\beta_j + (\alpha_j -
-      1)\log\lambda_j]\Gamma(\alpha_j) - \beta_j^{\alpha_j}\lambda_j^{\alpha_j -
-        1}\Gamma'(\alpha_j)}{(\Gamma(\alpha_j))^2} \\
-    &= \frac{\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}(\log\beta_j + \log\lambda_i)\Gamma(\alpha_j)
-      - \beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}\Gamma'(\alpha_j)}{(\Gamma(\alpha_j))^2} \\
-    &= \frac{\beta_j^{\alpha_j}\lambda_j^{\alpha_j - 1}}{\Gamma(\alpha_j)}\left(\log\beta_j +
-    \log\lambda_j - \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)}\right),
-  \end{split}
-\]
-which means that
-\[
-  \begin{split}
-    \da\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \!\begin{multlined}[t]
-      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
-      \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
-        1}e^{-\beta_j\lambda_j} \left(\log\beta_j + \log\lambda_j -
-        \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) \\
-      q(\lambda_{j+1}) \cdots q(\lambda_d)
-      q(\mathbf{r})q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}
-    \end{multlined} \\
-    &= \iiint f(k_{\bm\lambda}, \mathbf{r}) \left(\log\beta_j + \log\lambda_j -
-      \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right) q(\bm\lambda)
-    q(\mathbf{r})q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \mathbb{E} \left[ f(k_{\bm\lambda}, \mathbf{r}) \left(\log\beta_j +
-        \log\lambda_j - \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right)
-    \right] \\
-    &= \left( \log\beta_j - \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)}
-    \right)\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] +
-    \mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})\log\lambda_j].
-  \end{split}
-\]
-With these results in mind, we can simplify the initial expression to
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\alpha_j} &= 1 + (1 -
-    \alpha_j)\psi'(\alpha_j) + \left( \log\beta_j -
-      \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right)
-    \left(\vphantom{\sum_{i=1}^N} \right. - \frac{1}{2}
-    \mathbb{E}[\Tr[\Kuu^{-2}]] - \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]]
-    \\
-    &- \frac{1}{2}\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] -
-    \frac{1}{2}\mathbb{E}[\log|\Kuu|] +
-    \mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in
-      \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \left.
-      \vphantom{\sum_{i=1}^N} \right) \\
-    & - \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-2}]\log\lambda_j] -
-    \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]\log\lambda_j] -
-    \frac{1}{2}\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}\log\lambda_j]
-    \\
-    &- \frac{1}{2}\mathbb{E}[\log|\Kuu|\log\lambda_j] +
-    \mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}\log\lambda_j]
-    \\
-    &- \sum_{i=1}^N\sum_{t=1}^T\mathbb{E}[V_r(s_{i,t})\log\lambda_j] -
-    \gamma\sum_{s' \in \mathcal{S}}\mathcal{T}(s_{i,t}, a_{i,t},
-    s')\mathbb{E}[V_r(s')\log\lambda_j].
-  \end{split}
-\]
-
-\subsubsection{$\partial/\partial\beta_j$}
-Finally,
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\beta_j} = &-
-    \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-2}]] -
-    \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]] -
-    \frac{1}{2}\db\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] \\
-    &- \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] +
-    \db\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] -
-    \db[\log\beta_j] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \db \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s'
-      \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\db\mathbb{E}[V_r(s')].
-  \end{split}
-\]
-Similarly to the previous section, we can handle all derivatives of expectations
-in the same way:
-\[
-  \begin{split}
-    \db\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \db \iiint f(k_{\bm\lambda},
-    \mathbf{r}) q(\bm\lambda) q(\mathbf{r})
-    q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \!\begin{multlined}[t]
-      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
-      \frac{\lambda_j^{\alpha_j - 1}}{\Gamma(\alpha_j)} \db [\beta_j^{\alpha_j}
-      e^{-\beta_j\lambda_j}] \\
-      q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
-      q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}.
-    \end{multlined}
-  \end{split}
-\]
-Since
-\[ \db [\beta_j^{\alpha_j} e^{-\beta_j\lambda_j}] = \alpha_j\beta_j^{\alpha_j - 1}e^{-\beta_j\lambda_j}
-  - \beta_j^{\alpha_j} e^{-\beta_j\lambda_j}\lambda_j = \beta_j^{\alpha_j}
-  e^{-\beta_j\lambda_j} \left( \frac{\alpha_j}{\beta_j} - \lambda_j \right), \]
-we have that
-\[
-  \begin{split}
-    \db\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \!\begin{multlined}[t]
-      \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
-      \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
-        1}e^{-\beta_j\lambda_j} \left(\frac{\alpha_j}{\beta_j} - \lambda_j
-      \right) \\
-      q(\lambda_{j+1}) \cdots q(\lambda_d) q(\mathbf{r})
-      q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u}
-    \end{multlined}
-    \\
-    &= \iiint f(k_{\bm\lambda}, \mathbf{r}) \left(\frac{\alpha_j}{\beta_j} -
-      \lambda_j \right) q(\bm\lambda) q(\mathbf{r})
-    q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \mathbb{E} \left[ f(k_{\bm\lambda}, \mathbf{r})
-      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] =
-    \frac{\alpha_j}{\beta_j}\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] -
-    \mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})\lambda_j].
-  \end{split}
-\]
-This gives us the final expression of $\frac{\partial\mathcal{L}}{\partial\beta_j}$:
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\beta_j} = &- \frac{1}{\beta_j} -
-    \frac{1}{2}\mathbb{E} \left[ \Tr[\Kuu^{-2}] \left( \frac{\alpha_j}{\beta_j}
-        - \lambda_j \right) \right] - \frac{1}{2}\mathbb{E} \left[
-      \Tr[\Kuu^{-1}\mathbf{S}] \left(\frac{\alpha_j}{\beta_j} - \lambda_j
-      \right) \right] \\
-    &- \frac{1}{2}\mathbb{E} \left[ \mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}
-      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] -
-    \frac{1}{2}\mathbb{E} \left[ \log|\Kuu| \left(\frac{\alpha_j}{\beta_j} -
-        \lambda_j \right) \right] \\
-    &+ \mathbb{E} \left[ \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}
-      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E} \left[ V_r(s_{i,t})
-      \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] -
-    \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}
-    \left[V_r(s') \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right].
-  \end{split}
-\]
-
-\subsection{Variational Inference Algorithms} \label{vi_algs}
-
-% TODO: integrate this into the previous subsection
-% TODO: will need to make this equation more precise, once I know what
-% approximation I want to use
 The typical way to optimise a quantity (the ELBO, in this case) involves
-computing its gradient \cite{blei2017variational}. Due to terms involving
-$\mathcal{D}$ that are computed by solving an MDP and do not resemble a typical
-probability distribution, we turn our attention to the \emph{black box
-  variational inference} \cite{DBLP:conf/aistats/RanganathGB14} paper that
-suggests a convenient trick:
+computing its gradient \cite{blei2017variational}. Unfortunately, some of the
+terms in $\mathcal{L}$ are still left as expected values. \emph{Black box
+  variational inference} (BBVI) \cite{DBLP:conf/aistats/RanganathGB14} suggests
+a way to express the gradient as an expectation without having to take the
+gradient of the posterior:
 \[ \nabla_{\bm\nu} \mathcal{L} = \Eq[\nabla_{\bm\nu} \log \approximation
   (\log \pfull - \log \approximation)]. \]
-With this trick in mind, we only need to evaluate $\log \pfull$ and take the
-gradient of $\log \approximation$. Following the same paper,
-$\nabla_{\bm\nu} \mathcal{L}$ then has an unbiased estimate
+The gradient of the ELBO then has a unbiased estimate
 \[ \nabla_{\bm\nu} \mathcal{L} \approx \frac{1}{S} \sum_{s=1}^S
   \nabla_{\bm\nu} \log \approximationS (\log \pfullS - \log
   \approximationS) \]
 computed by drawing $S$ Monte Carlo samples $(\bm\lambda_s, \mathbf{u}_s,
 \mathbf{r}_s) \sim \approximation$.
+
+The main theorem behind the BBVI trick is the Lebesgue's dominated convergence
+theorem \cite{royden1988real}, which---under some conditions---allows one to
+claim that:
+\[ \lim_{n \to \infty} \int_E f_n = \int_E \lim_{n \to \infty} f_n. \]
+We can use the same idea on parts of $\mathcal{L}$ that we cannot take the
+derivative of otherwise. In this case, we want a gradient instead of a limit,
+and the integral represents an expected value.
 
 \section{Work Plan}
 %show how you plan to organize your work, identifying intermediate deliverables
@@ -964,7 +651,7 @@ computed by drawing $S$ Monte Carlo samples $(\bm\lambda_s, \mathbf{u}_s,
 \item Prove all applications of the dominated convergence theorem.
 \item Implement the algorithm as a more specialised version of Algorithm 2 in
   the black box VI paper.
-\item <Evaluation>
+\item Evaluation
 \item Experiment with various improvements mentioned in the black box VI paper,
   other VI papers, especially the ones about GPs.
 \item Write/finalise the paper.
@@ -972,135 +659,42 @@ computed by drawing $S$ Monte Carlo samples $(\bm\lambda_s, \mathbf{u}_s,
 
 \subsection{Evaluation}
 
-In order to evaluate our approach, we compare it to two related alternatives:
-the original GP IRL paper \cite{DBLP:conf/nips/LevinePK11} and the deep GP
-extension \cite{DBLP:conf/uai/JinDAS17}. To the best of our knowledge,... TODO: continue
-Against what? GPIRL and DGP-IRL.
+We would like to compare our approach to alternatives that support nonlinear
+reward functions. According to a recent survey
+\cite{DBLP:journals/corr/abs-1806-06877}, this leaves us with five algorithms:
+\textsc{LEARCH} \cite{DBLP:journals/arobots/RatliffSB09}, \textsc{MmpBoost}
+\cite{DBLP:conf/nips/RatliffBBC06}, the original GP IRL paper
+\cite{DBLP:conf/nips/LevinePK11}, its deep GP extension
+\cite{DBLP:conf/uai/JinDAS17}, and a neural network reward function
+approximation \cite{wulfmeier2015maximum}. As the first two have already been
+shown to underperform \cite{DBLP:conf/nips/LevinePK11}, we will focus on the
+remaining three.
 
-For what problems? GPIRL paper has a big toolkit, but with MATLAB.
-\begin{itemize}
-\item Object world. Fix one, vary the other: number of colours, number of
-  examples.
-\item Highway driving behaviour: both synthetic and human performance.
-\end{itemize}
+The algorithms will be compared on variations of two commonly used fictional
+scenarios: object world \cite{DBLP:conf/nips/LevinePK11} and highway driving
+behaviour \cite{DBLP:conf/icml/PieterN04,DBLP:conf/nips/LevinePK10}. While more
+recent papers (especially those using deep learning) often use the binary world
+benchmark as well \cite{wulfmeier2015maximum,DBLP:conf/uai/JinDAS17}, our
+approach is not able to construct new features, and thus cannot perform well on
+such a task.
 
-Using what metrics?
-\begin{itemize}
-\item Visualise the (true and learned) rewards as shades of grey.
-\item Also measure expected value difference in four situations:
-  \begin{itemize}
-  \item discrete features
-  \item discrete feature transfer
-  \item continuous features
-  \item continuous feature transfer
-  \end{itemize}
-\item Expected value difference over time rather than #examples (since VI tends
-  to be faster than MCMC).
-\end{itemize}
-
-\section{Notes on papers (to be removed)}
-
-\subsection{Miscellaneous}
-
-(Directed) similarity between MDPs using restricted Boltzmann machines
-\cite{9401f4eeb9a64c77afb3d087261d1080}
-
-Chapter 6 on distance measures \cite{mccune2002analysis}
-
-The PhD thesis behind maximum causal entropy \cite{Ziebart:2010:MPA:2049078}
-
-\subsection{Gaussian Processes}
-
-Simple introduction to GPs for time-series modelling \cite{Roberts2013GaussianPF}
-
-GPs over graphs instead of vectors (haven't actually read)
-\cite{DBLP:journals/corr/abs-1803-05776}
-
-Another introduction from physics (skimmed through) \cite{introduction_to_gps}
-
-Learning a GP from very little data \cite{DBLP:conf/nips/PlattBSWZ01}
-
-One GP for multiple correlated output variables \cite{DBLP:journals/jcphy/BilionisZKL13}
-
-Kernels for categorical and count data \cite{savitsky2011variable}
-
-Scalability/Approximations thesis \cite{kth}
-
-\subsection{Interpretability}
-
-Learning latent factors \cite{DBLP:conf/nips/LiSE17}
-
-The behaviour of Reddit users \cite{DBLP:conf/atal/DasL14}
-
-\subsection{Inverse Reinforcement Learning}
-
-One of the first papers on the topic \cite{DBLP:conf/icml/NgR00}
-
-Bayesian setting \cite{DBLP:conf/ijcai/RamachandranA07}
-
-Learning optimal composite features \cite{DBLP:conf/ijcai/ChoiK13}
-
-A different take on IRL with GPs \cite{DBLP:journals/corr/abs-1208-2112}
-
-IRL for large state spaces (haven't read) \cite{DBLP:journals/jmlr/BoulariasKP11}
-
-Multiple reward functions \cite{DBLP:conf/nips/ChoiK12}
-
-A recent survey \cite{DBLP:journals/corr/abs-1806-06877}
-
-Some not-very-successful method \cite{DBLP:conf/uai/NeuS07}
-
-\subsubsection{Multiple Strategies}
-
-EM clustering \cite{DBLP:conf/icml/BabesMLS11}
-
-Structured priors \cite{DBLP:conf/ewrl/DimitrakakisR11}
-
-There are more, but I haven't gotten to them yet.
-
-\subsection{Variational Inference}
-
-Part IV on probabilities and inference \cite{MacKay:2002:ITI:971143}
-
-Stochastic VI \cite{DBLP:journals/jmlr/HoffmanBWP13}
-
-Structured stochastic VI \cite{DBLP:conf/aistats/HoffmanB15}
-
-Another review of recent advances \cite{DBLP:journals/corr/abs-1711-05597}
-
-Tighter ELBOs are not necessarily better \cite{DBLP:conf/icml/RainforthKLMIWT18}
-
-For details on Lebesgue's dominated convergence theorem \cite{cinlar_probability}
-
-Still looking for the relevant version of the theorem \cite{knill2017probability}
-
-Approximation as a multivariate Gaussian (haven't read) \cite{DBLP:journals/sac/TanN18}
-
-How black box VI can be even more black box \cite{li2016wild}
-
-Evaluating VI \cite{DBLP:conf/icml/YaoVSG18}
-
-\subsubsection{for GPs}
-
-Linear VI for GPs \cite{DBLP:conf/nips/ChengB17}
-
-Sparse VI for GP \cite{DBLP:journals/jmlr/HensmanDS17}
-
-Stochastic VI for sparse spectral GPs (no inducing points, so not that relevant) \cite{DBLP:conf/aaai/HoangHL17}
-
-Sparse GPs 2 \cite{DBLP:conf/nips/GalWR14}
-
-The 3 papers I need to focus on:
-
-SVI for sparse GPs \cite{DBLP:conf/uai/HensmanFL13}
-
-distributed 1 \cite{DBLP:conf/icml/HoangHL15}
-
-distributed 2 (haven't read) \cite{DBLP:conf/icml/PengZZQ17}
-
-The paper at the core of the 3 approaches (approximates posterior) \cite{DBLP:journals/jmlr/Titsias09}
-
-Generalized version? \cite{DBLP:conf/icml/ShethWK15}
+Our main evaluation metric is \emph{expected value difference} (EVD)
+\cite{DBLP:conf/uai/JinDAS17}, calculated as
+\[ \mathbb{E} \left[ \sum_{t=0}^\infty \gamma^tr(s_t) \middle| \pi^* \right] -
+  \mathbb{E} \left[ \sum_{t=0}^\infty \gamma^t r(s_t) \middle| \hat\pi
+  \right], \]
+where $\pi^*$ is the optimal policy, and $\hat\pi$ is the policy generated using
+our reward function. We can measure how EVD changes both over time and as the
+number of demonstrations increase during training as well as use EVD to quantify
+how well the learned GP reward functions transfer to previously unseen yet
+similar environments. The learned reward functions can also be visualised as
+shades of grey on maps, just like in previous papers
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}. Lastly, to evaluate how
+well the variational approximation models the real posterior, we can use two
+metrics recently proposed by Yao et al. \cite{DBLP:conf/icml/YaoVSG18}:
+Pareto-smoothed importance sampling that measures overall goodness of fit, and
+variational simulation-based calibration that can detect bias in point
+estimates.
 
 \bibliographystyle{plain}
 \bibliography{mprop}
