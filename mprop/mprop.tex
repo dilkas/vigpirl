@@ -5,6 +5,7 @@
 \usepackage{bm}
 \usepackage{bbm}
 \usepackage{booktabs}
+\usepackage[multiple]{footmisc}
 %\usepackage{fancyvrb}
 %\usepackage[final]{pdfpages}
 
@@ -115,7 +116,7 @@ where
   Q_r(s, a) = r(s) + \gamma\sum_{s' \in \mathcal{S}}
   \mathcal{T}(s, a, s')V_r(s'),
 \end{equation}
-and $V_r(s)$ is a ``soft'' version of the Bellman backup operator, which can be
+and $V_r(s)$ is a `soft' version of the Bellman backup operator, which can be
 obtained by repeatedly applying the following equation until convergence:
 \cite{DBLP:conf/nips/LevinePK11,supplementary_material}
 \[ V_r(s) = \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in
@@ -202,7 +203,7 @@ The last term is both hard to compute and constant w.r.t. $\approximation$
 \cite{blei2017variational}, so we can remove it from our optimisation objective.
 The negation of what remains is often called the \emph{evidence lower bound}
 (ELBO) and is defined as\footnote{Throughout the proposal, all integrals should
-  be interpreted as Lebesgue integrals over the entire sample space.}
+  be interpreted as definite integrals over the entire sample space.}
 \cite{DBLP:books/lib/Bishop07,blei2017variational}
 \begin{equation} \label{eq:elbo}
   \begin{split}
@@ -212,7 +213,6 @@ The negation of what remains is often called the \emph{evidence lower bound}
     \frac{\pfull}{\approximation}\,d\bm\lambda\,d\mathbf{u}\,d\mathbf{r}.
   \end{split}
 \end{equation}
-% TODO: are they actually Lebesgue? What about notation?
 
 By considering full probability distributions instead of point estimates---as
 long as the approximations are able to capture important features of the
@@ -244,14 +244,14 @@ originated in one of the earliest papers on the topic by Ng and Russell
 \cite{DBLP:conf/icml/NgR00}, which introduced several linear programming
 approaches to the problem. The authors also noticed that often
 multiple reward functions can explain the same behaviour, and suggested
-heuristics for reward functions that are ``far away'' from reward functions that
+heuristics for reward functions that are `far away' from reward functions that
 do not fit the data.
 
 A few years later, Abbeel and Ng \cite{DBLP:conf/icml/PieterN04} developed an
 algorithm for the same formulation of the problem with a guarantee to converge
 quickly. Neu and Szepesv\'ari \cite{DBLP:conf/uai/NeuS07} identified a weakness
 in Abbeel and Ng's approach: the algorithm requires features to be
-``appropriately'' scaled, and optimal scaling may not be known. Instead, they
+`appropriately' scaled, and optimal scaling may not be known. Instead, they
 suggest a way to combine IRL with \emph{apprenticeship learning}, i.e., a
 supervised learning task for optimal \emph{policy} recovery (whereas IRL focuses
 on recovering the reward function).
@@ -367,13 +367,15 @@ Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
     \bottomrule
   \end{tabular}
   \caption{Summary of relevant VI approximations to GPs. For both inducing
-    points and hyperparameters, 'fixed' means 'chosen before the algorithm
-    starts' and 'variational' means 'included amongst the variational
+    points and hyperparameters, `fixed' means `chosen before the algorithm
+    starts' and `variational' means `included amongst the variational
     parameters'. Hyperparameters $m_\alpha$ and $m_\beta$ refer to the number of
     bases used to represent the GP's mean and covariance, respectively.}
   \label{table:approximations}
 \end{table}
 
+% TODO: the real reason is that we want to use the prior
+% TODO: the reasoning about inducing points is not clear either
 Table \ref{table:approximations} further summarises some of the recent and/or
 influential GP approximation approaches that might be suitable for our GP IRL
 model. In order to derive a reliable ELBO, the inducing points should be either
@@ -417,9 +419,19 @@ flow parameters, it is uncertain how such an algorithm would behave, as it would
 have to perform optimisation in a space with significantly more dimensions.
 
 \section{Proposed Approach} \label{sec:proposed_approach}
-
 %state how you propose to solve the software development problem. Show that your
 %proposed approach is feasible, but identify any risks.
+
+In this section we show a feasible way to apply VI to the problem. Section
+\ref{sec:preliminaries} defines several previously-missing parts of the model
+and provides intuition for how the approximating distribution could be
+structured. Section \ref{sec:structure} then defines the approximating
+distribution, where some choices are justified by a body of literature, and some
+are novel. Next, Section \ref{sec:elbo} derives a simplified expression for the
+ELBO. Finally, in Section \ref{vi_algs} we describe our strategy for
+optimising the ELBO.
+
+\subsection{Preliminaries} \label{sec:preliminaries}
 
 In order to properly investigate the difference between variational inference
 and maximum likelihood estimation for the model, we keep other parts of the
@@ -429,11 +441,10 @@ automatic relevance detection kernel
 \[ k_{\bm\lambda}(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
     -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i -
     \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\Tr[\bm\Lambda] \right), \]
-where $\lambda_0$ is the overall ``scale'' factor for how similar or distant the
-states are,
-\[ \bm\Lambda = \diag(\lambda_1, \dots, \lambda_d) \]
-is a diagonal matrix that determines how relevant each feature is (where $d$
-denotes the number of features), $\mathbbm{1}$ is defined as
+where $\lambda_0$ is the overall `scale' factor for how similar or distant the
+states are, $\bm\Lambda = \diag(\lambda_1, \dots, \lambda_d)$ is a diagonal
+matrix that determines how relevant each feature is (where $d$ denotes the
+number of features), $\mathbbm{1}$ is defined as
 \[ \mathbbm{1}[b] = \begin{cases}
     1 & \mbox{if $b$ is true} \\
     0 & \mbox{otherwise},
@@ -471,7 +482,7 @@ order to get a better sense of what we are trying to approximate:
 \]
 Note that now there are only two unknown probability distributions:
 $p(\mathcal{D} | \bm\lambda, \mathbf{X_u})$ and $p(\mathcal{D} | \bm\lambda,
-\mathbf{X_u}, \mathbf{u})$, which can be computed as follows:
+\mathbf{X_u}, \mathbf{u})$, which can be expressed as follows:
 \begin{align*}
   p(\mathcal{D} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) = \int &p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \, d\mathbf{r}, \\
   p(\mathcal{D} | \bm\lambda, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
@@ -482,7 +493,7 @@ This suggests the following form for the approximation:
   | \bm\lambda, \mathbf{u}).
 \end{equation}
 
-\subsection{Structure of the Approximating Distribution}
+\subsection{Structure of the Approximating Distribution} \label{sec:structure}
 
 At this point we are forced to make assumptions about the approximate posterior
 in order to arrive at an implementable solution. Time permitting, ways to relax
@@ -532,13 +543,13 @@ $\Gamma(\cdot)$ is the gamma function. This gives us our
 vector of variational parameters $\bm\nu = (\mathbf{m}, \mathbf{S}, \alpha_0,
 \beta_0, \dots, \alpha_d, \beta_d)^\intercal$.
 
-\subsection{Evidence Lower Bound}
+\subsection{Evidence Lower Bound} \label{sec:elbo}
 
 In this section we derive and simplify the ELBO for this (now fully specified)
 model. In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
 write\footnote{At this point, we will drop the subscript denoting which
-  variables the expectation is taken over. Also note that throughout the derivation
-  equality is taken to mean ``equality up to an additive constant''.}
+  variables the expectation is taken over. Also note that throughout the
+  derivation equality is taken to mean `equality up to an additive constant'.}
 \[ \mathcal{L}(\bm\nu) = \mathbb{E}[\log\pfull] -
   \mathbb{E}[\log\approximation]. \]
 By plugging in \eqref{full} and \eqref{eq:approximation}, we get
@@ -631,33 +642,66 @@ gradient of the posterior:
 The gradient of the ELBO then has a unbiased estimate
 \[ \nabla_{\bm\nu} \mathcal{L} \approx \frac{1}{S} \sum_{s=1}^S
   \nabla_{\bm\nu} \log \approximationS (\log \pfullS - \log
-  \approximationS) \]
+  \approximationS), \]
 computed by drawing $S$ Monte Carlo samples $(\bm\lambda_s, \mathbf{u}_s,
 \mathbf{r}_s) \sim \approximation$.
 
 The main theorem behind the BBVI trick is the Lebesgue's dominated convergence
 theorem \cite{royden1988real}, which---under some conditions---allows one to
 claim that:
-\[ \lim_{n \to \infty} \int_E f_n = \int_E \lim_{n \to \infty} f_n. \]
-We can use the same idea on parts of $\mathcal{L}$ that we cannot take the
-derivative of otherwise. In this case, we want a gradient instead of a limit,
-and the integral represents an expected value.
+\[ \lim_{n \to \infty} \int_E f_n\,d\mu = \int_E \lim_{n \to \infty}
+  f_n\,d\mu. \]
+We can use the same idea on parts of $\mathcal{L}$, derivatives of which cannot
+be taken otherwise. In our case, we want a gradient instead of a limit, and the
+integral represents an expected value.
+
+% TODO: finish this
+Let us briefly examine the options available in case the theorem is not
+applicable to some of our expected values.
+\[ \frac{1}{2}\Tr[\mathbb{E}[\Kuu^{-2}]] \quad \text{and} \quad \sum_{i=1}^d
+  \mathbb{E}[\log(\lambda_i + 1)] \]
+come from a chosen prior distribution for $\bm\lambda | \mathbf{X_u}$.
+Therefore, if needed, the distribution can be replaced with an
+easier-to-deal-with alternative.
+
+% what if the parameters of the covariance function are variational?
+
+%mTKuum, log|Kuu|, Tr[KuuS] => p(u | lambda, X_u)
+%tTKruKuum, V_r(s), T(s, a, s')V_r(s) => p(D | r) (DTC?)
+
+We can then take the BBVI algorithm as
+the basis for ours, keeping in mind the numerous improvement possibilities
+provided both by the BBVI paper \cite{DBLP:conf/aistats/RanganathGB14} and many
+others (e.g., the ones covered in Section \ref{literature}).
 
 \section{Work Plan}
 %show how you plan to organize your work, identifying intermediate deliverables
 %and dates.
 
+The work plan can be summarised as follows:
 \begin{enumerate}
-\item Prove all applications of the dominated convergence theorem.
-\item Implement the algorithm as a more specialised version of Algorithm 2 in
-  the black box VI paper.
-\item Evaluation
-\item Experiment with various improvements mentioned in the black box VI paper,
-  other VI papers, especially the ones about GPs.
-\item Write/finalise the paper.
+\item Derive expressions for the derivatives of the ELBO w.r.t. the variational
+  parameters. \emph{Deliverables}: full derivations that can be included as
+  supplementary material of the final paper, including formal proofs for
+  applications of the dominated convergence theorem. \emph{Date}: 15~December.
+\item Implement the algorithm as a more specialised version of Algorithm~2 in
+  the BBVI paper \cite{DBLP:conf/aistats/RanganathGB14}. As most of the relevant
+  IRL algorithms have been implemented in
+  MATLAB\footnote{\url{http://graphics.stanford.edu/projects/gpirl/irl_toolkit.zip}}\footnote{\url{https://github.com/jinming99/DGP-IRL}},
+  it makes sense to do the same in order to have accurate time-sensitive
+  comparisons between the algorithms. \emph{Deliverables}: a working
+  implementation that can be integrated into the IRL toolkit by Levine et al.
+  \cite{DBLP:conf/nips/LevinePK11}, and the same algorithm written in pseudo
+  code in the paper. \emph{Date}: 1~February.
+\item Evaluate the algorithm by comparing it to multiple alternatives, as
+  detailed in Section \ref{sec:evaluation}. \emph{Deliverables}: multiple plots
+  in an SVG or PDF format, along with code that produces them. \emph{Date}:
+  1~April.
+\item Write/finalise the paper. \emph{Deliverable}: a 14-page paper.
+  \emph{Date}: around 23~April, the deadline has not been updated yet.
 \end{enumerate}
 
-\subsection{Evaluation}
+\subsection{Evaluation} \label{sec:evaluation}
 
 We would like to compare our approach to alternatives that support nonlinear
 reward functions. According to a recent survey
@@ -674,7 +718,7 @@ The algorithms will be compared on variations of two commonly used fictional
 scenarios: object world \cite{DBLP:conf/nips/LevinePK11} and highway driving
 behaviour \cite{DBLP:conf/icml/PieterN04,DBLP:conf/nips/LevinePK10}. While more
 recent papers (especially those using deep learning) often use the binary world
-benchmark as well \cite{wulfmeier2015maximum,DBLP:conf/uai/JinDAS17}, our
+benchmark as well \cite{DBLP:conf/uai/JinDAS17,wulfmeier2015maximum}, our
 approach is not able to construct new features, and thus cannot perform well on
 such a task.
 
