@@ -22,15 +22,10 @@ addpath LinearMDP
 % IRL algorithms.
 addpath FIRL
 addpath GPIRL
-addpath MaxEnt
-addpath MMP
-addpath MMPBoost
-addpath LEARCH
-addpath OptV
-addpath AN
-addpath MWAL
+addpath MaxEnt 
 
-% Example MDPs.
-addpath Gridworld
+addpath Binaryworld
+addpath deepGPIRL
+addpath deepGPIRL/utils
+addpath mltools
 addpath Objectworld
-addpath Highway

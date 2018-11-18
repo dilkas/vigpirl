@@ -1,9 +1,21 @@
 % Convenience script for running a single test.
 addpaths;
-test_result = runtest('gpirl',struct(),'linearmdp',...
+
+% GPIRL
+%test_result = runtest('gpirl',struct(),'linearmdp',...
+%    'objectworld',struct('n',32,'determinism',0.7,'seed',1,'continuous',0),...
+%    struct('training_sample_lengths',8,'training_samples',16,'verbosity',2));
+
+% DGP-IRL original
+%test_result = runtest('deepgpirl',struct(),'linearmdp','binaryworld',...
+%   struct('n',12),struct('training_sample_lengths',12^2,...
+%   'training_samples',8,'verbosity',1));
+
+% GPIRL's test using DGP-IRL
+test_result = runtest('deepgpirl',struct(),'linearmdp',...
     'objectworld',struct('n',32,'determinism',0.7,'seed',1,'continuous',0),...
     struct('training_sample_lengths',8,'training_samples',16,'verbosity',2));
- 
+
 % Visualize solution.
 printresult(test_result);
 visualize(test_result);
