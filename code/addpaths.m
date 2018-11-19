@@ -29,3 +29,4 @@ addpath deepGPIRL
 addpath deepGPIRL/utils
 addpath mltools
 addpath Objectworld
+addpath Gridworld

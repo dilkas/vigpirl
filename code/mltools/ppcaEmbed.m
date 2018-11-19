@@ -40,7 +40,7 @@ if ~any(any(isnan(Y)))
     W = X'*Ycentre;
 
   else
-    [v, u] = pca(Y);
+    [u, ~, v] = pca(Y);
     v(find(v<0))=0;
     Ymean = mean(Y);
     Ycentre = zeros(size(Y));
