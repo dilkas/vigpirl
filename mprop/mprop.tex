@@ -301,7 +301,7 @@ paper) is that NNs take longer to learn compared to GPs.
 Variational inference has seen a recent increase in interest among academics,
 with different approaches focusing on different goals: better time complexity,
 handling a wider variety of models, making approximations more accurate, and
-using more complex function approximation techniques (such as neural networks)
+using more complex function approximation techniques (such as NNs)
 to infer local latent variable values without having to calculate them
 individually for each data point \cite{DBLP:journals/corr/abs-1711-05597}. As
 our IRL model is based on a GP, we will begin by reviewing some of the VI
@@ -360,7 +360,7 @@ Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
     Titsias, 2009 \cite{DBLP:journals/jmlr/Titsias09} & variational & variational & $\mathcal{O}(nm^2)$ \\
     Hensman et al., 2013 \cite{DBLP:conf/uai/HensmanFL13} & fixed & variational & $\mathcal{O}(m^3)$ \\
     Gal et al., 2014 \cite{DBLP:conf/nips/GalWR14} & variational & variational & $\mathcal{O}(nm^2)$ \\
-    Hoang et al., 2015 \cite{DBLP:conf/icml/HoangHL15} & fixed & fixed & $\mathcal{O}(m^3)$ \\
+    %Hoang et al., 2015 \cite{DBLP:conf/icml/HoangHL15} & fixed & fixed & $\mathcal{O}(m^3)$ \\
     Cheng and Boots, 2017 \cite{DBLP:conf/nips/ChengB17} & variational & variational & $\mathcal{O}(nm_\alpha + nm_\beta^2)$ \\
     Hensman et al., 2017 \cite{DBLP:journals/jmlr/HensmanDS17} & fixed & variational & $\mathcal{O}(nm)$ \\
     Peng et al., 2017 \cite{DBLP:conf/icml/PengZZQ17} & variational & variational & $\mathcal{O}(m^3)$ \\
@@ -374,17 +374,47 @@ Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
   \label{table:approximations}
 \end{table}
 
-% TODO: the real reason is that we want to use the prior
-% TODO: the reasoning about inducing points is not clear either
 Table \ref{table:approximations} further summarises some of the recent and/or
-influential GP approximation approaches that might be suitable for our GP IRL
-model. In order to derive a reliable ELBO, the inducing points should be either
-fixed or modelled by a probability distribution (none of the approaches do
-that), while hyperparameters cannot be variational (the reason will become clear
-in Section \ref{sec:proposed_approach}). We would also like to avoid having the
-hyperparameters fixed, as learning them efficiently would introduce a separate
-problem. As the approach by Hoang et al. does not seem to be easily extendable
-to modelled hyperparameters, it is unsuitable to our needs.
+influential GP approximation approaches that might be relevant to our situation.
+For many of the variables in our model (including the inducing points
+located somewhere in $\mathbb{R}^d$ and the hyperparameters of the covariance
+function), we have three possible ways of handling them:
+\begin{itemize}
+\item Provide a full Bayesian treatment by defining a prior probability
+  distribution. While this option can easily prevent overfitting, the choice of
+  prior can be difficult to justify.
+\item Fix the value of the variable. We can then optimise the value outside of
+  the main algorithm, e.g., by running the algorithm with a set of possible
+  values and keeping the value that produces the best performance. This option
+  can be slow if we are interested in finding the optimal value, but could be
+  appropriate if the variable has little impact on the algorithm's performance.
+\item Treat the variable as a variational parameter. This method will
+  efficiently optimise the value of the variable, but is vulnerable to
+  overfitting. Furthermore, this requires us to find the derivative of the ELBO
+  w.r.t. the variable, which could be difficult.
+\end{itemize}
+
+Titsias \cite{DBLP:journals/jmlr/Titsias09} is the first to suggest a
+variational approximation where inducing points are treated as variational
+parameters. The paper has influenced many of the later works covered in this
+section, and has been reformulated by Gal et al. \cite{DBLP:conf/nips/GalWR14}
+into a distributed algorithm. We will fix the inducing points for the baseline
+version of our algorithm, but keep the idea in mind for possible future work.
+
+Hensman et al. \cite{DBLP:conf/uai/HensmanFL13} reduce the complexity from
+$\mathcal{O}(nm^2)$ to $\mathcal{O}(m^3)$ using a stochastic variational
+inference (SVI) approach. While results such as efficiently computable natural
+gradients and analytically tractable optimal solutions for variational
+parameters are unlikely to transfer to a different problem domain, the overall
+SVI framework and an approximating Gaussian distribution for $\mathbf{u}$ will
+play an important role in our proposal.
+
+Cheng and Boots \cite{DBLP:conf/nips/ChengB17} suggest using different bases in
+the reproducing kernel Hilbert space for the mean and covariance functions.
+The paper makes few assumptions and mostly relies on the work of
+Titsias \cite{DBLP:journals/jmlr/Titsias09}, making it seem transferable to a
+new domain. However, applying the idea to IRL is likely to be beyond the scope
+of the project.
 
 The variational Fourier features (VFF) algorithm by Hensman et al.
 \cite{DBLP:journals/jmlr/HensmanDS17} is only defined for Mat\'ern kernels,
@@ -393,34 +423,32 @@ using GPs for IRL \cite{DBLP:conf/nips/LevinePK11} used the automatic relevance
 detection kernel that has weights controlling how important each feature is).
 While extending VFF to support a flexible class of kernels defined by Wilson and
 Adams \cite{pmlr-v28-wilson13} is an interesting and promising avenue of work,
-it is likely to be beyond the scope of this project.
+it is likely to be beyond the scope of this project as well.
 
-The derivation of the ELBO in the work of Peng et al.
-\cite{DBLP:conf/icml/PengZZQ17} relies primarily on the fact that the evidence
-for a GP is a Gaussian, while in our case the evidence can be defined in several
-ways depending on the model, but must always involve $\mathcal{D}$, making the
-main idea of the paper inapplicable to IRL. Remaining papers can be rejected for
-similar reasons, as they are all highly dependent on the specific situation of
-approximating a GP regression. Thus we cannot simply apply a GP VI model as a
-whole, although there might be some smaller ideas that we can use (some of which
-will be mentioned in the next section).
+While Peng et al. \cite{DBLP:conf/icml/PengZZQ17} provide a highly efficient
+distributed implementation, the derivation of the ELBO relies primarily on the
+fact that the evidence for a GP is a Gaussian, while in our case the evidence is
+anything but. Hence, it is unlikely that the ideas from this paper could be
+applicable to our IRL model.
 
 Finally, since we expect $\posterior$ to be highly irregular, we would like our
 approximation to be capable of representing a wide range of possible probability
 distributions. The primary way of representing complex posteriors in VI is by
 using \emph{normalising flows}, i.e., a collection of invertible
 functions---parametrised by additional variational parameters---that are applied
-to latent variables \cite{DBLP:conf/icml/RezendeM15}. Unfortunately, this
-parametrisation also means that the gradient of the joint probability
-distribution w.r.t. variational parameters $\nabla_{\bm\nu}\pfull$ is no longer
-zero, making an analytic expression for the ELBO impossible using the usual
-methods. While it may be possible to have an approximating distribution for the
-flow parameters, it is uncertain how such an algorithm would behave, as it would
-have to perform optimisation in a space with significantly more dimensions.
+to latent variables \cite{DBLP:conf/icml/RezendeM15}. Normalising flows, along
+with some of the ideas mentioned previously, could provide great benefits to the
+GP IRL VI model. However, we are forced to keep any non-essential features as
+possible future work in order to make the project feasible in a given time
+frame. Furthermore, note that due to various differences between regression and
+IRL, we cannot simply apply a GP VI model as a whole. Instead, smaller tricks
+and ideas from various papers can (and will) be used throughout the project.
 
 \section{Proposed Approach} \label{sec:proposed_approach}
 %state how you propose to solve the software development problem. Show that your
 %proposed approach is feasible, but identify any risks.
+
+% TODO: the real reason is that we want to use the prior
 
 In this section we show a feasible way to apply VI to the problem. Section
 \ref{sec:preliminaries} defines several previously-missing parts of the model
@@ -709,7 +737,7 @@ reward functions. According to a recent survey
 \textsc{LEARCH} \cite{DBLP:journals/arobots/RatliffSB09}, \textsc{MmpBoost}
 \cite{DBLP:conf/nips/RatliffBBC06}, the original GP IRL paper
 \cite{DBLP:conf/nips/LevinePK11}, its deep GP extension
-\cite{DBLP:conf/uai/JinDAS17}, and a neural network reward function
+\cite{DBLP:conf/uai/JinDAS17}, and an NN-based reward function
 approximation \cite{wulfmeier2015maximum}. As the first two have already been
 shown to underperform \cite{DBLP:conf/nips/LevinePK11}, we will focus on the
 remaining three.
