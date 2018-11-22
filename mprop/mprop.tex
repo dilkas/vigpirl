@@ -207,7 +207,7 @@ The negation of what remains is often called the \emph{evidence lower bound}
 \cite{DBLP:books/lib/Bishop07,blei2017variational}
 \begin{equation} \label{eq:elbo}
   \begin{split}
-    \mathcal{L}(\bm\nu) &= \Eq \left[ \log \frac{\pfull}{\approximation}
+    \mathcal{L} &= \Eq \left[ \log \frac{\pfull}{\approximation}
     \right] \\
     &= \iiint \approximation \log
     \frac{\pfull}{\approximation}\,d\bm\lambda\,d\mathbf{u}\,d\mathbf{r}.
@@ -280,7 +280,7 @@ aims to harness the power of deep learning by using several layers of GPs,
 making the model less dependent on being provided good features. They also use
 VI, but with a few simplifying assumptions: deterministic training conditional
 for the reward vector, and fully independent training conditional for the latent
-state (see Section \ref{sec:vi_literature} for more details).
+state (see Section \ref{sec:vi_literature} for details).
 
 Finally, instead of using GPs to model nonlinear reward functions, one can use a
 neural network (NN), as demonstrated by Wulfmeier et al.
@@ -376,9 +376,9 @@ Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
 
 Table \ref{table:approximations} further summarises some of the recent and/or
 influential GP approximation approaches that might be relevant to our situation.
-For many of the variables in our model (including the inducing points
-located somewhere in $\mathbb{R}^d$ and the hyperparameters of the covariance
-function), we have three possible ways of handling them:
+For many of the variables in our model (including the inducing points and the
+hyperparameters of the covariance function), we have three possible ways of
+handling them:
 \begin{itemize}
 \item Provide a full Bayesian treatment by defining a prior probability
   distribution. While this option can easily prevent overfitting, the choice of
@@ -448,9 +448,7 @@ and ideas from various papers can (and will) be used throughout the project.
 %state how you propose to solve the software development problem. Show that your
 %proposed approach is feasible, but identify any risks.
 
-% TODO: the real reason is that we want to use the prior
-
-In this section we show a feasible way to apply VI to the problem. Section
+In this section we show a feasible way to apply VI to the GP IRL model. Section
 \ref{sec:preliminaries} defines several previously-missing parts of the model
 and provides intuition for how the approximating distribution could be
 structured. Section \ref{sec:structure} then defines the approximating
@@ -462,16 +460,15 @@ optimising the ELBO.
 \subsection{Preliminaries} \label{sec:preliminaries}
 
 In order to properly investigate the difference between variational inference
-and maximum likelihood estimation for the model, we keep other parts of the
-model the same. Namely, we set the covariance function to a version of the
-automatic relevance detection kernel
-\cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
+and maximum likelihood estimation, we keep other parts of the model the same.
+Namely, we set the covariance function to a version of the automatic relevance
+detection kernel \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
 \[ k_{\bm\lambda}(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
     -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i -
-    \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\Tr[\bm\Lambda] \right), \]
+    \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\Tr(\bm\Lambda) \right), \]
 where $\lambda_0$ is the overall `scale' factor for how similar or distant the
 states are, $\bm\Lambda = \diag(\lambda_1, \dots, \lambda_d)$ is a diagonal
-matrix that determines how relevant each feature is (where $d$ denotes the
+matrix that determines the relevance of each feature (where $d$ denotes the
 number of features), $\mathbbm{1}$ is defined as
 \[ \mathbbm{1}[b] = \begin{cases}
     1 & \mbox{if $b$ is true} \\
@@ -484,36 +481,41 @@ covariance function is then $\bm\lambda = (\lambda_0, \dots,
 \lambda_d)^\intercal$. Similarly, we keep the expression for the prior of
 $\bm\lambda$:
 \begin{equation} \label{eq:theta_prior}
-  p(\bm\lambda | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr[\Kuu^{-2}] -
+  p(\bm\lambda | \mathbf{X_u}) = \exp\left( -\frac{1}{2}\Tr(\Kuu^{-2}) -
     \sum_{i=1}^d \log(\lambda_i + 1) \right).
 \end{equation}
+Defining the prior for $\bm\lambda$ means that we commit ourselves to
+a Bayesian treatment of the variable as opposed to, e.g., treating it as a
+variational parameter. While the remainder of the proposal will stick with this
+assumption, the alternative is certainly worth exploring in its own right, and
+will be investigated after the main formulation is implemented.
 
 Next, we can rewrite the posterior by using the chain rule and Bayes' theorem in
 order to get a better sense of what we are trying to approximate:
 \[
   \begin{split}
-    \posterior &= p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u}
-    | \bm\lambda, \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{r} | \bm\lambda,
+    \posterior &= p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) p(\mathbf{u}
+    | \bm\lambda, \mathbf{X_u}, \mathcal{D}) p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}, \mathcal{D}) \\
-    &\propto p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) \times p(\mathbf{u} |
-    \bm\lambda, \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} | r) \times
+    &\propto p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) p(\mathbf{u} |
+    \bm\lambda, \mathbf{X_u}, \mathcal{D}) p(\mathcal{D} | r)
     p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \\
-    &\propto p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) \times p(\mathcal{D} |
-    \bm\lambda, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \bm\lambda,
-    \mathbf{X_u}) \times p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda,
+    &\propto p(\bm\lambda | \mathbf{X_u}, \mathcal{D}) p(\mathcal{D} |
+    \bm\lambda, \mathbf{X_u}, \mathbf{u}) p(\mathbf{u} | \bm\lambda,
+    \mathbf{X_u}) p(\mathcal{D} | r) p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}) \\
-    &\propto p(\mathcal{D} | \bm\lambda, \mathbf{X_u}) \times p(\bm\lambda |
-    \mathbf{X_u}) \times p(\mathcal{D} | \bm\lambda, \mathbf{X_u}, \mathbf{u})
-    \times p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) \times p(\mathcal{D} | r)
-    \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u})
+    &\propto p(\mathcal{D} | \bm\lambda, \mathbf{X_u}) p(\bm\lambda |
+    \mathbf{X_u}) p(\mathcal{D} | \bm\lambda, \mathbf{X_u}, \mathbf{u})
+    p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) p(\mathcal{D} | r)
+    p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u})
   \end{split}
 \]
 Note that now there are only two unknown probability distributions:
 $p(\mathcal{D} | \bm\lambda, \mathbf{X_u})$ and $p(\mathcal{D} | \bm\lambda,
 \mathbf{X_u}, \mathbf{u})$, which can be expressed as follows:
 \begin{align*}
-  p(\mathcal{D} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) = \int &p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \, d\mathbf{r}, \\
-  p(\mathcal{D} | \bm\lambda, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) \times p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \times p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
+  p(\mathcal{D} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) = \int &p(\mathcal{D} | r) p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \, d\mathbf{r}, \\
+  p(\mathcal{D} | \bm\lambda, \mathbf{X_u}) = \iint &p(\mathcal{D} | r) p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) \, d\mathbf{u} \, d\mathbf{r}.
 \end{align*}
 This suggests the following form for the approximation:
 \begin{equation} \label{eq:approximation}
@@ -523,7 +525,7 @@ This suggests the following form for the approximation:
 
 \subsection{Structure of the Approximating Distribution} \label{sec:structure}
 
-At this point we are forced to make assumptions about the approximate posterior
+At this point, we are forced to make assumptions about the approximate posterior
 in order to arrive at an implementable solution. Time permitting, ways to relax
 the assumptions may be investigated towards the end of the project.
 
@@ -536,17 +538,16 @@ we simply set
 \end{equation}
 We can make a similarly justified choice for $q(\mathbf{u} | \bm\lambda)$:
 \begin{equation}
-  q(\mathbf{u} | \bm\lambda) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
+  q(\mathbf{u} | \bm\lambda) = q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}),
 \end{equation}
-for some variational parameters $\mathbf{m} \in \mathbb{R}^{m}$ and a positive
-semi-definite matrix $\mathbf{S} \in \mathbb{R}^{m \times m}$.
+where $\mathbf{m} \in \mathbb{R}^{m}$ is the mean vector and the $m \times m$
+positive semi-definite matrix $\mathbf{S}$ is the covariance matrix
 \cite{DBLP:conf/nips/ChengB17,DBLP:journals/jmlr/HensmanDS17,DBLP:conf/aaai/HoangHL17}.
 
-In order to have a reasonable way of calculating/approximating the ELBO (see
-Section \ref{vi_algs}), we need to have an approximating distribution for
-$\bm\lambda$, but unfortunately all the papers in Table \ref{table:approximations}
-either fix it or treat it as a variational parameter. Hence we make our first
-assumption without justification from previous literature:
+Next, we need to choose an approximating distribution for $\bm\lambda$, but,
+unfortunately, all papers in Table \ref{table:approximations} either fix it or
+treat it as a variational parameter. Hence, we make our first assumption without
+justification from previous literature:
 \begin{equation} \label{eq:theta}
   q(\bm\lambda) = \prod_{i=0}^dq(\lambda_i).
 \end{equation}
@@ -555,7 +556,7 @@ produce non-negative values and not become trivial. Similarly, we want that
 $\lambda_i \ge 0$ for $i = 1, \dots, d$ so that $\bm\Lambda$ is a
 positive-definite matrix. Considering the possible distributions for all $d + 1$
 variables, we would like the mean to be flexible (i.e., not tied to zero, like
-with the exponential distribution), and the tails to converge to zero as the
+in the exponential distribution), and the tails to converge to zero as the
 value of the random variable moves away from the mean. We might want to support
 some right skew, but the distribution should be close to symmetric with at least
 some parameter values. This limits our choice of distributions quite
@@ -578,12 +579,12 @@ model. In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
 write\footnote{At this point, we will drop the subscript denoting which
   variables the expectation is taken over. Also note that throughout the
   derivation equality is taken to mean `equality up to an additive constant'.}
-\[ \mathcal{L}(\bm\nu) = \mathbb{E}[\log\pfull] -
+\[ \mathcal{L} = \mathbb{E}[\log\pfull] -
   \mathbb{E}[\log\approximation]. \]
 By plugging in \eqref{full} and \eqref{eq:approximation}, we get
 \[
   \begin{split}
-    \mathcal{L}(\bm\nu) &= \mathbb{E}[\log p(\mathbf{X_u}) + \log p(\bm\lambda |
+    \mathcal{L} &= \mathbb{E}[\log p(\mathbf{X_u}) + \log p(\bm\lambda |
     \mathbf{X_u}) + \log p(\mathbf{u} | \bm\lambda, \mathbf{X_u}) + \log
     p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) + \log p(\mathcal{D} | r)] \\
     &- \mathbb{E}[\log q(\bm\lambda) + \log q(\mathbf{u}) + \log q(\mathbf{r} |
@@ -596,7 +597,7 @@ simply drop it from the expression. Furthermore, since $q(\mathbf{r} | \bm\lambd
 each other out. Then we can substitute various terms with their definitions to
 get
 \begin{alignat*}{3}
-  \mathcal{L}(\bm\nu) &= \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] -
+  \mathcal{L} &= \mathbb{E}\left[-\frac{1}{2}\Tr(\Kuu^{-2}) -
     \sum_{i=1}^d \log(\lambda_i + 1)\right] &&+ \mathbb{E}[\log
   \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)] \\
   &+ \mathbb{E}\left[ \sum_{i=1}^N \sum_{t=1}^T Q_r(s_{i,t}, a_{i,t}) -
@@ -614,7 +615,7 @@ this fact for $\mathbb{E}[\log \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)]$
 because $\Kuu$ depends on $\bm\lambda$. We also plug in the definitions of
 $\mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)$ and $Q_r$, and get:
 \begin{align*}
-  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr[\Kuu^{-2}] - \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
+  \mathcal{L} &= \frac{1}{2}\log|\mathbf{S}| + \mathbb{E}\left[-\frac{1}{2}\Tr(\Kuu^{-2}) - \sum_{i=1}^d \log(\lambda_i + 1)\right] \\
   &+ \mathbb{E}\left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
     \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right] \\
   &+ \mathbb{E}\left[\sum_{i=1}^N \sum_{t=1}^T r(s_{i,t}) - V_r(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}}
@@ -646,13 +647,13 @@ Finally, as $\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}$ is a function of
 $\mathbf{u}$ and $\bm\lambda$, we can take the expectation of $\mathbf{u}$, leaving
 the expectation of $\bm\lambda$:
 \[ \mathbb{E}[\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u}] =
-  \mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}] +
+  \mathbb{E}[\Tr(\Kuu^{-1}\mathbf{S}) +
   \mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] =
-  \Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] +
+  \Tr(\mathbb{E}[\Kuu^{-1}]\mathbf{S}) +
   \mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}. \]
 This allows us to simplify $\mathcal{L}(\bm\nu)$ to the following:
 \begin{align*}
-  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\mathbf{S}| - \frac{1}{2}\Tr[\mathbb{E}[\Kuu^{-2}]] - \sum_{i=1}^d \mathbb{E}[\log(\lambda_i + 1)] - \frac{1}{2}\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] \\
+  \mathcal{L}(\bm\nu) &= \frac{1}{2}\log|\mathbf{S}| - \frac{1}{2}\Tr(\mathbb{E}[\Kuu^{-2}]) - \sum_{i=1}^d \mathbb{E}[\log(\lambda_i + 1)] - \frac{1}{2}\Tr(\mathbb{E}[\Kuu^{-1}]\mathbf{S}) \\
   &- \frac{1}{2}\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m} - \frac{1}{2}\mathbb{E}[\log|\Kuu|] + \sum_{i=0}^d \alpha_i - \log\beta_i + \log\Gamma(\alpha_i) + (1 - \alpha_i)\psi(\alpha_i) \\
   &+ \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m} - \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')]. \\
 \end{align*}
@@ -683,24 +684,49 @@ We can use the same idea on parts of $\mathcal{L}$, derivatives of which cannot
 be taken otherwise. In our case, we want a gradient instead of a limit, and the
 integral represents an expected value.
 
-% TODO: finish this
 Let us briefly examine the options available in case the theorem is not
-applicable to some of our expected values.
-\[ \frac{1}{2}\Tr[\mathbb{E}[\Kuu^{-2}]] \quad \text{and} \quad \sum_{i=1}^d
+applicable to some of our expected values. First,
+\[ \frac{1}{2}\Tr(\mathbb{E}[\Kuu^{-2}]) \quad \text{and} \quad \sum_{i=1}^d
   \mathbb{E}[\log(\lambda_i + 1)] \]
 come from a chosen prior distribution for $\bm\lambda | \mathbf{X_u}$.
-Therefore, if needed, the distribution can be replaced with an
-easier-to-deal-with alternative.
+There are two ways to deal with them: replacing the prior with an
+easier-to-handle alternative, and treating $\bm\lambda$ as a variational
+parameter.
 
-% what if the parameters of the covariance function are variational?
+Then,
+\[ \frac{1}{2}\Tr(\mathbb{E}[\Kuu^{-1}]\mathbf{S}), \quad 
+  \frac{1}{2}\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}, \quad
+  \text{and} \quad \frac{1}{2}\mathbb{E}[\log|\Kuu|] \]
+all derive from $p(\mathbf{u} | \bm\lambda, \mathbf{X_u})$, which cannot be
+eliminated or replaced without changing the idea of the project. However, notice
+that the expressions inside $\mathbb{E}[\cdot]$ are all functions of $\Kuu$,
+which depends only on $\bm\lambda$ and $\mathbf{X_u}$. Thus, if we make
+$\bm\lambda$ a variational parameter, the expected values are no longer taken
+w.r.t. $\bm\lambda$, and $\mathbb{E}[f(\Kuu)] = f(\Kuu)$ for any function $f$
+that does not involve $\mathbf{u}$ or $\mathbf{r}$. As a result, the three
+terms simplify to expressions without expected values.
 
-%mTKuum, log|Kuu|, Tr[KuuS] => p(u | lambda, X_u)
-%tTKruKuum, V_r(s), T(s, a, s')V_r(s) => p(D | r) (DTC?)
+Lastly,
+$\mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}$ and both
+instances of $\mathbb{E}[V_r(s)]$ come from $p(\mathcal{D} | r)$. The first
+expected value can be resolved by making $\bm\lambda$ a variational
+parameter. The MDP value function requires more effort. We can start by making
+the deterministic training conditional assumption (as is commonly done in
+previous work \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}), which
+sets the posterior covariance matrix of $\mathbf{r}$ to the zero matrix. Then
+the posterior $\mathbf{r} = \Kru^\intercal\Kuu^{-1}\mathbf{u}$. Hence we still
+have a (complicated) function of $\bm\lambda$ and $\mathbf{u}$ in the integral
+w.r.t. both variables. The integral (or expected value) w.r.t. $\bm\lambda$ can
+be eliminated the usual way, i.e., by making $\bm\lambda$ variational. As for
+$\mathbf{u}$, we can borrow a trick from the deep GP IRL paper
+\cite{DBLP:conf/uai/JinDAS17} and set $q(\mathbf{u}) = \delta(\mathbf{u} -
+\mathbf{m})$, where $\delta$ is the Dirac delta function. The expected value
+then becomes $\mathbb{E}[V_r(s)] = V_{\Kru^\intercal\Kuu^{-1}\mathbf{m}}(s)$.
 
 We can then take the BBVI algorithm as
 the basis for ours, keeping in mind the numerous improvement possibilities
 provided both by the BBVI paper \cite{DBLP:conf/aistats/RanganathGB14} and many
-others (e.g., the ones covered in Section \ref{literature}).
+others (see Section \ref{literature}).
 
 \section{Work Plan}
 %show how you plan to organize your work, identifying intermediate deliverables
@@ -720,7 +746,7 @@ The work plan can be summarised as follows:
   comparisons between the algorithms. \emph{Deliverables}: a working
   implementation that can be integrated into the IRL toolkit by Levine et al.
   \cite{DBLP:conf/nips/LevinePK11}, and the same algorithm written in pseudo
-  code in the paper. \emph{Date}: 1~February.
+  code for the paper. \emph{Date}: 1~February.
 \item Evaluate the algorithm by comparing it to multiple alternatives, as
   detailed in Section \ref{sec:evaluation}. \emph{Deliverables}: multiple plots
   in an SVG or PDF format, along with code that produces them. \emph{Date}:
