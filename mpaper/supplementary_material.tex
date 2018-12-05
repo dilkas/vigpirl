@@ -7,6 +7,11 @@
 \usepackage{mathtools}
 
 \newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newenvironment{proofsketch}{%
+  \renewcommand{\proofname}{Proof sketch}\proof}{\endproof}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
 
 \DeclareMathOperator{\Tr}{Tr}
 
@@ -18,6 +23,17 @@
 \newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
 \newcommand{\da}{\frac{\partial}{\partial\alpha_j}}
 \newcommand{\db}{\frac{\partial}{\partial\beta_j}}
+\newcommand{\dt}{\frac{\partial}{\partial t}}
+
+\newcommand{\f}{f(\mathbf{r}, \mathbf{u}, \bm\lambda, t)}
+\newcommand{\ftn}{f(\mathbf{r}, \mathbf{u}, \bm\lambda, t_n)}
+\newcommand{\fn}{f_n(\mathbf{r}, \mathbf{u}, \bm\lambda)}
+\newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda}
+\newcommand{\df}{\left.\frac{\partial f}{\partial t}\right|_{(\mathbf{r},
+    \mathbf{u}, \bm\lambda, t)}}
+\newcommand{\g}{g(\mathbf{r}, \mathbf{u}, \bm\lambda)}
+\newcommand{\rinf}{\lVert \mathbf{r} \rVert_\infty}
+\newcommand{\vbound}{\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma}}
 
 \title{Variational Inference for Inverse Reinforcement Learning with Gaussian
   Processes: Supplementary Material}
@@ -25,6 +41,174 @@
 
 \begin{document}
 \maketitle
+
+% TODO: by measurable I mean Lebesgue measurable, and integrable means Lebesgue
+% integrable
+
+\section{Proofs}
+
+\begin{theorem} \label{thm:measurability}
+  MDP value functions $V(s) : \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ (for $s
+  \in \mathcal{S}$) are Lebesgue measurable.
+\end{theorem}
+
+\begin{definition}
+  For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
+  its \emph{maximum norm} is
+  \[ \lVert \mathbf{x} \rVert_\infty = \max_i |x_i|. \]
+\end{definition}
+
+\begin{theorem} \label{thm:bound}
+  If the initial values of the MDP value function satisfy the following
+  bound, then the bound remains satisfied throughout value iteration:
+  \[ |V_r(s)| \le \vbound. \]
+\end{theorem}
+
+\begin{theorem}[The Lebesgue Dominated Convergence Theorem
+  \cite{royden2010real}] \label{thm:lebesgue}
+  Let $(X, \mathcal{M}, \mu)$ be a measure space and $\{ f_n \}$ a sequence of
+  measurable functions on $X$ for which $\{ f_n \} \to f$ pointwise a.e. on $X$
+  and the function $f$ is measurable. Assume there is a non-negative function
+  $g$ that is integrable over $X$ and dominates the sequence $\{ f_n \}$ on $X$
+  in the sense that
+  \[ |f_n| \le g \text{ a.e. on $X$ for all $n$.} \]
+  Then $f$ is integrable over $X$ and
+  \[ \lim_{n \to \infty} \int_X f_n\,d\mu = \int_X f\,d\mu. \]
+\end{theorem}
+
+%\begin{definition}[\cite{royden2010real}]
+%  A non-negative measurable function $f$ on a measurable set $E$ is said to be
+%  \emph{integrable} over $E$ provided
+%  \[ \int_E f < \infty. \]
+%\end{definition}
+
+\begin{proposition}[\cite{royden2010real}]
+  Let $f$ be a measurable function on $E$. Suppose there is a non-negative
+  function $g$ that is integrable over $E$ and dominates $f$ in the sense that
+  \[ |f| \le g \text{ on } E. \]
+  Then $f$ is integrable over $E$.
+\end{proposition}
+
+\begin{theorem}
+  Using our usual notation,
+  \[ \dt\iiint
+    V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)\dx
+    = \iiint
+    \dt[V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)]\dx, \]
+  where $t \in \{ \mathbf{m}, \mathbf{S}, \alpha_0, \dots, \alpha_d, \beta_0,
+  \dots, \beta_d \}$.
+\end{theorem}
+\begin{proof}
+  Let
+  \begin{align*}
+    \f &= V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda), \\
+    F(t) &= \iiint \f\dx,
+  \end{align*}
+  and, for any $t$, let $(t_n)_{n=1}^\infty$ be any sequence such that
+  $\lim_{n \to \infty} t_n = t$, but $t_n \ne t$ for all $n$. We want to show
+  that
+  \begin{equation} \label{eq:to_prove}
+    F'(t) = \lim_{n \to \infty} \frac{F(t_n) - F(t)}{t_n - t} = \iiint \df\dx.
+  \end{equation}
+  We have
+  \[ \frac{F(t_n) - F(t)}{t_n - t} = \iiint \frac{\ftn - \f}{t_n - t}\dx =
+    \iiint \fn\dx, \]
+  where
+  \[ \fn = \frac{\ftn - \f}{t_n - t}. \]
+  Since
+  \[ \lim_{n \to \infty} \fn = \df, \]
+  \eqref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
+  that both $f$ and $f_n$ are measurable and find a non-negative integrable
+  function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$, $\bm\lambda$,
+  \[ |\fn| \le \g. \]
+  The MDP value function is measurable by Theorem \ref{thm:measurability}. The
+  result of multiplying or adding measurable functions (e.g., probability
+  density functions (PDFs)) to a measurable function is still measurable. Thus,
+  both $f$ and $f_n$ are measurable.
+
+  It remains to find $g$. Without loss of generality, assume that $t$ is a
+  parameter of $q(\bm\lambda)$. Then
+  \[ |\fn| = |V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)| =
+    |V_r(s)|q(\mathbf{r})q(\mathbf{u}) \left| \frac{q(\bm\lambda)|_{t = t_n} -
+        q(\bm\lambda)}{t_n - t} \right| \]
+  since PDFs are non-negative. An upper bound for
+  $|V_r(s)|$ is given by Theorem \ref{thm:bound}, while
+  \[ \frac{q(\bm\lambda)|_{t = t_n} - q(\bm\lambda)}{t_n - t} = \left.
+      \frac{\partial q(\bm\lambda)}{\partial t} \right|_{t = c} \]
+  for some $c$ between $t$ and $t_n$ due to the mean value theorem (since $q$ is
+  a continuous and differentiable function of $t$, regardless of the specific
+  choices of $q$ and $t$). % TODO: is it?
+  Therefore,
+  \[ |\fn| \le \vbound q(\mathbf{r})q(\mathbf{u}) \left| \left. \frac{\partial
+        q(\bm\lambda)}{\partial t} \right|_{t=c} \right|. \]
+The bound is clearly non-negative and measurable. It remains to show that it is
+also integrable. Let $\mathbf{r} = (r_1, \dots, r_k)^\intercal$. Then
+\[ \vbound q(\mathbf{r}) \le \frac{q(\mathbf{r})}{1 - \gamma} \left(
+    \log|\mathcal{A}| + \sum_{i=1}^k |r_i| \right), \]
+and
+\[ \int \frac{q(\mathbf{r})}{1 - \gamma} \left(\log|\mathcal{A}| + \sum_{i=1}^k
+    |r_i| \right)\,d\mathbf{r} = \frac{\log|\mathcal{A}|}{1 - \gamma} +
+  \frac{1}{1 - \gamma} \sum_{i=1}^k \mathbb{E}[|r_i|], \]
+which clearly exists and is finite, so
+\[ \int \vbound q(\mathbf{r}) \,d\mathbf{r} < \infty \]
+for all $\gamma$ and $\mathbf{u}$. The existence of
+\[ \iiint \vbound q(\mathbf{r})q(\mathbf{u}) \left| \left. \frac{\partial
+        q(\bm\lambda)}{\partial t} \right|_{t=c} \right|\dx \]
+then comes from a boundedness argument, as...
+% not quite, E[|r|] can be any function of u.
+\end{proof}
+
+\begin{theorem}[Differentiating under the integral sign]
+  Assume $f : R \times R \to R$ is such that $x \mapsto f(x, t)$ is measurable
+  for each $t \in R$, that $f(x, t_0)$ is integrable for some $t_0 \in R$ and
+  $\frac{\partial f(x, t)}{\partial t}$ exists for each $(x, t)$. Assume also
+  that there is an integrable $g : R \to R$ with $\left| \frac{\partial f(x,
+      t)}{\partial t} \right| \le g(x)$ for each $x, t \in R$. Then the function
+  $x \mapsto f(x, t)$ is integrable for each $t$ and the function $F : R \to R$
+  defined by
+  \[ F(t) = \int_R f_t\,d\mu = \int_R f(x, t)\,d\mu(x) \]
+  is differentiable with derivative
+  \[ F'(t) = \frac{d}{dt} \int_R f(x, t)\,d\mu(x) = \int_R
+    \frac{\partial}{\partial t} f(x, t)\,d\mu(x). \]
+\end{theorem}
+\begin{proof}
+%  Applying the mean value theorem to the function $t \mapsto f(x, t)$, for each
+%  $t = t_0$ we have to have some $c$ between $t_0$ and $t$ so that
+%  \[ f(x, t) - f(x, t_0) = \left.\frac{\partial f}{\partial t}\right|_{(x, c)}(t
+%    - t_0). \]
+%  It follows that
+%  \[ |f(x, t) - f(x, t_0)| \le g(x)|t - t_0| \]
+%  and so
+%  \[ |f(x, t)| \le |f(x, t_0)| + g(x)|t - t_0|. \]
+%  Thus
+%  \[ \int_R |f(x, t)|\,d\mu(x) \le \int (|f(x, t_0)| + g(x)|t - t_0|)\,d\mu(x)
+%    = \int_R |f(x, t_0)|\,d\mu(x) + |t - t_0|\int_R g\,d\mu < \infty, \]
+%  which establishes that the function $x \mapsto f(x, t)$ is integrable for each
+%  $t$.
+  To prove the formula for $F(t)$ consider any sequence $(t_n)_{n=1}^\infty$ so
+  that $\lim_{n \to \infty} t_n = t$ but $t_n \neq t$ for each $t$. We claim
+  that
+  \begin{equation} \label{tempEq}
+    \lim_{n \to \infty} \frac{F(t_n) - F(t)}{t_n - t} = \int_R
+    \frac{\partial f(x, t)}{\partial t}\,d\mu(x).
+  \end{equation}
+  We have
+  \[ \frac{F(t_n) - F(t)}{t_n - t} = \int_R \frac{f(x, t_n) - f(x, t)}{t_n -
+      t}\,d\mu(x) = \int_R f_n(x)\,d\mu(x) \]
+  where
+  \[ f_n(x) = \frac{f(x, t_n) - f(x, t)}{t_n - t}. \]
+  Notice that, for each $x$ we know
+  \[ \lim_{n \to \infty} f_n(x) = \left.\frac{\partial f}{\partial
+        t}\right|_{(x, t)} \]
+  and so \eqref{tempEq} will follow from the dominated convergence theorem once we show
+  that $|f_n(x)| \le g(x)$ for each $x$.
+
+  That follows from the mean value theorem again because there is $c$ between $t$
+  and $t_0$ (with $c$ depending on $x$) so that
+  \[ f_n(x) = \frac{f(x, t_n) - f(x, t)}{t_n - t} = \left.\frac{\partial
+        f}{\partial t}\right|_{(x, c)}. \]
+  So $|f_n(x)| \le g(x)$ for each $x$.
+\end{proof}
 
 \section{Derivatives of the Evidence Lower Bound}
 
@@ -366,61 +550,6 @@ This gives us the final expression of $\frac{\partial\mathcal{L}}{\partial\beta_
     \left[V_r(s') \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right].
   \end{split}
 \]
-
-\section{Proofs}
-
-\begin{theorem}[Differentiating under the integral sign]
-  Assume $f : R \times R \to R$ is such that $x \mapsto f(x, t)$ is measurable
-  for each $t \in R$, that $f(x, t_0)$ is integrable for some $t_0 \in R$ and
-  $\frac{\partial f(x, t)}{\partial t}$ exists for each $(x, t)$. Assume also
-  that there is an integrable $g : R \to R$ with $\left| \frac{\partial f(x,
-      t)}{\partial t} \right| \le g(x)$ for each $x, t \in R$. Then the function
-  $x \mapsto f(x, t)$ is integrable for each $t$ and the function $F : R \to R$
-  defined by
-  \[ F(t) = \int_R f_t\,d\mu = \int_R f(x, t)\,d\mu(x) \]
-  is differentiable with derivative
-  \[ F'(t) = \frac{d}{dt} \int_R f(x, t)\,d\mu(x) = \int_R
-    \frac{\partial}{\partial t} f(x, t)\,d\mu(x). \]
-\end{theorem}
-\begin{proof}
-  Applying the mean value theorem to the function $t \mapsto f(x, t)$, for each
-  $t = t_0$ we have to have some $c$ between $t_0$ and $t$ so that
-  \[ f(x, t) - f(x, t_0) = \left.\frac{\partial f}{\partial t}\right|_{(x, c)}(t
-    - t_0). \]
-  It follows that
-  \[ |f(x, t) - f(x, t_0)| \le g(x)|t - t_0| \]
-  and so
-  \[ |f(x, t)| \le |f(x, t_0)| + g(x)|t - t_0|. \]
-  Thus
-  \[ \int_R |f(x, t)|\,d\mu(x) \le \int (|f(x, t_0)| + g(x)|t - t_0|)\,d\mu(x)
-    = \int_R |f(x, t_0)|\,d\mu(x) + |t - t_0|\int_R g\,d\mu < \infty, \]
-  which establishes that the function $x \mapsto f(x, t)$ is integrable for each
-  $t$.
-
-  To prove the formula for $F(t)$ consider any sequence $(t_n)_{n=1}^\infty$ so
-  that $\lim_{n \to \infty} t_n = t$ but $t_n \neq t$ for each $t$. We claim
-  that
-  \begin{equation} \label{tempEq}
-    \lim_{n \to \infty} \frac{F(t_n) - F(t)}{t_n - t} = \int_R
-    \frac{\partial f(x, t)}{\partial t}\,d\mu(x).
-  \end{equation}
-  We have
-  \[ \frac{F(t_n) - F(t)}{t_n - t} = \int_R \frac{f(x, t_n) - f(x, t)}{t_n -
-      t}\,d\mu(x) = \int_R f_n(x)\,d\mu(x) \]
-  where
-  \[ f_n(x) = \frac{f(x, t_n) - f(x, t)}{t_n - t}. \]
-  Notice that, for each $x$ we know
-  \[ \lim_{n \to \infty} f_n(x) = \left.\frac{\partial f}{\partial
-        t}\right|_{(x, t)} \]
-  and so \eqref{tempEq} will follow from the dominated convergence theorem once we show
-  that $|f_n(x)| \le g(x)$ for each $x$.
-
-  That follows from the mean value theorem again because there is $c$ between $t$
-  and $t_0$ (with $c$ depending on $x$) so that
-  \[ f_n(x) = \frac{f(x, t_n) - f(x, t)}{t_n - t} = \left.\frac{\partial
-        f}{\partial t}\right|_{(x, c)}. \]
-  So $|f_n(x)| \le g(x)$ for each $x$.
-\end{proof}
 
 \bibliographystyle{abbrv}
 \bibliography{paper.bib}

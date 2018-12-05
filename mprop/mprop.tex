@@ -6,6 +6,8 @@
 \usepackage{bbm}
 \usepackage{booktabs}
 \usepackage[multiple]{footmisc}
+\usepackage[UKenglish]{babel}
+\usepackage[UKenglish]{isodate}
 %\usepackage{fancyvrb}
 %\usepackage[final]{pdfpages}
 
@@ -22,7 +24,7 @@
 \title{Variational Inference for Inverse Reinforcement Learning with Gaussian
   Processes}
 \author{Paulius Dilkas}
-\date{Date of submission placed here} % TODO
+\date{4th December 2018}
 \maketitle
 \tableofcontents
 \newpage
@@ -44,17 +46,10 @@
 \section{Introduction}
 %briefly explain the context of the project problem
 
-%Imagine a scenario where the agent is driving on a three-lane highway. The
-%features of the environment include the agent's speed, lane number, and
-%various distances to different types of vehicles in front of and behind the
-%agent. The agent can regulate its speed and position. The main objective is, of
-%course, to not crash into other vehicles, but one could also add objectives such
-%as staying within the speed limit when close to a police vehicle.
-
 Inverse reinforcement learning (IRL)---a problem proposed by Russell in
 1998 \cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a
-Markov decision process that best explains a set of given demonstrations. IRL is
-important because reward functions can be hard to define manually
+Markov decision process (MDP) that best explains a set of given demonstrations.
+IRL is important because reward functions can be hard to define manually
 \cite{DBLP:conf/icml/PieterN04,DBLP:journals/corr/abs-1806-06877}, and rewards
 are not entirely specific to a given environment, allowing one to reuse the same
 reward structure in previously unseen environments
@@ -68,14 +63,19 @@ convenient yet unjustified assumption that the reward function can be expressed
 as a linear combination of features. One proven way to abandon this assumption
 is by representing the reward function as a Gaussian process (GP)
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11,DBLP:journals/corr/abs-1208-2112}.
-Our main goal is employ variational inference (VI) for recovering the reward
-function, which can prove useful in two ways:
+The original approach used maximum likelihood estimation
+\cite{DBLP:conf/nips/LevinePK11}, while the goal of this project is to use
+variational inference (VI) instead, which learns approximate posterior
+probability distributions instead of point estimates. This approach can prove
+useful in three major ways:
 \begin{enumerate}
-\item As VI tends to be faster than Markov chain Monte Carlo
-  sampling \cite{blei2017variational}, we should be able to handle more data.
 \item Modelling full posterior distributions for various parameters can result
   in more precise reward predictions, as the model simply holds more
   information.
+\item Having variance estimates for rewards can direct our choice in what data
+  should be collected next.
+\item An approximate Bayesian treatment of many parameters in the model guards
+  against overfitting \cite{DBLP:conf/uai/JinDAS17}.
 \end{enumerate}
 
 \section{Statement of the Problem}
@@ -83,7 +83,7 @@ function, which can prove useful in two ways:
 %why it would be worthwhile to solve this problem.
 
 \begin{definition}
-  A \emph{Markov decision process} (MDP) is a set $\mathcal{M} = \{ \mathcal{S},
+  A \emph{Markov decision process} is a set $\mathcal{M} = \{ \mathcal{S},
   \mathcal{A}, \mathcal{T}, \gamma, r \}$, where $\mathcal{S}$ and
   $\mathcal{A}$ are sets of states and actions, respectively; $\mathcal{T} :
   \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to [0, 1]$ is a function
@@ -180,8 +180,8 @@ Given this model, data $\mathcal{D}$, and inducing feature matrix
 $\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
 $\bm\lambda$, inducing rewards $\mathbf{u}$, and the rewards for all relevant
 states $\mathbf{r}$. While the previous paper to consider this IRL model
-computed maximum likelihood estimates for $\bm\lambda$ and $\mathbf{u}$, and
-made an assumption that $\mathbf{r}$ in \eqref{eq:r} has zero variance
+computed maximum likelihood (ML) estimates for $\bm\lambda$ and $\mathbf{u}$,
+and made an assumption that $\mathbf{r}$ in \eqref{eq:r} has zero variance
 \cite{DBLP:conf/nips/LevinePK11}, we aim to avoid this assumption and use
 VI to approximate the full posterior distribution $\posterior$.
 \emph{Variational inference} is an approximation technique for probability
@@ -220,18 +220,17 @@ posterior---our predictions are likely to be more accurate and rely on fewer
 assumptions. Moreover, we hope to make use of various recent advancements in VI
 for both time complexity and approximation distribution fit (see Section
 \ref{literature}), making the resulting algorithm competitive both in terms of
-running time and model fit. Therefore, we raise the following research
-questions\footnote{For each question, we are primarily comparing the original GP
-IRL approach \cite{DBLP:conf/nips/LevinePK11} with our variational version.}:
-\begin{enumerate}
-\item Does VI allow us to make more accurate reward predictions when given the
-  same amount of training time?
-\item How does the reward prediction accuracy differ between VI and sampling
-  approaches when given the same amount of training data?
-\item How well does our VI model approximate the real posterior distribution?
-\item Is VI better at learning behaviour driven by multiple goals?
-\item Is VI more robust at handling mistakes in demonstrations?
-\end{enumerate}
+running time and model fit.
+
+The project is primarily concerned with investigating how a VI formulation of
+the GP IRL model compares against the original ML approach. Most importantly, we
+aim to compare how the two algorithms converge both over time and as the number
+of demonstrations increases. It would also be interesting to see how close the
+approximation of the posterior distribution is to the real thing---we discuss
+ways to do this in Section \ref{sec:evaluation}. Finally, it is reasonable to
+conjecture that VI can outperform point estimates when dealing with more
+uncertainty, e.g., when experts make mistakes. We can easily investigate this by
+adapting how the evaluation data is generated.
 
 \section{Literature Survey} \label{literature}
 %present an overview of relevant previous work including articles, books, and
@@ -287,7 +286,8 @@ neural network (NN), as demonstrated by Wulfmeier et al.
 \cite{wulfmeier2015maximum}. Their approach benefits from constant time
 inference and the ability to learn complex features either from already-given
 features or even from raw data. The only disadvantage (as demonstrated in the
-paper) is that NNs take longer to learn compared to GPs.
+paper) is that NNs converge slower than GPs (as measured by the number of
+demonstrations).
 
 %A different take on IRL with GPs \cite{DBLP:journals/corr/abs-1208-2112}
 %IRL for large state spaces (haven't read) \cite{DBLP:journals/jmlr/BoulariasKP11}
@@ -460,7 +460,7 @@ optimising the ELBO.
 \subsection{Preliminaries} \label{sec:preliminaries}
 
 In order to properly investigate the difference between variational inference
-and maximum likelihood estimation, we keep other parts of the model the same.
+and ML estimation, we keep other parts of the model the same.
 Namely, we set the covariance function to a version of the automatic relevance
 detection kernel \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
 \[ k_{\bm\lambda}(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
@@ -714,19 +714,27 @@ parameter. The MDP value function requires more effort. We can start by making
 the deterministic training conditional assumption (as is commonly done in
 previous work \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}), which
 sets the posterior covariance matrix of $\mathbf{r}$ to the zero matrix. Then
-the posterior $\mathbf{r} = \Kru^\intercal\Kuu^{-1}\mathbf{u}$. Hence we still
-have a (complicated) function of $\bm\lambda$ and $\mathbf{u}$ in the integral
-w.r.t. both variables. The integral (or expected value) w.r.t. $\bm\lambda$ can
-be eliminated the usual way, i.e., by making $\bm\lambda$ variational. As for
-$\mathbf{u}$, we can borrow a trick from the deep GP IRL paper
-\cite{DBLP:conf/uai/JinDAS17} and set $q(\mathbf{u}) = \delta(\mathbf{u} -
-\mathbf{m})$, where $\delta$ is the Dirac delta function. The expected value
-then becomes $\mathbb{E}[V_r(s)] = V_{\Kru^\intercal\Kuu^{-1}\mathbf{m}}(s)$.
+the posterior $\mathbf{r}$ becomes $\Kru^\intercal\Kuu^{-1}\mathbf{u}$. But we
+still have a (complicated) function of $\bm\lambda$ and $\mathbf{u}$ in the
+integral w.r.t. both variables. The integral (or expected value) w.r.t.
+$\bm\lambda$ can be eliminated the usual way, i.e., by making $\bm\lambda$
+variational. As for $\mathbf{u}$, we can borrow a trick from the deep GP IRL
+paper \cite{DBLP:conf/uai/JinDAS17} and set $q(\mathbf{u}) = \delta(\mathbf{u} -
+\mathbf{m})$, where $\delta$ is the Dirac delta function. This is essentially a
+different way to impose a zero-variance restriction, modelling $\mathbf{u}$ as a
+random vector with variance tending to zero. The expected value then becomes
+$\mathbb{E}[V_r(s)] = V_{\Kru^\intercal\Kuu^{-1}\mathbf{m}}(s)$.
 
-We can then take the BBVI algorithm as
-the basis for ours, keeping in mind the numerous improvement possibilities
-provided both by the BBVI paper \cite{DBLP:conf/aistats/RanganathGB14} and many
-others (see Section \ref{literature}).
+While the ELBO can now be computed without approximations, we ended up imposing
+two zero-variance restrictions, resulting in a less informative model. Moreover,
+we had to abandon the Bayesian treatment of $\bm\lambda$, making the model more
+vulnerable to overfitting.
+
+Assuming that such workarounds will not be needed (or desired), we can then take
+the BBVI algorithm as the basis for our algorithm, while keeping in mind the
+numerous improvement possibilities provided both by the BBVI paper
+\cite{DBLP:conf/aistats/RanganathGB14} and many others (see Section
+\ref{literature}).
 
 \section{Work Plan}
 %show how you plan to organize your work, identifying intermediate deliverables
@@ -752,7 +760,7 @@ The work plan can be summarised as follows:
   in an SVG or PDF format, along with code that produces them. \emph{Date}:
   1~April.
 \item Write/finalise the paper. \emph{Deliverable}: a 14-page paper.
-  \emph{Date}: around 23~April, the deadline has not been updated yet.
+  \emph{Date}: 12~April.
 \end{enumerate}
 
 \subsection{Evaluation} \label{sec:evaluation}
