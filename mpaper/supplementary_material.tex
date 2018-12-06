@@ -47,10 +47,51 @@
 
 \section{Proofs}
 
+We primarily think of rewards as a vector $\mathbf{r} \in
+\mathbb{R}^{|\mathcal{S}|}$, but sometimes we use a function notation $r(s)$ to
+denote the reward of a particular state $s \in \mathcal{S}$. The functional
+notation is purely a notational convenience.
+
+MDP values are characterised by both a state and a reward function/vector. In
+order to prove the next theorem, we think of the value function as $V :
+\mathcal{S} \to \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$, i.e., $V$ takes a
+state $s \in \mathcal{S}$ and returns a function $V(s) :
+\mathbb{R}^{\mathcal{S}} \to \mathbb{R}$ that takes a reward vector $\mathbf{r}
+\in \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state $s$,
+$V_{\mathbf{r}}(s) \in \mathbb{R}$. The function $V(s)$ computes the values of
+all states and returns the value of state $s$.
+
 \begin{theorem} \label{thm:measurability}
   MDP value functions $V(s) : \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ (for $s
   \in \mathcal{S}$) are Lebesgue measurable.
 \end{theorem}
+\begin{proofsketch}
+  For any reward vector $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$, the
+  collection of converged value functions $\{ V_{\mathbf{r}}(s) \mid s \in
+  \mathcal{S} \}$ satisfy
+  \[ \forall s \in \mathcal{S},\;V_{\mathbf{r}}(s) = \log \sum_{a \in \mathcal{A}}
+    \exp\left( r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a,
+      s')V_{\mathbf{r}}(s') \right). \]
+  Let $s_i \in \mathcal{S}$ be an arbitrary state. In order to prove that $V(s_i)$
+  is measurable, it is enough to show that for any $\alpha \in \mathbb{R}$, the
+  set
+  \[
+    \begin{split}
+      \left\{ \vphantom{\sum_{a \in \mathcal{A}}} \right. \mathbf{r} \in
+      \mathbb{R}^{|\mathcal{S}|} &\mid V_{\mathbf{r}}(s_i) \in (-\infty,
+      \alpha); \\
+      &\forall s \in \mathcal{S} \setminus \{ s_i \}, \; V_{\mathbf{r}}(s) \in
+      \mathbb{R}; \\
+      &\left. \forall s \in \mathcal{S},\;V_{\mathbf{r}}(s) = \log \sum_{a \in
+          \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in \mathcal{S}}
+          \mathcal{T}(s, a, s')V_{\mathbf{r}}(s') \right) \right\}
+    \end{split}
+  \]
+  is measurable. Since this set can be constructed in Zermelo-Fraenkel set
+  theory \emph{without} the axiom of choice, it is measurable
+  \cite{herrlich2006axiom}, which proves that $V(s)$ is a measurable function
+  for any $s \in \mathcal{S}$.
+\end{proofsketch}
 
 \begin{definition}
   For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
@@ -61,8 +102,71 @@
 \begin{theorem} \label{thm:bound}
   If the initial values of the MDP value function satisfy the following
   bound, then the bound remains satisfied throughout value iteration:
-  \[ |V_r(s)| \le \vbound. \]
+  \begin{equation} \label{eq:bound}
+    |V_{\mathbf{r}}(s)| \le \vbound.
+  \end{equation}
 \end{theorem}
+\begin{proof}
+  We begin by considering \eqref{eq:bound} without taking the absolute value of
+  $V_{\mathbf{r}}(s)$, i.e.,
+  \begin{equation} \label{eq:positive_bound}
+    V_{\mathbf{r}}(s) \le \vbound,
+  \end{equation}
+  and assuming that the initial values of $\{ V_{\mathbf{r}}(s) \mid s \in
+  \mathcal{S} \}$ already satisfy \eqref{eq:positive_bound}. For each $s \in
+  \mathcal{S}$, the value of $V_{\mathbf{r}}(s)$ is updated via this rule:
+  \[ V_{\mathbf{r}}(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp\left( r(s) +
+      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s') \right). \]
+  Note that both $\log$ and $\exp$ are increasing functions, $\gamma > 0$, and
+  the $\mathcal{T}$ function gives a probability (a non-negative number).
+  Thus
+  \[
+    \begin{split}
+      V_{\mathbf{r}}(s) &\le \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s'
+          \in \mathcal{S}} \mathcal{T}(s, a, s')\frac{\rinf +
+          \log|\mathcal{A}|}{1 - \gamma} \right) \\
+      &= \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \frac{\gamma (\rinf +
+          \log|\mathcal{A}|)}{1 - \gamma}\sum_{s' \in \mathcal{S}}
+        \mathcal{T}(s, a, s') \right) \\
+      &= \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \frac{\gamma (\rinf +
+          \log|\mathcal{A}|)}{1 - \gamma} \right)
+    \end{split}
+  \]
+  by the definition of $\mathcal{T}$. Then
+  \[
+    \begin{split}
+      V_{\mathbf{r}}(s) &\le \log \left( |\mathcal{A}| \exp\left( r(s) + \frac{\gamma
+            (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \right) \right) \\
+      &= \log \left( \exp\left( \log|\mathcal{A}| + r(s) + \frac{\gamma
+            (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \right) \right) \\
+      &= \log|\mathcal{A}| + r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \\
+      &= \frac{\gamma (\rinf + \log|\mathcal{A}|) + (1 -
+        \gamma)(\log|\mathcal{A}| + r(s))}{1 - \gamma} \\
+      &\le \frac{\gamma (\rinf + \log|\mathcal{A}|) + (1 -
+        \gamma)(\log|\mathcal{A}| + \rinf)}{1 - \gamma} \\
+      &= \vbound
+    \end{split}
+  \]
+  by the definition of $\rinf$.
+
+  The proof for
+  \begin{equation} \label{eq:negative_bound}
+    V_{\mathbf{r}}(s) \ge \frac{\rinf + \log|\mathcal{A}|}{\gamma - 1}
+  \end{equation}
+  follows the same argument until we get to
+  \[
+    \begin{split}
+      V_{\mathbf{r}}(s) &\ge \frac{\gamma(\rinf + \log|\mathcal{A}|) + (\gamma -
+        1)(\log|\mathcal{A}| + r(s))}{\gamma - 1} \\
+      &\ge \frac{\gamma(\rinf + \log|\mathcal{A}|) + (\gamma -
+        1)(-\log|\mathcal{A}| -\rinf)}{\gamma - 1} \\
+      &= \frac{\rinf + \log|\mathcal{A}|}{\gamma - 1},
+    \end{split}
+  \]
+  where we use the fact that $r(s) \ge -\rinf - 2\log|\mathcal{A}|$. Combining
+  \eqref{eq:positive_bound} and \eqref{eq:negative_bound} gives
+  \eqref{eq:bound}.
+\end{proof}
 
 \begin{theorem}[The Lebesgue Dominated Convergence Theorem
   \cite{royden2010real}] \label{thm:lebesgue}
@@ -92,16 +196,16 @@
 \begin{theorem}
   Using our usual notation,
   \[ \dt\iiint
-    V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)\dx
+    V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)\dx
     = \iiint
-    \dt[V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)]\dx, \]
+    \dt[V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)]\dx, \]
   where $t \in \{ \mathbf{m}, \mathbf{S}, \alpha_0, \dots, \alpha_d, \beta_0,
   \dots, \beta_d \}$.
 \end{theorem}
 \begin{proof}
   Let
   \begin{align*}
-    \f &= V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda), \\
+    \f &= V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda), \\
     F(t) &= \iiint \f\dx,
   \end{align*}
   and, for any $t$, let $(t_n)_{n=1}^\infty$ be any sequence such that
@@ -128,11 +232,11 @@
 
   It remains to find $g$. Without loss of generality, assume that $t$ is a
   parameter of $q(\bm\lambda)$. Then
-  \[ |\fn| = |V_r(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)| =
-    |V_r(s)|q(\mathbf{r})q(\mathbf{u}) \left| \frac{q(\bm\lambda)|_{t = t_n} -
+  \[ |\fn| = |V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)| =
+    |V_{\mathbf{r}}(s)|q(\mathbf{r})q(\mathbf{u}) \left| \frac{q(\bm\lambda)|_{t = t_n} -
         q(\bm\lambda)}{t_n - t} \right| \]
   since PDFs are non-negative. An upper bound for
-  $|V_r(s)|$ is given by Theorem \ref{thm:bound}, while
+  $|V_{\mathbf{r}}(s)|$ is given by Theorem \ref{thm:bound}, while
   \[ \frac{q(\bm\lambda)|_{t = t_n} - q(\bm\lambda)}{t_n - t} = \left.
       \frac{\partial q(\bm\lambda)}{\partial t} \right|_{t = c} \]
   for some $c$ between $t$ and $t_n$ due to the mean value theorem (since $q$ is
@@ -156,6 +260,7 @@ for all $\gamma$ and $\mathbf{u}$. The existence of
         q(\bm\lambda)}{\partial t} \right|_{t=c} \right|\dx \]
 then comes from a boundedness argument, as...
 % not quite, E[|r|] can be any function of u.
+% TODO: finish this
 \end{proof}
 
 \begin{theorem}[Differentiating under the integral sign]
@@ -220,9 +325,9 @@ We begin by removing terms independent of $\mathbf{m}$:
     \frac{\partial\mathcal{L}}{\partial\mathbf{m}} =
     &- \frac{1}{2}\dm[\mathbf{m}^\intercal\mathbb{E}[\Kuu^{-1}]\mathbf{m}]
     + \dm[\mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}]\mathbf{m}] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \dm\mathbb{E}[V_r(s_{i,t})] -
+    &- \sum_{i=1}^N \sum_{t=1}^T \dm\mathbb{E}[V_{\mathbf{r}}(s_{i,t})] -
       \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-      s')\dm\mathbb{E}[V_r(s')].
+      s')\dm\mathbb{E}[V_{\mathbf{r}}(s')].
   \end{split}
 \]
 Here
@@ -233,10 +338,10 @@ Here
 and
 \begin{equation} \label{eq:1}
   \begin{split}
-    \dm\mathbb{E}[V_r(s)] &= \dm\iiint V_r(s) p(\mathbf{r} | \bm\lambda,
+    \dm\mathbb{E}[V_{\mathbf{r}}(s)] &= \dm\iiint V_{\mathbf{r}}(s) p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
     q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
-    &= \iiint V_r(s) p(\mathbf{r} | \bm\lambda,
+    &= \iiint V_{\mathbf{r}}(s) p(\mathbf{r} | \bm\lambda,
     \mathbf{X_u}, \mathbf{u}) \dm\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
     q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda,
   \end{split}
@@ -260,12 +365,12 @@ where
 Substituting it back into \eqref{eq:1} gives
 \[
   \begin{split}
-    \dm\mathbb{E}[V_r(s)] &= \frac{1}{2}\iiint V_r(s)
+    \dm\mathbb{E}[V_{\mathbf{r}}(s)] &= \frac{1}{2}\iiint V_{\mathbf{r}}(s)
     (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})
     p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) \mathcal{N}(\mathbf{u};
     \mathbf{m}, \mathbf{S})
     q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda \\
-    &= \frac{1}{2}\mathbb{E}[V_r(s) (\mathbf{S}^{-1} +
+    &= \frac{1}{2}\mathbb{E}[V_{\mathbf{r}}(s) (\mathbf{S}^{-1} +
     \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})].
 \end{split}
 \]
@@ -276,10 +381,10 @@ Hence
     &-\frac{1}{2}(\mathbb{E}[\Kuu^{-1}] +
     \mathbb{E}[\Kuu^{-1}]^\intercal)\mathbf{m} +
     \mathbf{t}^\intercal\mathbb{E}[\Kru^\intercal\Kuu^{-1}] \\
-    &- \frac{1}{2}\sum_{i=1}^N\sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})
+    &- \frac{1}{2}\sum_{i=1}^N\sum_{t=1}^T \mathbb{E}[V_{\mathbf{r}}(s_{i,t})
     (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})] \\
     &- \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')
-    \mathbb{E}[V_r(s') (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
+    \mathbb{E}[V_{\mathbf{r}}(s') (\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
     \mathbf{m})].
 \end{split}
 \]
@@ -292,9 +397,9 @@ Similarly to the previous section,
     \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
     \frac{1}{2}\dS\log|\mathbf{S}|
     -\frac{1}{2}\dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \dS\mathbb{E}[V_r(s_{i,t})] -
+    &- \sum_{i=1}^N \sum_{t=1}^T \dS\mathbb{E}[V_{\mathbf{r}}(s_{i,t})] -
       \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-      s')\dS\mathbb{E}[V_r(s')],
+      s')\dS\mathbb{E}[V_{\mathbf{r}}(s')],
   \end{split}
 \]
 where
@@ -302,7 +407,7 @@ where
 and
 \[ \dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] = \mathbb{E}[\Kuu^{-1}]^\intercal \]
 by \emph{The Matrix Cookbook} \cite{petersen2008matrix}. Then
-\[ \dS\mathbb{E}[V_r(s)] = \iiint V_r(s) q(\mathbf{r}) \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
+\[ \dS\mathbb{E}[V_{\mathbf{r}}(s)] = \iiint V_{\mathbf{r}}(s) q(\mathbf{r}) \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
   q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda, \]
 where
 \[
@@ -345,13 +450,13 @@ Plugging them back in gives
 and
 \[
   \begin{split}
-    \dS\mathbb{E}[V_r(s)] &= \frac{1}{2}\iiint V_r(s)
+    \dS\mathbb{E}[V_{\mathbf{r}}(s)] &= \frac{1}{2}\iiint V_{\mathbf{r}}(s)
     (\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
     \mathbf{m})^\intercal\mathbf{S}^{-\intercal} - \mathbf{S}^{-\intercal})
     q(\mathbf{r}) \mathcal{N}(\mathbf{u};
     \mathbf{m}, \mathbf{S}) q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda
     \\
-    &= \frac{1}{2}\mathbb{E}[V_r(s)(\mathbf{S}^{-\intercal}(\mathbf{u} -
+    &= \frac{1}{2}\mathbb{E}[V_{\mathbf{r}}(s)(\mathbf{S}^{-\intercal}(\mathbf{u} -
     \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
     \mathbf{S}^{-\intercal})].
   \end{split}
@@ -363,11 +468,11 @@ Therefore
     \frac{1}{2}\mathbf{S}^{-\intercal} -
     \frac{1}{2}\mathbb{E}[\Kuu^{-1}]^\intercal - \frac{1}{2}
     \sum_{i=1}^N\sum_{t=1}^T
-    \mathbb{E}[V_r(s_{i,t})(\mathbf{S}^{-\intercal}(\mathbf{u} -
+    \mathbb{E}[V_{\mathbf{r}}(s_{i,t})(\mathbf{S}^{-\intercal}(\mathbf{u} -
     \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
     \mathbf{S}^{-\intercal})] \\
     &- \gamma\sum_{s' \in \mathcal{S}}\mathcal{T}(s_{i,t}, a_{i,t}, s')
-    \mathbb{E}[V_r(s')(\mathbf{S}^{-\intercal}(\mathbf{u} -
+    \mathbb{E}[V_{\mathbf{r}}(s')(\mathbf{S}^{-\intercal}(\mathbf{u} -
     \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal} -
     \mathbf{S}^{-\intercal})].
   \end{split}
@@ -382,9 +487,9 @@ We begin in the usual way:
     \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-2}]] - \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]] - \frac{1}{2}\da\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] - \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
     &+ \da\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] +
     \da [\alpha_j + \log\Gamma(\alpha_j) + (1 - \alpha_j)\psi(\alpha_j)] \\
-      &- \sum_{i=1}^N \sum_{t=1}^T \da\mathbb{E}[V_r(s_{i,t})] -
+      &- \sum_{i=1}^N \sum_{t=1}^T \da\mathbb{E}[V_{\mathbf{r}}(s_{i,t})] -
         \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-        s')\da\mathbb{E}[V_r(s')].
+        s')\da\mathbb{E}[V_{\mathbf{r}}(s')].
   \end{split}
 \]
 First,
@@ -458,8 +563,8 @@ With these results in mind, we can simplify the initial expression to
     &- \frac{1}{2}\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] -
     \frac{1}{2}\mathbb{E}[\log|\Kuu|] +
     \mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s' \in
-      \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_r(s')] \left.
+    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_{\mathbf{r}}(s_{i,t})] - \gamma\sum_{s' \in
+      \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_{\mathbf{r}}(s')] \left.
       \vphantom{\sum_{i=1}^N} \right) \\
     & - \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-2}]\log\lambda_j] -
     \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]\log\lambda_j] -
@@ -468,9 +573,9 @@ With these results in mind, we can simplify the initial expression to
     &- \frac{1}{2}\mathbb{E}[\log|\Kuu|\log\lambda_j] +
     \mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}\log\lambda_j]
     \\
-    &- \sum_{i=1}^N\sum_{t=1}^T\mathbb{E}[V_r(s_{i,t})\log\lambda_j] -
+    &- \sum_{i=1}^N\sum_{t=1}^T\mathbb{E}[V_{\mathbf{r}}(s_{i,t})\log\lambda_j] -
     \gamma\sum_{s' \in \mathcal{S}}\mathcal{T}(s_{i,t}, a_{i,t},
-    s')\mathbb{E}[V_r(s')\log\lambda_j].
+    s')\mathbb{E}[V_{\mathbf{r}}(s')\log\lambda_j].
   \end{split}
 \]
 
@@ -485,8 +590,8 @@ Finally,
     &- \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] +
     \db\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] -
     \db[\log\beta_j] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \db \mathbb{E}[V_r(s_{i,t})] - \gamma\sum_{s'
-      \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\db\mathbb{E}[V_r(s')].
+    &- \sum_{i=1}^N \sum_{t=1}^T \db \mathbb{E}[V_{\mathbf{r}}(s_{i,t})] - \gamma\sum_{s'
+      \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\db\mathbb{E}[V_{\mathbf{r}}(s')].
   \end{split}
 \]
 Similarly to the previous section, we can handle all derivatives of expectations
@@ -544,10 +649,10 @@ This gives us the final expression of $\frac{\partial\mathcal{L}}{\partial\beta_
         \lambda_j \right) \right] \\
     &+ \mathbb{E} \left[ \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}
       \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] \\
-    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E} \left[ V_r(s_{i,t})
+    &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E} \left[ V_{\mathbf{r}}(s_{i,t})
       \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] -
     \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}
-    \left[V_r(s') \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right].
+    \left[V_{\mathbf{r}}(s') \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right].
   \end{split}
 \]
 
