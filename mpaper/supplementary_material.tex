@@ -539,10 +539,10 @@ by Chen \cite{lecture_notes}.
       \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})],
     \]
     we just need to bound $\mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]$. For
-    any $j \in \{ 1, \dots, m \} \setminus \{ i \}$,
+    any $k \in \{ 1, \dots, m \} \setminus \{ i \}$,
     \[
-      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_j = \mathbb{E}[u_j - c_j]
-      = m_j - c_j,
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_k = \mathbb{E}[u_k - c_k]
+      = m_k - c_k,
     \]
     while
     \[
@@ -580,26 +580,28 @@ by Chen \cite{lecture_notes}.
         \lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1} \rVert \le \lVert
         \mathbf{S}^{-1} \rVert^2 \lVert \mathbf{E}(\mathbf{u}) \rVert.
       \]
-      Choosing to use the maximum norm we get
+      Choosing to use the maximum norm we get % TODO: actually use the sign for
+                                % the norm
+      % TODO: larger absolute value signs?
       \[
-        \max_i \sum_j |[\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
-        [\mathbf{S}^{-1}]_{i,j}| \le \lVert \mathbf{S}^{-1} \rVert^2
+        \max_k \sum_l |[\mathbf{C}(\mathbf{u})^{-1}]_{k,l} -
+        [\mathbf{S}^{-1}]_{k,l}| \le \lVert \mathbf{S}^{-1} \rVert^2
         |c(\mathbf{u}) - t|.
       \]
-      Using \eqref{eq:epsilon_bound} we get that for any row $i$,
+      Using \eqref{eq:epsilon_bound} we get that for any row $k$,
       \[
-        \sum_j \left| [\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
-          [\mathbf{S}^{-1}]_{i,j} \right| <
+        \sum_l \left| [\mathbf{C}(\mathbf{u})^{-1}]_{k,l} -
+          [\mathbf{S}^{-1}]_{k,l} \right| <
         \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
       \]
-      and for any row $i$ and column $j$,
+      and for any row $k$ and column $l$,
       \[
-        \left| [\mathbf{C}(\mathbf{u})^{-1}]_{i,j} - [\mathbf{S}^{-1}]_{i,j}
+        \left| [\mathbf{C}(\mathbf{u})^{-1}]_{k,l} - [\mathbf{S}^{-1}]_{k,l}
         \right| < \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
       \]
       which bounds all elements of $\mathbf{C}(\mathbf{u})^{-1}$ and proves that
       $\mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}]$ exists.
-    \item Because of the result of \ref{part_2a}, we only need to prove the
+    \item Because of the result in \ref{part_2a}, we only need to prove the
       existence of
       \[
         \mathbb{E}[(\mathbf{u} - \mathbf{m})(\mathbf{u} -
@@ -610,19 +612,19 @@ by Chen \cite{lecture_notes}.
     \end{enumerate}
   \item Again, we can split the proof into two parts: showing the existence of
     \[
-      \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_i}
-        \right|_{\lambda_i = c(\mathbf{u})} \right] \quad \text{and} \quad
+      \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_k}
+        \right|_{\lambda_k = c(\mathbf{u})} \right] \quad \text{and} \quad
       \mathbb{E} \left[ \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal}
-        \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+        \left. \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
           c(\mathbf{u})} \right].
     \]
     \begin{enumerate}
-    \item \label{part_a} In case of $i = 0$, each element of $\frac{\partial
+    \item \label{part_a} If $k = 0$, then each element of $\frac{\partial
         \Kuu}{\partial \lambda_0}$ is of the form
       \[
-        \exp \left( -\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal
-          \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) - \mathbbm{1}[j \ne
-          k]\sigma^2\tr(\bm\Lambda) \right),
+        \exp \left( -\frac{1}{2}(\mathbf{x}_l - \mathbf{x}_m)^\intercal
+          \bm\Lambda (\mathbf{x}_l - \mathbf{x}_m) - \mathbbm{1}[l \ne
+          m]\sigma^2\tr(\bm\Lambda) \right),
       \]
       i.e., without $\lambda_0$, so
       \[
@@ -636,47 +638,47 @@ by Chen \cite{lecture_notes}.
           \Kuu}{\partial \lambda_0}.
       \]
 
-      If $i > 0$, then each element of $\frac{\partial \Kuu}{\partial
-        \lambda_i}$ is a constant multiple of $k_{\bm\lambda}(\mathbf{x}_j,
-      \mathbf{x}_k)$ for some $\mathbf{x}_j$ and $\mathbf{x}_k$. Since
-      $k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
-      $\lambda_i$, and $c(\mathbf{u}) > \lambda_i - \epsilon$,
+      If $k > 0$, then each element of $\frac{\partial \Kuu}{\partial
+        \lambda_k}$ is a constant multiple of $k_{\bm\lambda}(\mathbf{x}_l,
+      \mathbf{x}_m)$ for some $\mathbf{x}_l$ and $\mathbf{x}_m$. Since
+      $k_{\bm\lambda}(\mathbf{x}_l, \mathbf{x}_m)$ is a decreasing function of
+      $\lambda_k$, and $c(\mathbf{u}) > \lambda_k - \epsilon$,
       \[
         \begin{split}
-          k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = 
+          k_{\bm\lambda}(\mathbf{x}_l, \mathbf{x}_m)|_{\lambda_k = 
             c(\mathbf{u})} &=
           \begin{multlined}[t]
-            \lambda_0 \exp \left( \vphantom{\sum_{l \in \{ \} \setminus}}
-            \right. -\frac{1}{2}c(\mathbf{u})(x_{j,i} - x_{k,i})^2 -
-            \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{u}) \\
-            - \left. \sum_{l \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{1}{2}
-              \lambda_l(x_{j,l} - x_{k,l})^2 + \mathbbm{1}[j \ne k]\sigma^2
-              \lambda_l \right)
+            \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
+            \right. -\frac{1}{2}c(\mathbf{u})(x_{l,k} - x_{m,k})^2 -
+            \mathbbm{1}[l \ne m]\sigma^2c(\mathbf{u}) \\
+            - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ k \}}
+              \frac{1}{2} \lambda_n(x_{l,n} - x_{m,n})^2 + \mathbbm{1}[l \ne
+              m]\sigma^2 \lambda_n \right)
           \end{multlined} \\
           &<
           \begin{multlined}[t]
-            \lambda_0 \exp \left( \vphantom{\sum_{l \in \{ \} \setminus}}
-            \right. -\frac{1}{2}(\lambda_i - \epsilon)(x_{j,i} - x_{k,i})^2 -
-            \mathbbm{1}[j \ne k]\sigma^2(\lambda_i - \epsilon) \\
-            - \left. \sum_{l \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{1}{2}
-              \lambda_l(x_{j,l} - x_{k,l})^2 + \mathbbm{1}[j \ne k]\sigma^2
-              \lambda_l \right),
+            \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
+            \right. -\frac{1}{2}(\lambda_k - \epsilon)(x_{l,k} - x_{m,k})^2 -
+            \mathbbm{1}[l \ne m]\sigma^2(\lambda_k - \epsilon) \\
+            - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ k \}}
+              \frac{1}{2} \lambda_n(x_{l,n} - x_{m,n})^2 + \mathbbm{1}[l \ne
+              m]\sigma^2 \lambda_n \right),
           \end{multlined}
         \end{split}
       \]
       which gives an upper bound on each element of
       \[
-        \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+        \left. \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
           c(\mathbf{u})}.
       \]
       and shows the existence of
       \[
-        \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_i}
-          \right|_{\lambda_i = c(\mathbf{u})} \right].
+        \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_k}
+          \right|_{\lambda_k = c(\mathbf{u})} \right].
       \]
     \item Since we already found an upper bound for
       \[
-        \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+        \left. \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
           c(\mathbf{u})}
       \]
       in \ref{part_a}, $\mathbb{E}[\Kuu^{-1}] = \Kuu^{-1}$, and
@@ -684,7 +686,7 @@ by Chen \cite{lecture_notes}.
       \[
         \mathbb{E} \left[
           \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} \left.
-            \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+            \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
             c(\mathbf{u})} \right]
       \]
       also exists.
@@ -695,11 +697,7 @@ by Chen \cite{lecture_notes}.
 % integrating out r, leave it as a function of u.
 % TODO: can c be a function of r? I think so. We can probably just integrate the
 % r part by adding an upper bound, similarly to the situation with u.
-% TODO: introduce the infinity norm on matrices
 % TODO: why can S be invertible? I probably need something different here
-% TODO: if \mathbf{A} is a matrix, its elements will be denoted either A_{i,j}
-% or [\mathbf{A}]_{i,j}
-% TODO: t or S_{i,j}: be consistent
 % TODO: the variable i has multiple meanings
 % TODO: are the inequalities with epsilon actually useful?
 % TODO: high-level introduction and conclusion of the proof
