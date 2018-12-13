@@ -24,7 +24,7 @@
 \title{Variational Inference for Inverse Reinforcement Learning with Gaussian
   Processes}
 \author{Paulius Dilkas}
-\date{4th December 2018}
+\date{12th December 2018}
 \maketitle
 \tableofcontents
 \newpage
@@ -115,13 +115,14 @@ where
 \begin{equation}
   Q_r(s, a) = r(s) + \gamma\sum_{s' \in \mathcal{S}}
   \mathcal{T}(s, a, s')V_r(s'),
-\end{equation} % TODO: fix the wording!!!
-and $V_r(s)$ is a `soft' version of the Bellman backup operator, which can be
-obtained by repeatedly applying the following equation until convergence:
+\end{equation}
+and $V_r : \mathcal{S} \to \mathbb{R}$ is an MDP \emph{value function}, which
+can be obtained by repeatedly applying the 'soft' version of the Bellman backup
+operator until convergence:
 \cite{DBLP:conf/nips/LevinePK11,supplementary_material}
 \[ V_r(s) = \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in
       \mathcal{S}} \mathcal{T}(s, a, s')V_r(s') \right). \]
-The likelihood of the data can then be written down as
+The likelihood of the data can then be expressed as
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
 \begin{equation} \label{pDr}
   p(\mathcal{D} | r) = \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) = \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_r(s_{i,t}, a_{i,t}) - V_r(s_{i,t}) \right).
@@ -745,7 +746,7 @@ The work plan can be summarised as follows:
 \item Derive expressions for the derivatives of the ELBO w.r.t. the variational
   parameters. \emph{Deliverables}: full derivations that can be included as
   supplementary material of the final paper, including formal proofs for
-  applications of the dominated convergence theorem. \emph{Date}: 15~December.
+  applications of the dominated convergence theorem. \emph{Date}: 15~January.
 \item Implement the algorithm as a more specialised version of Algorithm~2 in
   the BBVI paper \cite{DBLP:conf/aistats/RanganathGB14}. As most of the relevant
   IRL algorithms have been implemented in
@@ -754,7 +755,7 @@ The work plan can be summarised as follows:
   comparisons between the algorithms. \emph{Deliverables}: a working
   implementation that can be integrated into the IRL toolkit by Levine et al.
   \cite{DBLP:conf/nips/LevinePK11}, and the same algorithm written in pseudo
-  code for the paper. \emph{Date}: 1~February.
+  code for the paper. \emph{Date}: 15~February.
 \item Evaluate the algorithm by comparing it to multiple alternatives, as
   detailed in Section \ref{sec:evaluation}. \emph{Deliverables}: multiple plots
   in an SVG or PDF format, along with code that produces them. \emph{Date}:

@@ -4,34 +4,41 @@
 \usepackage{fullpage}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{bm}
+\usepackage{bbm}
 \usepackage{mathtools}
 
-\newtheorem{theorem}{Theorem}
-\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
 \newenvironment{proofsketch}{%
   \renewcommand{\proofname}{Proof sketch}\proof}{\endproof}
 \theoremstyle{definition}
-\newtheorem{definition}{Definition}
+\newtheorem{definition}[theorem]{Definition}
 
-\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\tr}{tr}
 
 \newcommand{\Kuu}{\mathbf{K}_{\mathbf{u},\mathbf{u}}}
+\newcommand{\Luu}{\mathbf{L}_{\mathbf{u},\mathbf{u}}}
 \newcommand{\Krr}{\mathbf{K}_{\mathbf{r},\mathbf{r}}}
 \newcommand{\Kru}{\mathbf{K}_{\mathbf{r},\mathbf{u}}}
+\newcommand{\pr}{\mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr
+  - \Kru^\intercal\Kuu^{-1}\Kru)}
 
 \newcommand{\dm}{\frac{\partial}{\partial\mathbf{m}}}
 \newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
 \newcommand{\da}{\frac{\partial}{\partial\alpha_j}}
 \newcommand{\db}{\frac{\partial}{\partial\beta_j}}
 \newcommand{\dt}{\frac{\partial}{\partial t}}
+\newcommand{\dlz}{\frac{\partial}{\partial \lambda_0}}
+\newcommand{\dl}{\frac{\partial}{\partial \lambda_i}}
 
-\newcommand{\f}{f(\mathbf{r}, \mathbf{u}, \bm\lambda, t)}
-\newcommand{\ftn}{f(\mathbf{r}, \mathbf{u}, \bm\lambda, t_n)}
-\newcommand{\fn}{f_n(\mathbf{r}, \mathbf{u}, \bm\lambda)}
-\newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda}
+\newcommand{\f}{f(\mathbf{r}, \mathbf{u}, t)}
+\newcommand{\ftn}{f(\mathbf{r}, \mathbf{u}, t_n)}
+\newcommand{\fn}{f_n(\mathbf{r}, \mathbf{u})}
+\newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}}
 \newcommand{\df}{\left.\frac{\partial f}{\partial t}\right|_{(\mathbf{r},
-    \mathbf{u}, \bm\lambda, t)}}
-\newcommand{\g}{g(\mathbf{r}, \mathbf{u}, \bm\lambda)}
+    \mathbf{u}, t)}}
+\newcommand{\g}{g(\mathbf{r}, \mathbf{u})}
 \newcommand{\rinf}{\lVert \mathbf{r} \rVert_\infty}
 \newcommand{\vbound}{\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma}}
 
@@ -42,8 +49,175 @@
 \begin{document}
 \maketitle
 
-% TODO: by measurable I mean Lebesgue measurable, and integrable means Lebesgue
-% integrable
+\section{Preliminaries}
+
+For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
+$[\mathbf{A}]_{i,j}$ to denote the element of $\mathbf{A}$ in row $i$ and column
+$j$.
+
+In this paper, all references to measurability are with respect to the Lebesgue
+measure. Similarly, whenever we consider the existence of an integral, we use
+the Lebesgue definition of integration.
+
+% TODO: rename lambda_0
+% TODO: x_u and x_r should have separate letters: three subscripts are a bit ridiculous
+
+\begin{lemma}[Derivatives of probability
+  distributions] \label{lemma:derivatives}
+  \begin{enumerate}
+    \leavevmode
+  \item $\frac{\partial q(\mathbf{u})}{\partial \mathbf{m}} =
+    q(\mathbf{u})\frac{1}{2}(\mathbf{S}^{-1} +
+    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})$.
+  \item $\frac{\partial q(\mathbf{u})}{\partial \mathbf{S}} =
+    -\frac{1}{2}\mathbf{S}^{-\intercal}q(\mathbf{u}) +
+    \frac{1}{2}q(\mathbf{u})\mathbf{S}^{-\intercal}(\mathbf{u} -
+    \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal}$.
+  \item $\frac{\partial q(\mathbf{r})}{\partial \lambda_0} =
+    q(\mathbf{r})\frac{1}{2}\tr
+    \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
+      \frac{1}{\lambda_0}\Kuu \right)$.
+  \item For $i = 1, \dots, d$,
+    \[ \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
+      q(\mathbf{r})\frac{1}{2}\tr
+      \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
+        \Luu \right), \]
+    where
+    \[ [\Luu]_{j,k} = k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j},
+    \mathbf{x}_{\mathbf{u},k}) \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
+      x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right). \]
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leavevmode
+  \begin{enumerate}
+  \item
+    \[
+      \begin{split}
+        \frac{\partial q(\mathbf{u})}{\partial m} &=
+        q(\mathbf{u})\dm\left[-\frac{1}{2}(\mathbf{u} -
+          \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right]
+        \\
+        &= q(\mathbf{u})\left(-\frac{1}{2}\right)(\mathbf{S}^{-1} +
+        \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})\dm[\mathbf{u} -
+        \mathbf{m}] \\
+        &= q(\mathbf{u})\frac{1}{2}(\mathbf{S}^{-1} +
+        \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m}).
+      \end{split}
+    \]
+  \item
+    \[
+      \begin{split}
+        \frac{\partial q(\mathbf{u})}{\partial \mathbf{S}} &=
+        \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\exp \left( -\frac{1}{2}
+            (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+            \mathbf{m})\right)\right] \\
+        &= \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\right]\exp \left( -\frac{1}{2}
+          (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+          \mathbf{m})\right) \\
+        &+ \frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\dS\left[\exp\left( -\frac{1}{2}
+            (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+            \mathbf{m})\right)\right] \\
+        &=
+        \frac{1}{(2\pi)^{m/2}}\dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right]\exp
+        \left( -\frac{1}{2} (\mathbf{u} -
+          \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right) \\
+        &- \frac{1}{2}q(\mathbf{u})\dS[(\mathbf{u}
+        - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})]. \\
+      \end{split}
+    \]
+    The two remaining derivatives can be taken with the help of \emph{The Matrix
+      Cookbook} \cite{petersen2008matrix}:
+    \begin{gather*}
+      \dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right] =
+      -\frac{1}{2}|\mathbf{S}|^{-3/2}\frac{\partial |\mathbf{S}|}{\partial \mathbf{S}} =
+      -\frac{1}{2}|\mathbf{S}|^{-3/2}|\mathbf{S}|\mathbf{S}^{-\intercal} = -\frac{1}{2|\mathbf{S}|^{1/2}}\mathbf{S}^{-\intercal}, \\
+      \dS[(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
+      \mathbf{m})] = -\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
+                     \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
+    \end{gather*}
+    Plugging them back in gives
+    \[ \frac{\partial q(\mathbf{u})}{\partial \mathbf{S}} =
+      -\frac{1}{2}\mathbf{S}^{-\intercal}q(\mathbf{u}) +
+      \frac{1}{2}q(\mathbf{u})\mathbf{S}^{-\intercal}(\mathbf{u} -
+      \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal}. \]
+  \item
+    \[ \frac{\partial q(\mathbf{r})}{\partial \lambda_0} = q(\mathbf{r}) \dlz
+      \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
+        \frac{1}{2}\log|\Kuu| \right] = q(\mathbf{r})\frac{1}{2}\tr
+      \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
+        \frac{\partial \Kuu}{\partial \lambda_0} \right) \]
+    by Rasmussen and Williams \cite{DBLP:books/lib/RasmussenW06}, where
+    \[ \frac{\partial \Kuu}{\partial \lambda_0} = \frac{1}{\lambda_0}\Kuu. \]
+  \item The derivation is the same as above, except
+    \[ \frac{\partial \Kuu}{\partial \lambda_i} = \Luu, \]
+    where
+    \[
+      \begin{split}
+        [\Luu]_{j,k} &= \dl k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j},
+        \mathbf{x}_{\mathbf{u},k}) \\
+        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+        \dl \left[-\frac{1}{2}(\mathbf{x}_{\mathbf{u},j} -
+          \mathbf{x}_{\mathbf{u},k})^\intercal \bm\Lambda
+          (\mathbf{x}_{\mathbf{u},j} - \mathbf{x}_{\mathbf{u},k}) -
+          \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \right] \\
+        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+        \dl \left[-\frac{1}{2}\sum_{l=1}^d \lambda_l
+          (x_{\mathbf{u},j,l} - x_{\mathbf{u},k,l})^2 -
+          \mathbbm{1}[j \ne k]\sigma^2\sum_{l=1}^d \lambda_l \right] \\
+        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+        \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
+        x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
+      \end{split}
+    \]
+  \end{enumerate}
+\end{proof}
+
+\subsection{Linear Algebra and Numerical Analysis}
+
+% TODO: maybe source?
+\begin{definition}[Norms]
+  For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
+  its \emph{maximum norm} is
+  \[
+    \lVert \mathbf{x} \rVert_\infty = \max_i |x_i|
+  \]
+  whereas its \emph{taxicab} (or \emph{Manhattan}) \emph{norm} is
+  \[
+    \lVert \mathbf{x} \rVert_1 = \sum_{i = 1}^n |x_i|.
+  \]
+  Let $\mathbf{A}$ be an $m \times n$ matrix. For any vector norm $\lVert
+  \cdot \rVert_p$, we can also define its \emph{induced norm} for matrices as
+  \[
+    \lVert \mathbf{A} \rVert_p = \sup_{\mathbf{x} \ne \mathbf{0}} \frac{\lVert
+      \mathbf{Ax} \rVert_p}{\lVert \mathbf{x} \rVert_p}.
+  \]
+  In particular, for $p = \infty$, we have
+  \[
+    \lVert \mathbf{A} \rVert_\infty = \max_i \sum_{j} |A_{i,j}|.
+  \]
+\end{definition}
+
+% TODO: source/fix this
+\begin{definition}[Condition number]
+  For any norm $\lVert \cdot \rVert$, the \emph{condition number} of a matrix
+  $\mathbf{A}$ is
+  \[
+    \kappa(\mathbf{A}) = \lVert \mathbf{A} \rVert \lVert \mathbf{A}^{-1} \rVert
+  \]
+  if $\mathbf{A}$ is invertible, and $\kappa(\mathbf{A}) = \infty$ otherwise.
+\end{definition}
+
+% TODO: find source
+% TODO: mention that this applies to any vector/matrix norm
+% TODO: explain how matrix norms are induced from vector norms
+\begin{proposition} \label{prop:condition_number}
+  \[
+    \frac{\lVert (\mathbf{A} + \mathbf{E})^{-1} - \mathbf{A}^{-1} \rVert}{\lVert
+    \mathbf{A}^{-1} \rVert} \le \kappa(\mathbf{A})\frac{\lVert \mathbf{E}
+    \rVert}{\lVert \mathbf{A} \rVert}
+  \]
+\end{proposition}
 
 \section{Proofs}
 
@@ -72,14 +246,15 @@ all states and returns the value of state $s$.
   \[ \forall s \in \mathcal{S},\;V_{\mathbf{r}}(s) = \log \sum_{a \in \mathcal{A}}
     \exp\left( r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a,
       s')V_{\mathbf{r}}(s') \right). \]
-  Let $s_i \in \mathcal{S}$ be an arbitrary state. In order to prove that $V(s_i)$
-  is measurable, it is enough to show that for any $\alpha \in \mathbb{R}$, the
+  Let $s_i \in \mathcal{S}$ be an arbitrary state. In order to prove that
+  $V(s_i)$ is measurable, it is enough to show that for any $\alpha \in
+  \mathbb{R}$, the
   set
   \[
     \begin{split}
       \left\{ \vphantom{\sum_{a \in \mathcal{A}}} \right. \mathbf{r} \in
-      \mathbb{R}^{|\mathcal{S}|} &\mid V_{\mathbf{r}}(s_i) \in (-\infty,
-      \alpha); \\
+      \mathbb{R}^{|\mathcal{S}|} \left. \vphantom{\sum_{a \in \mathcal{A}}} \;
+        \middle| \; \right. &V_{\mathbf{r}}(s_i) \in (-\infty, \alpha); \\
       &\forall s \in \mathcal{S} \setminus \{ s_i \}, \; V_{\mathbf{r}}(s) \in
       \mathbb{R}; \\
       &\left. \forall s \in \mathcal{S},\;V_{\mathbf{r}}(s) = \log \sum_{a \in
@@ -92,12 +267,6 @@ all states and returns the value of state $s$.
   \cite{herrlich2006axiom}, which proves that $V(s)$ is a measurable function
   for any $s \in \mathcal{S}$.
 \end{proofsketch}
-
-\begin{definition}
-  For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
-  its \emph{maximum norm} is
-  \[ \lVert \mathbf{x} \rVert_\infty = \max_i |x_i|. \]
-\end{definition}
 
 \begin{theorem} \label{thm:bound}
   If the initial values of the MDP value function satisfy the following
@@ -193,75 +362,297 @@ all states and returns the value of state $s$.
   Then $f$ is integrable over $E$.
 \end{proposition}
 
+% TODO: t is no longer a parameter. is it fixed?
+% TODO: still need lambda in the list, since p(r) uses the covariance matrices
 \begin{theorem}
   Using our usual notation,
-  \[ \dt\iiint
-    V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)\dx
-    = \iiint
-    \dt[V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)]\dx, \]
-  where $t \in \{ \mathbf{m}, \mathbf{S}, \alpha_0, \dots, \alpha_d, \beta_0,
-  \dots, \beta_d \}$.
+  \[ \dt\iint
+    V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})\dx
+    = \iint
+    \dt[V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})]\dx, \]
+  where $t$ is any scalar part of $\mathbf{m}$ or $\mathbf{S}$, or $\bm\lambda$.
 \end{theorem}
 \begin{proof}
   Let
   \begin{align*}
-    \f &= V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda), \\
-    F(t) &= \iiint \f\dx,
+    \f &= V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u}), \\
+    F(t) &= \iint \f\dx,
   \end{align*}
   and, for any $t$, let $(t_n)_{n=1}^\infty$ be any sequence such that
   $\lim_{n \to \infty} t_n = t$, but $t_n \ne t$ for all $n$. We want to show
   that
   \begin{equation} \label{eq:to_prove}
-    F'(t) = \lim_{n \to \infty} \frac{F(t_n) - F(t)}{t_n - t} = \iiint \df\dx.
+    F'(t) = \lim_{n \to \infty} \frac{F(t_n) - F(t)}{t_n - t} = \iint \df\dx.
   \end{equation}
   We have
-  \[ \frac{F(t_n) - F(t)}{t_n - t} = \iiint \frac{\ftn - \f}{t_n - t}\dx =
-    \iiint \fn\dx, \]
+  \[ \frac{F(t_n) - F(t)}{t_n - t} = \iint \frac{\ftn - \f}{t_n - t}\dx =
+    \iint \fn\dx, \]
   where
   \[ \fn = \frac{\ftn - \f}{t_n - t}. \]
   Since
   \[ \lim_{n \to \infty} \fn = \df, \]
   \eqref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
   that both $f$ and $f_n$ are measurable and find a non-negative integrable
-  function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$, $\bm\lambda$,
+  function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$,
   \[ |\fn| \le \g. \]
   The MDP value function is measurable by Theorem \ref{thm:measurability}. The
   result of multiplying or adding measurable functions (e.g., probability
   density functions (PDFs)) to a measurable function is still measurable. Thus,
   both $f$ and $f_n$ are measurable.
 
+  % TODO: really WLOG? explain that later all "paths" will be merged
+  % TODO: cite the original
+  % TODO: t/c vector/matrix? Sometimes scalar, sometimes vector, sometimes
+  % matrix. Use different notation (normal, bold, bold + capital) for each case.
+  % TODO: are the assumptions justified?
+  % TODO: is it measurable? c can be any function
+  % TODO: paragraph structure. maybe more lemmas?
   It remains to find $g$. Without loss of generality, assume that $t$ is a
-  parameter of $q(\bm\lambda)$. Then
-  \[ |\fn| = |V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})q(\bm\lambda)| =
-    |V_{\mathbf{r}}(s)|q(\mathbf{r})q(\mathbf{u}) \left| \frac{q(\bm\lambda)|_{t = t_n} -
-        q(\bm\lambda)}{t_n - t} \right| \]
+  parameter of $q(\mathbf{u})$. Then
+  \[ |\fn| = |V_{\mathbf{r}}(s)|q(\mathbf{r}) \left| \frac{q(\mathbf{u})|_{t =
+          t_n} - q(\mathbf{u})}{t_n - t} \right| \]
   since PDFs are non-negative. An upper bound for
   $|V_{\mathbf{r}}(s)|$ is given by Theorem \ref{thm:bound}, while
-  \[ \frac{q(\bm\lambda)|_{t = t_n} - q(\bm\lambda)}{t_n - t} = \left.
-      \frac{\partial q(\bm\lambda)}{\partial t} \right|_{t = c} \]
-  for some $c$ between $t$ and $t_n$ due to the mean value theorem (since $q$ is
-  a continuous and differentiable function of $t$, regardless of the specific
-  choices of $q$ and $t$). % TODO: is it?
-  Therefore,
-  \[ |\fn| \le \vbound q(\mathbf{r})q(\mathbf{u}) \left| \left. \frac{\partial
-        q(\bm\lambda)}{\partial t} \right|_{t=c} \right|. \]
-The bound is clearly non-negative and measurable. It remains to show that it is
-also integrable. Let $\mathbf{r} = (r_1, \dots, r_k)^\intercal$. Then
-\[ \vbound q(\mathbf{r}) \le \frac{q(\mathbf{r})}{1 - \gamma} \left(
-    \log|\mathcal{A}| + \sum_{i=1}^k |r_i| \right), \]
-and
-\[ \int \frac{q(\mathbf{r})}{1 - \gamma} \left(\log|\mathcal{A}| + \sum_{i=1}^k
-    |r_i| \right)\,d\mathbf{r} = \frac{\log|\mathcal{A}|}{1 - \gamma} +
-  \frac{1}{1 - \gamma} \sum_{i=1}^k \mathbb{E}[|r_i|], \]
-which clearly exists and is finite, so
-\[ \int \vbound q(\mathbf{r}) \,d\mathbf{r} < \infty \]
-for all $\gamma$ and $\mathbf{u}$. The existence of
-\[ \iiint \vbound q(\mathbf{r})q(\mathbf{u}) \left| \left. \frac{\partial
-        q(\bm\lambda)}{\partial t} \right|_{t=c} \right|\dx \]
-then comes from a boundedness argument, as...
-% not quite, E[|r|] can be any function of u.
-% TODO: finish this
+  \[ \frac{q(\mathbf{u})|_{t = t_n} - q(\mathbf{u})}{t_n - t} = \left.
+      \frac{\partial q(\mathbf{u})}{\partial t} \right|_{t = c(\mathbf{u})} \]
+  for some function $c : \mathbb{R}^m \to (\min\{t, t_n\}, \max\{t, t_n\})$
+  due to the mean value theorem (since $q$ is a continuous and differentiable
+  function of $t$, regardless of the specific choices of $q$ and $t$).
+
+  Let $\epsilon > 0$ be arbitrary. Then, for sufficiently large $n$, $|t_n - t|
+  < \epsilon$, and thus
+  \begin{equation} \label{eq:epsilon_bound}
+    |c(\mathbf{u}) - t| < \epsilon.
+  \end{equation}
+  We can rearrange the inequality to produce bounds on $c(\mathbf{u})$ and
+  $|c(\mathbf{u})|$ that will be useful later:
+  \begin{align}
+    t - \epsilon < c(\mathbf{u}) < t + \epsilon, \nonumber \\
+    |c(\mathbf{u})| < \max \{ |t - \epsilon|, |t + \epsilon| \}. \label{eq:c_bound}
+  \end{align}
+  
+  We then have that
+  \[ |\fn| \le \vbound q(\mathbf{r}) \left| \left. \frac{\partial
+          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|. \]
+  The bound is clearly non-negative and measurable. It remains to show that it
+  is also integrable. Since $\rinf \le \lVert \mathbf{r} \rVert_1$, and
+  \[ \int \frac{\lVert \mathbf{r} \rVert_1 + \log|\mathcal{A}|}{1 -
+      \gamma}q(\mathbf{r}) \,d\mathbf{r} = \frac{\log|\mathcal{A}|}{1 - \gamma}
+    + \frac{1}{1 - \gamma} \sum_{i=1}^k \mathbb{E}[|r_i|], \]
+  which clearly exists and is finite, so
+  \[ \int \vbound q(\mathbf{r}) \,d\mathbf{r} < \infty. \]
+  Now we just need to show that
+  \begin{equation} \label{eq:last_goal}
+    \iint \vbound q(\mathbf{r}) \left| \left. \frac{\partial
+          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|\dx
+  \end{equation}
+  exists. Regardless of which of the four derivatives in Lemma
+  \ref{lemma:derivatives} is taken, % TODO: derivatives are not exactly from the lemma
+  \[ \iint \vbound q(\mathbf{r}) \left| \left. \frac{\partial
+          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|\dx =
+    \iint \vbound q(\mathbf{r}) q(\mathbf{u}) |h(\mathbf{u})| \dx, \]
+  where $h(\mathbf{u})$ is one of: % TODO: I'll need to explain/motivate this better
+  \begin{enumerate} % TODO: parts 2 and 3
+  \item The $i$th element of the vector
+    \[ \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
+      \mathbf{c}(\mathbf{u})) \in \mathbb{R}^m, \]
+    for $i = 1, \dots, m$, where $\mathbf{c}(\mathbf{u}) = (c_1, \dots, c_{i -
+      1}, c(\mathbf{u}), c_{i + 1} \dots, c_m)$ (constant everywhere except the
+    $i$th element).
+  \item The $(i,j)$-th element of the matrix
+    \[
+      -\frac{1}{2}\mathbf{C}(\mathbf{u})^{-\intercal} +
+      \frac{1}{2}\mathbf{C}(\mathbf{u})^{-\intercal}(\mathbf{u} -
+      \mathbf{m})(\mathbf{u} -
+      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal} \in \mathbb{R}^{m
+        \times m},
+    \]
+    for $i, j = 1, \dots, m$, where $[\mathbf{C}(\mathbf{u})]_{i,j} =
+    c(\mathbf{u})$, and all other elements are constant.
+  \item $\frac{1}{2}\tr
+    \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
+      \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i = c(\mathbf{u})}
+    \right)$, where $i = 0, \dots, d$.
+  \end{enumerate} % TODO: prove continuity for MVT
+  % TODO: define l1 norm as well
+  % TODO: looking for an upper bound only applies to positive functions.
+  % Otherwise bound the absolute value.
+  % TODO: how come i,j in the input corresponds to i,j on the output? does it?
+  % Because if the vector/matrix expression corresponds to d/dm, we only care
+  % about it's ith element. (We replace m_i with c(u) only after the derivative.)
+  % TODO: mention that i,j are fixed and will appear later
+
+  As
+  \[ \int \vbound q(\mathbf{r})\,d\mathbf{r} \]
+  gives us a constant, it remains to show that
+  \[ \mathbb{E}_{\mathbf{u} \sim q(\mathbf{u})}[|h(\mathbf{u})|] = \int
+    |h(\mathbf{u})| q(\mathbf{u}) \,d\mathbf{u} \]
+  exists. We will analyse each of the three cases separately.
+  \begin{enumerate}
+  \item Since
+    \[ \mathbb{E} \left[ \frac{1}{2}(\mathbf{S}^{-1} +
+        \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{c}(\mathbf{u})) \right] =
+      \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})], \]
+    we just need to bound $\mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]$. For
+    any $j \in \{ 1, \dots, m \} \setminus \{ i \}$,
+    \[ \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_j = \mathbb{E}[u_j - c_j]
+      = m_j - c_j, \]
+    while
+    \[ \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_i = \mathbb{E}[u_i
+      - c(\mathbf{u})] = m_i - \mathbb{E}[c(\mathbf{u})], \]
+    where $\mathbb{E}[c(\mathbf{u})]$ exists because $|c(\mathbf{u})|$ has an
+    integrable upper bound in \eqref{eq:c_bound}. % TODO: double check this
+  \item First, we can express $\mathbf{C}(\mathbf{u})$ as
+    $\mathbf{C}(\mathbf{u}) = \mathbf{S} + \mathbf{E}(\mathbf{u})$, where
+    $\mathbf{S}$ is a constant invertible positive semi-definite matrix, and
+    $\mathbf{E} : \mathbb{R}^m \to \mathbb{R}^{m \times m}$ is a matrix-valued
+    function such that $[\mathbf{E}(\mathbf{u})]_{i,j} = c(\mathbf{u}) -
+    t$, while all other elements of $\mathbf{E}(\mathbf{u})$ are zero.
+
+    % TODO: maybe E shouldn't be a function. Just talk about E(u)
+    Next, we can divide the problem into two parts; namely, proving the
+    existence of
+    \[ \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}] \quad \text{and} \quad
+      \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}(\mathbf{u} -
+      \mathbf{m})(\mathbf{u} -
+      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal}]. \]
+    \begin{enumerate}
+    \item \label{part_2a} Applying Proposition \ref{prop:condition_number} to
+      $\mathbf{S}$ and $\mathbf{E}(\mathbf{u})$ gives
+      \[
+        \frac{\lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1}
+          \rVert}{\lVert \mathbf{S}^{-1} \rVert} \le
+        \kappa(\mathbf{S})\frac{\lVert \mathbf{E}(\mathbf{u}) \rVert}{\lVert
+          \mathbf{S} \rVert},
+      \] % TODO: what about norms equal to zero or infinity?
+      which can be reformulated to
+      \[ \lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1} \rVert \le \lVert
+        \mathbf{S}^{-1} \rVert^2 \lVert \mathbf{E}(\mathbf{u}) \rVert. \]
+      Choosing to use the maximum norm we get
+      \[
+        \max_i \sum_j |[\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
+        [\mathbf{S}^{-1}]_{i,j}| \le \lVert \mathbf{S}^{-1} \rVert^2
+        |c(\mathbf{u}) - t|.
+      \]
+      Using \eqref{eq:epsilon_bound} gives
+      \[
+        \forall i,\; \sum_j |[\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
+        [\mathbf{S}^{-1}]_{i,j}| < \lVert \mathbf{S}^{-1} \rVert^2\epsilon
+      \]
+      and
+      \[
+        \forall i, j, \; |[\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
+        [\mathbf{S}^{-1}]_{i,j}| < \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
+      \]
+      which bounds all elements of $\mathbf{C}(\mathbf{u})^{-1}$ and proves that
+      $\mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}]$ exists.
+    \item Because of the result of \ref{part_2a}, we only need to prove the
+      existence of
+      \[
+        \mathbb{E}[(\mathbf{u} - \mathbf{m})(\mathbf{u} -
+        \mathbf{m})^\intercal].
+      \]
+      The desired result follows from the existence of $\mathbb{E}[\mathbf{u}]$
+      and $\mathbb{E}[\mathbf{u}\mathbf{u}^\intercal]$.
+    \end{enumerate}
+  \item Again, we can split the proof into two parts: showing the existence of
+    \[
+      \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_i}
+        \right|_{\lambda_i = c(\mathbf{u})} \right] \quad \text{and} \quad
+      \mathbb{E} \left[ \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal}
+        \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+          c(\mathbf{u})} \right].
+    \]
+    \begin{enumerate}
+    \item \label{part_a} In case of $i = 0$, each element of $\frac{\partial
+        \Kuu}{\partial \lambda_0}$ is of the form
+      \[
+        \exp \left( -\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal
+          \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) - \mathbbm{1}[j \ne
+          k]\sigma^2\tr(\bm\Lambda) \right),
+      \]
+      i.e., without $\lambda_0$, so
+      \[
+        \left. \frac{\partial \Kuu}{\partial \lambda_0} \right|_{\lambda_0 =
+          c(\mathbf{u})} = \frac{\partial \Kuu}{\partial \lambda_0}
+      \]
+      has no $\mathbf{u}$, which means that
+      \[
+        \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_0}
+          \right|_{\lambda_0 = c(\mathbf{u})} \right] = \frac{\partial
+          \Kuu}{\partial \lambda_0}.
+      \]
+
+      If $i > 0$, then each element of $\frac{\partial \Kuu}{\partial
+        \lambda_i}$ is a constant multiple of $k_{\bm\lambda}(\mathbf{x}_j,
+      \mathbf{x}_k)$ for some $\mathbf{x}_j$ and $\mathbf{x}_k$. Since
+      $k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
+      $\lambda_i$, and $c(\mathbf{u}) > \lambda_i - \epsilon$,
+      \[
+        \begin{split}
+          k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = 
+            c(\mathbf{u})} &=
+          \begin{multlined}[t]
+            \lambda_0 \exp \left( \vphantom{\sum_{l \in \{ \} \setminus}}
+            \right. -\frac{1}{2}c(\mathbf{u})(x_{j,i} - x_{k,i})^2 -
+            \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{u}) \\
+            - \left. \sum_{l \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{1}{2}
+              \lambda_l(x_{j,l} - x_{k,l})^2 + \mathbbm{1}[j \ne k]\sigma^2
+              \lambda_l \right)
+          \end{multlined} \\
+          &<
+          \begin{multlined}[t]
+            \lambda_0 \exp \left( \vphantom{\sum_{l \in \{ \} \setminus}}
+            \right. -\frac{1}{2}(\lambda_i - \epsilon)(x_{j,i} - x_{k,i})^2 -
+            \mathbbm{1}[j \ne k]\sigma^2(\lambda_i - \epsilon) \\
+            - \left. \sum_{l \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{1}{2}
+              \lambda_l(x_{j,l} - x_{k,l})^2 + \mathbbm{1}[j \ne k]\sigma^2
+              \lambda_l \right),
+          \end{multlined}
+        \end{split}
+      \]
+      which gives an upper bound on each element of
+      \[
+        \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+          c(\mathbf{u})}.
+      \]
+      and shows the existence of
+      \[
+        \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_i}
+          \right|_{\lambda_i = c(\mathbf{u})} \right].
+      \]
+    \item Since we already found an upper bound for
+      \[
+        \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+          c(\mathbf{u})}
+      \]
+      in \ref{part_a}, $\mathbb{E}[\Kuu^{-1}] = \Kuu^{-1}$, and
+      $\mathbb{E}[\mathbf{u}\mathbf{u}^\intercal]$ clearly exists,
+      \[
+        \mathbb{E} \left[
+          \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} \left.
+            \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+            c(\mathbf{u})} \right]
+      \]
+      also exists.
+    \end{enumerate}
+  \end{enumerate}
 \end{proof}
+% TODO: reformat display-style equations to use multiple lines
+% TODO: replace c, bold c, bold capital C with a function of u, r. After
+% integrating out r, leave it as a function of u.
+% TODO: can c be a function of r? I think so. We can probably just integrate the
+% r part by adding an upper bound, similarly to the situation with u.
+% TODO: introduce the infinity norm on matrices
+% TODO: why can S be invertible? I probably need something different here
+% TODO: if \mathbf{A} is a matrix, its elements will be denoted either A_{i,j}
+% or [\mathbf{A}]_{i,j}
+% TODO: t or S_{i,j}: be consistent
+% TODO: the variable i has multiple meanings
+% TODO: are the inequalities with epsilon actually useful?
+% TODO: (style) no \forall, no w.r.t., s.t.
+% TODO: high-level overview of the proof
 
 \begin{theorem}[Differentiating under the integral sign]
   Assume $f : R \times R \to R$ is such that $x \mapsto f(x, t)$ is measurable
@@ -347,21 +738,7 @@ and
   \end{split}
 \end{equation}
 where
-\[
-  \begin{split}
-    \dm\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) &=
-    \mathcal{N}(\mathbf{u}; \mathbf{m},
-    \mathbf{S})\dm\left[-\frac{1}{2}(\mathbf{u} -
-      \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right] \\
-    &= \mathcal{N}(\mathbf{u}; \mathbf{m},
-    \mathbf{S})\left(-\frac{1}{2}\right)(\mathbf{S}^{-1} +
-    \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{m})\dm[\mathbf{u} -
-    \mathbf{m}] \\
-    &= \mathcal{N}(\mathbf{u}; \mathbf{m},
-    \mathbf{S})\frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u}
-    - \mathbf{m}).
-  \end{split}
-\]
+% TODO: fill this gap with d/dm N(u; m, S)
 Substituting it back into \eqref{eq:1} gives
 \[
   \begin{split}
@@ -396,7 +773,7 @@ Similarly to the previous section,
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\mathbf{S}} &=
     \frac{1}{2}\dS\log|\mathbf{S}|
-    -\frac{1}{2}\dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] \\
+    -\frac{1}{2}\dS\tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] \\
     &- \sum_{i=1}^N \sum_{t=1}^T \dS\mathbb{E}[V_{\mathbf{r}}(s_{i,t})] -
       \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
       s')\dS\mathbb{E}[V_{\mathbf{r}}(s')],
@@ -405,48 +782,12 @@ Similarly to the previous section,
 where
 \[ \dS\log|\mathbf{S}| = \mathbf{S}^{-\intercal}, \]
 and
-\[ \dS\Tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] = \mathbb{E}[\Kuu^{-1}]^\intercal \]
+\[ \dS\tr[\mathbb{E}[\Kuu^{-1}]\mathbf{S}] = \mathbb{E}[\Kuu^{-1}]^\intercal \]
 by \emph{The Matrix Cookbook} \cite{petersen2008matrix}. Then
 \[ \dS\mathbb{E}[V_{\mathbf{r}}(s)] = \iiint V_{\mathbf{r}}(s) q(\mathbf{r}) \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})
   q(\bm\lambda)\,d\mathbf{r}\,d\mathbf{u}\,d\bm\lambda, \]
 where
-\[
-  \begin{split}
-    \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) &=
-    \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\exp \left( -\frac{1}{2}
-        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-        \mathbf{m})\right)\right] \\
-    &= \dS\left[\frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\right]\exp \left( -\frac{1}{2}
-        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-        \mathbf{m})\right) \\
-      &+ \frac{1}{(2\pi)^{m/2}|\mathbf{S}|^{1/2}}\dS\left[\exp\left( -\frac{1}{2}
-        (\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-        \mathbf{m})\right)\right] \\
-    &=
-    \frac{1}{(2\pi)^{m/2}}\dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right]\exp
-    \left( -\frac{1}{2} (\mathbf{u} -
-      \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})\right) \\
-    &- \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S})\dS[(\mathbf{u}
-    - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} - \mathbf{m})]. \\
-  \end{split}
-\]
-The two remaining derivatives can be taken with the help of \emph{The Matrix
-  Cookbook} \cite{petersen2008matrix}:
-\begin{align*}
-  \dS\left[\frac{1}{|\mathbf{S}|^{1/2}}\right] =
-  -\frac{1}{2}|\mathbf{S}|^{-3/2}\frac{\partial |\mathbf{S}|}{\partial \mathbf{S}} =
-  -\frac{1}{2}|\mathbf{S}|^{-3/2}|\mathbf{S}|\mathbf{S}^{-\intercal} &=
-  -\frac{1}{2|\mathbf{S}|^{1/2}}\mathbf{S}^{-\intercal}, \\
-  \dS[(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-1}(\mathbf{u} -
-  \mathbf{m})] &= -\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
-\end{align*}
-Plugging them back in gives
-\[ \dS\mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}) =
-  -\frac{1}{2}\mathbf{S}^{-\intercal}\mathcal{N}(\mathbf{u};
-  \mathbf{m}, \mathbf{S}) + \frac{1}{2}\mathcal{N}(\mathbf{u}; \mathbf{m},
-  \mathbf{S})\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-  \mathbf{m})^\intercal\mathbf{S}^{-\intercal}, \]
+% TODO: insert d/dS N(u; m, S)
 and
 \[
   \begin{split}
@@ -484,7 +825,7 @@ We begin in the usual way:
 \[
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\alpha_j} = &-
-    \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-2}]] - \frac{1}{2}\da\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]] - \frac{1}{2}\da\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] - \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
+    \frac{1}{2}\da\mathbb{E}[\tr[\Kuu^{-2}]] - \frac{1}{2}\da\mathbb{E}[\tr[\Kuu^{-1}\mathbf{S}]] - \frac{1}{2}\da\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] - \frac{1}{2}\da\mathbb{E}[\log|\Kuu|] \\
     &+ \da\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] +
     \da [\alpha_j + \log\Gamma(\alpha_j) + (1 - \alpha_j)\psi(\alpha_j)] \\
       &- \sum_{i=1}^N \sum_{t=1}^T \da\mathbb{E}[V_{\mathbf{r}}(s_{i,t})] -
@@ -505,7 +846,7 @@ of $\alpha_j$, and $\alpha_j$ only occurs in $\Gamma(\lambda_j; \alpha_j,
     \da\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \da \iiint f(k_{\bm\lambda},
     \mathbf{r}) q(\bm\lambda) q(\mathbf{r})
     q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \!\begin{multlined}[t]
+    &= \begin{multlined}[t]
       \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1}) \da
       \left[ \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)} \lambda_j^{\alpha_j -
           1} \right] e^{-\beta_j\lambda_j} \\
@@ -532,7 +873,7 @@ Then
 which means that
 \[
   \begin{split}
-    \da\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \!\begin{multlined}[t]
+    \da\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \begin{multlined}[t]
       \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
       \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
         1}e^{-\beta_j\lambda_j} \left(\log\beta_j + \log\lambda_j -
@@ -558,7 +899,7 @@ With these results in mind, we can simplify the initial expression to
     \alpha_j)\psi'(\alpha_j) + \left( \log\beta_j -
       \frac{\Gamma'(\alpha_j)}{\Gamma(\alpha_j)} \right)
     \left(\vphantom{\sum_{i=1}^N} \right. - \frac{1}{2}
-    \mathbb{E}[\Tr[\Kuu^{-2}]] - \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]]
+    \mathbb{E}[\tr[\Kuu^{-2}]] - \frac{1}{2}\mathbb{E}[\tr[\Kuu^{-1}\mathbf{S}]]
     \\
     &- \frac{1}{2}\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] -
     \frac{1}{2}\mathbb{E}[\log|\Kuu|] +
@@ -566,8 +907,8 @@ With these results in mind, we can simplify the initial expression to
     &- \sum_{i=1}^N \sum_{t=1}^T \mathbb{E}[V_{\mathbf{r}}(s_{i,t})] - \gamma\sum_{s' \in
       \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[V_{\mathbf{r}}(s')] \left.
       \vphantom{\sum_{i=1}^N} \right) \\
-    & - \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-2}]\log\lambda_j] -
-    \frac{1}{2}\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]\log\lambda_j] -
+    & - \frac{1}{2}\mathbb{E}[\tr[\Kuu^{-2}]\log\lambda_j] -
+    \frac{1}{2}\mathbb{E}[\tr[\Kuu^{-1}\mathbf{S}]\log\lambda_j] -
     \frac{1}{2}\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}\log\lambda_j]
     \\
     &- \frac{1}{2}\mathbb{E}[\log|\Kuu|\log\lambda_j] +
@@ -584,8 +925,8 @@ Finally,
 \[
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\beta_j} = &-
-    \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-2}]] -
-    \frac{1}{2}\db\mathbb{E}[\Tr[\Kuu^{-1}\mathbf{S}]] -
+    \frac{1}{2}\db\mathbb{E}[\tr[\Kuu^{-2}]] -
+    \frac{1}{2}\db\mathbb{E}[\tr[\Kuu^{-1}\mathbf{S}]] -
     \frac{1}{2}\db\mathbb{E}[\mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}] \\
     &- \frac{1}{2}\db\mathbb{E}[\log|\Kuu|] +
     \db\mathbb{E}[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\mathbf{m}] -
@@ -601,7 +942,7 @@ in the same way:
     \db\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \db \iiint f(k_{\bm\lambda},
     \mathbf{r}) q(\bm\lambda) q(\mathbf{r})
     q(\mathbf{u})\,d\bm\lambda\,d\mathbf{r}\,d\mathbf{u} \\
-    &= \!\begin{multlined}[t]
+    &= \begin{multlined}[t]
       \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
       \frac{\lambda_j^{\alpha_j - 1}}{\Gamma(\alpha_j)} \db [\beta_j^{\alpha_j}
       e^{-\beta_j\lambda_j}] \\
@@ -617,7 +958,7 @@ Since
 we have that
 \[
   \begin{split}
-    \db\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \!\begin{multlined}[t]
+    \db\mathbb{E}[f(k_{\bm\lambda}, \mathbf{r})] &= \begin{multlined}[t]
       \iiint f(k_{\bm\lambda}, \mathbf{r}) q(\lambda_0) \cdots q(\lambda_{j-1})
       \frac{\beta_j^{\alpha_j}}{\Gamma(\alpha_j)}\lambda_j^{\alpha_j -
         1}e^{-\beta_j\lambda_j} \left(\frac{\alpha_j}{\beta_j} - \lambda_j
@@ -639,9 +980,9 @@ This gives us the final expression of $\frac{\partial\mathcal{L}}{\partial\beta_
 \[
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\beta_j} = &- \frac{1}{\beta_j} -
-    \frac{1}{2}\mathbb{E} \left[ \Tr[\Kuu^{-2}] \left( \frac{\alpha_j}{\beta_j}
+    \frac{1}{2}\mathbb{E} \left[ \tr[\Kuu^{-2}] \left( \frac{\alpha_j}{\beta_j}
         - \lambda_j \right) \right] - \frac{1}{2}\mathbb{E} \left[
-      \Tr[\Kuu^{-1}\mathbf{S}] \left(\frac{\alpha_j}{\beta_j} - \lambda_j
+      \tr[\Kuu^{-1}\mathbf{S}] \left(\frac{\alpha_j}{\beta_j} - \lambda_j
       \right) \right] \\
     &- \frac{1}{2}\mathbb{E} \left[ \mathbf{m}^\intercal\Kuu^{-1}\mathbf{m}
       \left(\frac{\alpha_j}{\beta_j} - \lambda_j \right) \right] -
