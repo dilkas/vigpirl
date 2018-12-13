@@ -59,9 +59,6 @@ In this paper, all references to measurability are with respect to the Lebesgue
 measure. Similarly, whenever we consider the existence of an integral, we use
 the Lebesgue definition of integration.
 
-% TODO: rename lambda_0
-% TODO: x_u and x_r should have separate letters: three subscripts are a bit ridiculous
-
 \begin{lemma}[Derivatives of probability
   distributions] \label{lemma:derivatives}
   \begin{enumerate}
@@ -78,14 +75,18 @@ the Lebesgue definition of integration.
     \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
       \frac{1}{\lambda_0}\Kuu \right)$.
   \item For $i = 1, \dots, d$,
-    \[ \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
+    \[
+      \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
       q(\mathbf{r})\frac{1}{2}\tr
       \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
-        \Luu \right), \]
+        \Luu \right),
+    \]
     where
-    \[ [\Luu]_{j,k} = k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j},
-    \mathbf{x}_{\mathbf{u},k}) \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
-      x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right). \]
+    \[
+      [\Luu]_{j,k} = k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j},
+      \mathbf{x}_{\mathbf{u},k}) \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
+        x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
+    \]
   \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -137,20 +138,28 @@ the Lebesgue definition of integration.
                      \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
     \end{gather*}
     Plugging them back in gives
-    \[ \frac{\partial q(\mathbf{u})}{\partial \mathbf{S}} =
+    \[
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{S}} =
       -\frac{1}{2}\mathbf{S}^{-\intercal}q(\mathbf{u}) +
       \frac{1}{2}q(\mathbf{u})\mathbf{S}^{-\intercal}(\mathbf{u} -
-      \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal}. \]
+      \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
+    \]
   \item
-    \[ \frac{\partial q(\mathbf{r})}{\partial \lambda_0} = q(\mathbf{r}) \dlz
+    \[
+      \frac{\partial q(\mathbf{r})}{\partial \lambda_0} = q(\mathbf{r}) \dlz
       \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
         \frac{1}{2}\log|\Kuu| \right] = q(\mathbf{r})\frac{1}{2}\tr
       \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
-        \frac{\partial \Kuu}{\partial \lambda_0} \right) \]
+        \frac{\partial \Kuu}{\partial \lambda_0} \right)
+    \]
     by Rasmussen and Williams \cite{DBLP:books/lib/RasmussenW06}, where
-    \[ \frac{\partial \Kuu}{\partial \lambda_0} = \frac{1}{\lambda_0}\Kuu. \]
+    \[
+      \frac{\partial \Kuu}{\partial \lambda_0} = \frac{1}{\lambda_0}\Kuu.
+    \]
   \item The derivation is the same as above, except
-    \[ \frac{\partial \Kuu}{\partial \lambda_i} = \Luu, \]
+    \[
+      \frac{\partial \Kuu}{\partial \lambda_i} = \Luu,
+    \]
     where
     \[
       \begin{split}
@@ -210,7 +219,7 @@ the Lebesgue definition of integration.
 
 % TODO: find source
 % TODO: mention that this applies to any vector/matrix norm
-% TODO: explain how matrix norms are induced from vector norms
+% TODO: do I need to prove this for the infinity norm?
 \begin{proposition} \label{prop:condition_number}
   \[
     \frac{\lVert (\mathbf{A} + \mathbf{E})^{-1} - \mathbf{A}^{-1} \rVert}{\lVert
@@ -235,31 +244,33 @@ state $s \in \mathcal{S}$ and returns a function $V(s) :
 $V_{\mathbf{r}}(s) \in \mathbb{R}$. The function $V(s)$ computes the values of
 all states and returns the value of state $s$.
 
-\begin{theorem} \label{thm:measurability}
+\begin{proposition} \label{thm:measurability}
   MDP value functions $V(s) : \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ (for $s
   \in \mathcal{S}$) are Lebesgue measurable.
-\end{theorem}
+\end{proposition}
 \begin{proofsketch}
   For any reward vector $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$, the
   collection of converged value functions $\{ V_{\mathbf{r}}(s) \mid s \in
   \mathcal{S} \}$ satisfy
-  \[ \forall s \in \mathcal{S},\;V_{\mathbf{r}}(s) = \log \sum_{a \in \mathcal{A}}
+  \[
+    V_{\mathbf{r}}(s) = \log \sum_{a \in \mathcal{A}}
     \exp\left( r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a,
-      s')V_{\mathbf{r}}(s') \right). \]
-  Let $s_i \in \mathcal{S}$ be an arbitrary state. In order to prove that
-  $V(s_i)$ is measurable, it is enough to show that for any $\alpha \in
-  \mathbb{R}$, the
-  set
+      s')V_{\mathbf{r}}(s') \right)
+  \]
+  for all $s \in \mathcal{S}$. Let $s_0 \in \mathcal{S}$ be an arbitrary state.
+  In order to prove that $V(s_0)$ is measurable, it is enough to show that for
+  any $\alpha \in \mathbb{R}$, the set
   \[
     \begin{split}
       \left\{ \vphantom{\sum_{a \in \mathcal{A}}} \right. \mathbf{r} \in
       \mathbb{R}^{|\mathcal{S}|} \left. \vphantom{\sum_{a \in \mathcal{A}}} \;
-        \middle| \; \right. &V_{\mathbf{r}}(s_i) \in (-\infty, \alpha); \\
-      &\forall s \in \mathcal{S} \setminus \{ s_i \}, \; V_{\mathbf{r}}(s) \in
-      \mathbb{R}; \\
-      &\left. \forall s \in \mathcal{S},\;V_{\mathbf{r}}(s) = \log \sum_{a \in
-          \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in \mathcal{S}}
-          \mathcal{T}(s, a, s')V_{\mathbf{r}}(s') \right) \right\}
+        \middle| \; \right. &V_{\mathbf{r}}(s_0) \in (-\infty, \alpha); \\
+      &V_{\mathbf{r}}(s) \in
+      \mathbb{R} \text{ for all } s \in \mathcal{S} \setminus \{ s_0 \}; \\
+      &V_{\mathbf{r}}(s) = \left. \log \sum_{a \in \mathcal{A}} \exp\left( r(s)
+          + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a,
+          s')V_{\mathbf{r}}(s') \right) \text{ for all } s \in
+        \mathcal{S}\right\}
     \end{split}
   \]
   is measurable. Since this set can be constructed in Zermelo-Fraenkel set
@@ -268,13 +279,13 @@ all states and returns the value of state $s$.
   for any $s \in \mathcal{S}$.
 \end{proofsketch}
 
-\begin{theorem} \label{thm:bound}
+\begin{proposition} \label{thm:bound}
   If the initial values of the MDP value function satisfy the following
   bound, then the bound remains satisfied throughout value iteration:
   \begin{equation} \label{eq:bound}
     |V_{\mathbf{r}}(s)| \le \vbound.
   \end{equation}
-\end{theorem}
+\end{proposition}
 \begin{proof}
   We begin by considering \eqref{eq:bound} without taking the absolute value of
   $V_{\mathbf{r}}(s)$, i.e.,
@@ -284,8 +295,11 @@ all states and returns the value of state $s$.
   and assuming that the initial values of $\{ V_{\mathbf{r}}(s) \mid s \in
   \mathcal{S} \}$ already satisfy \eqref{eq:positive_bound}. For each $s \in
   \mathcal{S}$, the value of $V_{\mathbf{r}}(s)$ is updated via this rule:
-  \[ V_{\mathbf{r}}(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp\left( r(s) +
-      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s') \right). \]
+  \[
+    V_{\mathbf{r}}(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp\left( r(s) +
+      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s')
+    \right).
+  \]
   Note that both $\log$ and $\exp$ are increasing functions, $\gamma > 0$, and
   the $\mathcal{T}$ function gives a probability (a non-negative number).
   Thus
@@ -344,33 +358,28 @@ all states and returns the value of state $s$.
   and the function $f$ is measurable. Assume there is a non-negative function
   $g$ that is integrable over $X$ and dominates the sequence $\{ f_n \}$ on $X$
   in the sense that
-  \[ |f_n| \le g \text{ a.e. on $X$ for all $n$.} \]
+  \[
+    |f_n| \le g \text{ a.e. on $X$ for all $n$.}
+  \]
   Then $f$ is integrable over $X$ and
-  \[ \lim_{n \to \infty} \int_X f_n\,d\mu = \int_X f\,d\mu. \]
+  \[
+    \lim_{n \to \infty} \int_X f_n\,d\mu = \int_X f\,d\mu.
+  \]
 \end{theorem}
 
-%\begin{definition}[\cite{royden2010real}]
-%  A non-negative measurable function $f$ on a measurable set $E$ is said to be
-%  \emph{integrable} over $E$ provided
-%  \[ \int_E f < \infty. \]
-%\end{definition}
-
-\begin{proposition}[\cite{royden2010real}]
-  Let $f$ be a measurable function on $E$. Suppose there is a non-negative
-  function $g$ that is integrable over $E$ and dominates $f$ in the sense that
-  \[ |f| \le g \text{ on } E. \]
-  Then $f$ is integrable over $E$.
-\end{proposition}
-
-% TODO: t is no longer a parameter. is it fixed?
 % TODO: still need lambda in the list, since p(r) uses the covariance matrices
+% TODO: do I need to show that the original integral exists?
+Our main theorem is a specialised version of an integral differentiation result
+by Chen \cite{lecture_notes}.
 \begin{theorem}
   Using our usual notation,
-  \[ \dt\iint
+  \[
+    \dt\iint
     V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})\dx
     = \iint
-    \dt[V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})]\dx, \]
-  where $t$ is any scalar part of $\mathbf{m}$ or $\mathbf{S}$, or $\bm\lambda$.
+    \dt[V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})]\dx,
+  \]
+  where $t$ is any scalar part of $\mathbf{m}$, $\mathbf{S}$, or $\bm\lambda$.
 \end{theorem}
 \begin{proof}
   Let
@@ -378,43 +387,49 @@ all states and returns the value of state $s$.
     \f &= V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u}), \\
     F(t) &= \iint \f\dx,
   \end{align*}
-  and, for any $t$, let $(t_n)_{n=1}^\infty$ be any sequence such that
+  and fix the value of $t$. Let $(t_n)_{n=1}^\infty$ be any sequence such that
   $\lim_{n \to \infty} t_n = t$, but $t_n \ne t$ for all $n$. We want to show
   that
   \begin{equation} \label{eq:to_prove}
     F'(t) = \lim_{n \to \infty} \frac{F(t_n) - F(t)}{t_n - t} = \iint \df\dx.
   \end{equation}
   We have
-  \[ \frac{F(t_n) - F(t)}{t_n - t} = \iint \frac{\ftn - \f}{t_n - t}\dx =
-    \iint \fn\dx, \]
+  \[
+    \frac{F(t_n) - F(t)}{t_n - t} = \iint \frac{\ftn - \f}{t_n - t}\dx =
+    \iint \fn\dx,
+  \]
   where
-  \[ \fn = \frac{\ftn - \f}{t_n - t}. \]
+  \[
+    \fn = \frac{\ftn - \f}{t_n - t}.
+  \]
   Since
-  \[ \lim_{n \to \infty} \fn = \df, \]
+  \[
+    \lim_{n \to \infty} \fn = \df,
+  \]
   \eqref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
   that both $f$ and $f_n$ are measurable and find a non-negative integrable
   function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$,
-  \[ |\fn| \le \g. \]
-  The MDP value function is measurable by Theorem \ref{thm:measurability}. The
-  result of multiplying or adding measurable functions (e.g., probability
+  \[
+    |\fn| \le \g.
+  \]
+  The MDP value function is measurable by Proposition \ref{thm:measurability}.
+  The result of multiplying or adding measurable functions (e.g., probability
   density functions (PDFs)) to a measurable function is still measurable. Thus,
   both $f$ and $f_n$ are measurable.
 
-  % TODO: really WLOG? explain that later all "paths" will be merged
-  % TODO: cite the original
-  % TODO: t/c vector/matrix? Sometimes scalar, sometimes vector, sometimes
-  % matrix. Use different notation (normal, bold, bold + capital) for each case.
-  % TODO: are the assumptions justified?
-  % TODO: is it measurable? c can be any function
-  % TODO: paragraph structure. maybe more lemmas?
-  It remains to find $g$. Without loss of generality, assume that $t$ is a
+  % TODO: C is measurable since it is bounded
+  It remains to find $g$. For the time being, we can assume that $t$ is a
   parameter of $q(\mathbf{u})$. Then
-  \[ |\fn| = |V_{\mathbf{r}}(s)|q(\mathbf{r}) \left| \frac{q(\mathbf{u})|_{t =
-          t_n} - q(\mathbf{u})}{t_n - t} \right| \]
+  \[
+    |\fn| = |V_{\mathbf{r}}(s)|q(\mathbf{r}) \left| \frac{q(\mathbf{u})|_{t =
+          t_n} - q(\mathbf{u})}{t_n - t} \right|
+  \]
   since PDFs are non-negative. An upper bound for
-  $|V_{\mathbf{r}}(s)|$ is given by Theorem \ref{thm:bound}, while
-  \[ \frac{q(\mathbf{u})|_{t = t_n} - q(\mathbf{u})}{t_n - t} = \left.
-      \frac{\partial q(\mathbf{u})}{\partial t} \right|_{t = c(\mathbf{u})} \]
+  $|V_{\mathbf{r}}(s)|$ is given by Proposition \ref{thm:bound}, while
+  \[
+    \frac{q(\mathbf{u})|_{t = t_n} - q(\mathbf{u})}{t_n - t} = \left.
+      \frac{\partial q(\mathbf{u})}{\partial t} \right|_{t = c(\mathbf{u})}
+  \]
   for some function $c : \mathbb{R}^m \to (\min\{t, t_n\}, \max\{t, t_n\})$
   due to the mean value theorem (since $q$ is a continuous and differentiable
   function of $t$, regardless of the specific choices of $q$ and $t$).
@@ -432,30 +447,53 @@ all states and returns the value of state $s$.
   \end{align}
   
   We then have that
-  \[ |\fn| \le \vbound q(\mathbf{r}) \left| \left. \frac{\partial
-          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|. \]
+  \[
+    |\fn| \le \vbound q(\mathbf{r}) \left| \left. \frac{\partial
+          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|.
+  \]
   The bound is clearly non-negative and measurable. It remains to show that it
   is also integrable. Since $\rinf \le \lVert \mathbf{r} \rVert_1$, and
-  \[ \int \frac{\lVert \mathbf{r} \rVert_1 + \log|\mathcal{A}|}{1 -
+  \[
+    \int \frac{\lVert \mathbf{r} \rVert_1 + \log|\mathcal{A}|}{1 -
       \gamma}q(\mathbf{r}) \,d\mathbf{r} = \frac{\log|\mathcal{A}|}{1 - \gamma}
-    + \frac{1}{1 - \gamma} \sum_{i=1}^k \mathbb{E}[|r_i|], \]
+    + \frac{1}{1 - \gamma} \sum_{i=1}^k \mathbb{E}[|r_i|],
+  \]
   which clearly exists and is finite, so
-  \[ \int \vbound q(\mathbf{r}) \,d\mathbf{r} < \infty. \]
+  \[
+    \int \vbound q(\mathbf{r}) \,d\mathbf{r} < \infty.
+  \]
   Now we just need to show that
   \begin{equation} \label{eq:last_goal}
     \iint \vbound q(\mathbf{r}) \left| \left. \frac{\partial
           q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|\dx
   \end{equation}
-  exists. Regardless of which of the four derivatives in Lemma
-  \ref{lemma:derivatives} is taken, % TODO: derivatives are not exactly from the lemma
-  \[ \iint \vbound q(\mathbf{r}) \left| \left. \frac{\partial
+  exists. If $t$ is the $i$th element of the vector $\mathbf{m}$, we can get
+  \[
+    \left. \frac{\partial q(\mathbf{u})}{\partial t} \right|_{t = c(\mathbf{u})}
+  \]
+  by first finding the derivative $\frac{\partial q(\mathbf{u})}{\partial
+    \mathbf{m}}$, then replacing $t$ with $c(\mathbf{u})$, and finally taking
+  the $i$th element of
+  \[
+    \left. \frac{\partial q(\mathbf{u})}{\partial \mathbf{m}} \right|_{t =
+      c(\mathbf{u})}.
+  \]
+  A similar line of reasoning applies to matrices as well. Thus, we only need to
+  consider derivatives with respect to $\mathbf{m}$, $\mathbf{S}$, and
+  $\lambda_i$ (for $i = 0, \dots, d$). Regardless of what $t$ represents, we can
+  use results in Lemma \ref{lemma:derivatives} to show that
+  \[
+    \iint \vbound q(\mathbf{r}) \left| \left. \frac{\partial
           q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|\dx =
-    \iint \vbound q(\mathbf{r}) q(\mathbf{u}) |h(\mathbf{u})| \dx, \]
-  where $h(\mathbf{u})$ is one of: % TODO: I'll need to explain/motivate this better
-  \begin{enumerate} % TODO: parts 2 and 3
+    \iint \vbound q(\mathbf{r}) q(\mathbf{u}) |h(\mathbf{u})| \dx,
+  \]
+  where $h(\mathbf{u})$ is one of:
+  \begin{enumerate}
   \item The $i$th element of the vector
-    \[ \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
-      \mathbf{c}(\mathbf{u})) \in \mathbb{R}^m, \]
+    \[
+      \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
+      \mathbf{c}(\mathbf{u})) \in \mathbb{R}^m,
+    \]
     for $i = 1, \dots, m$, where $\mathbf{c}(\mathbf{u}) = (c_1, \dots, c_{i -
       1}, c(\mathbf{u}), c_{i + 1} \dots, c_m)$ (constant everywhere except the
     $i$th element).
@@ -474,49 +512,60 @@ all states and returns the value of state $s$.
       \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i = c(\mathbf{u})}
     \right)$, where $i = 0, \dots, d$.
   \end{enumerate} % TODO: prove continuity for MVT
-  % TODO: define l1 norm as well
   % TODO: looking for an upper bound only applies to positive functions.
   % Otherwise bound the absolute value.
-  % TODO: how come i,j in the input corresponds to i,j on the output? does it?
-  % Because if the vector/matrix expression corresponds to d/dm, we only care
-  % about it's ith element. (We replace m_i with c(u) only after the derivative.)
   % TODO: mention that i,j are fixed and will appear later
-
+  % TODO: the 'As' part should be higher up, I think (with the talk about
+  % integrating out r from c(u, r))
   As
-  \[ \int \vbound q(\mathbf{r})\,d\mathbf{r} \]
+  \[
+    \int \vbound q(\mathbf{r})\,d\mathbf{r}
+  \]
   gives us a constant, it remains to show that
-  \[ \mathbb{E}_{\mathbf{u} \sim q(\mathbf{u})}[|h(\mathbf{u})|] = \int
-    |h(\mathbf{u})| q(\mathbf{u}) \,d\mathbf{u} \]
-  exists. We will analyse each of the three cases separately.
+  \[
+    \mathbb{E}_{\mathbf{u} \sim q(\mathbf{u})}[|h(\mathbf{u})|] = \int
+    |h(\mathbf{u})| q(\mathbf{u}) \,d\mathbf{u}
+  \]
+  exists. Hereinafter we fix $i$ and $j$ to refer respectively to the row and
+  column of $t$ in case of derivative by a matrix, and we fix $i$ to be the
+  index of $t$ in $\mathbf{m}$ if the derivative is taken with respect to a
+  vector. We will analyse each of the three cases separately.
   \begin{enumerate}
   \item Since
-    \[ \mathbb{E} \left[ \frac{1}{2}(\mathbf{S}^{-1} +
+    \[
+      \mathbb{E} \left[ \frac{1}{2}(\mathbf{S}^{-1} +
         \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{c}(\mathbf{u})) \right] =
       \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})
-      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})], \]
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})],
+    \]
     we just need to bound $\mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]$. For
     any $j \in \{ 1, \dots, m \} \setminus \{ i \}$,
-    \[ \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_j = \mathbb{E}[u_j - c_j]
-      = m_j - c_j, \]
+    \[
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_j = \mathbb{E}[u_j - c_j]
+      = m_j - c_j,
+    \]
     while
-    \[ \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_i = \mathbb{E}[u_i
-      - c(\mathbf{u})] = m_i - \mathbb{E}[c(\mathbf{u})], \]
+    \[
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_i = \mathbb{E}[u_i
+      - c(\mathbf{u})] = m_i - \mathbb{E}[c(\mathbf{u})],
+    \]
     where $\mathbb{E}[c(\mathbf{u})]$ exists because $|c(\mathbf{u})|$ has an
     integrable upper bound in \eqref{eq:c_bound}. % TODO: double check this
   \item First, we can express $\mathbf{C}(\mathbf{u})$ as
     $\mathbf{C}(\mathbf{u}) = \mathbf{S} + \mathbf{E}(\mathbf{u})$, where
     $\mathbf{S}$ is a constant invertible positive semi-definite matrix, and
-    $\mathbf{E} : \mathbb{R}^m \to \mathbb{R}^{m \times m}$ is a matrix-valued
-    function such that $[\mathbf{E}(\mathbf{u})]_{i,j} = c(\mathbf{u}) -
-    t$, while all other elements of $\mathbf{E}(\mathbf{u})$ are zero.
+    $\mathbf{E}(\mathbf{u})$ is a matrix such that
+    $[\mathbf{E}(\mathbf{u})]_{i,j} = c(\mathbf{u}) - t$, while all other
+    elements of $\mathbf{E}(\mathbf{u})$ are zero.
 
-    % TODO: maybe E shouldn't be a function. Just talk about E(u)
     Next, we can divide the problem into two parts; namely, proving the
     existence of
-    \[ \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}] \quad \text{and} \quad
+    \[
+      \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}] \quad \text{and} \quad
       \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}(\mathbf{u} -
       \mathbf{m})(\mathbf{u} -
-      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal}]. \]
+      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal}].
+    \]
     \begin{enumerate}
     \item \label{part_2a} Applying Proposition \ref{prop:condition_number} to
       $\mathbf{S}$ and $\mathbf{E}(\mathbf{u})$ gives
@@ -527,23 +576,26 @@ all states and returns the value of state $s$.
           \mathbf{S} \rVert},
       \] % TODO: what about norms equal to zero or infinity?
       which can be reformulated to
-      \[ \lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1} \rVert \le \lVert
-        \mathbf{S}^{-1} \rVert^2 \lVert \mathbf{E}(\mathbf{u}) \rVert. \]
+      \[
+        \lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1} \rVert \le \lVert
+        \mathbf{S}^{-1} \rVert^2 \lVert \mathbf{E}(\mathbf{u}) \rVert.
+      \]
       Choosing to use the maximum norm we get
       \[
         \max_i \sum_j |[\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
         [\mathbf{S}^{-1}]_{i,j}| \le \lVert \mathbf{S}^{-1} \rVert^2
         |c(\mathbf{u}) - t|.
       \]
-      Using \eqref{eq:epsilon_bound} gives
+      Using \eqref{eq:epsilon_bound} we get that for any row $i$,
       \[
-        \forall i,\; \sum_j |[\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
-        [\mathbf{S}^{-1}]_{i,j}| < \lVert \mathbf{S}^{-1} \rVert^2\epsilon
+        \sum_j \left| [\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
+          [\mathbf{S}^{-1}]_{i,j} \right| <
+        \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
       \]
-      and
+      and for any row $i$ and column $j$,
       \[
-        \forall i, j, \; |[\mathbf{C}(\mathbf{u})^{-1}]_{i,j} -
-        [\mathbf{S}^{-1}]_{i,j}| < \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
+        \left| [\mathbf{C}(\mathbf{u})^{-1}]_{i,j} - [\mathbf{S}^{-1}]_{i,j}
+        \right| < \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
       \]
       which bounds all elements of $\mathbf{C}(\mathbf{u})^{-1}$ and proves that
       $\mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}]$ exists.
@@ -639,7 +691,6 @@ all states and returns the value of state $s$.
     \end{enumerate}
   \end{enumerate}
 \end{proof}
-% TODO: reformat display-style equations to use multiple lines
 % TODO: replace c, bold c, bold capital C with a function of u, r. After
 % integrating out r, leave it as a function of u.
 % TODO: can c be a function of r? I think so. We can probably just integrate the
@@ -651,60 +702,7 @@ all states and returns the value of state $s$.
 % TODO: t or S_{i,j}: be consistent
 % TODO: the variable i has multiple meanings
 % TODO: are the inequalities with epsilon actually useful?
-% TODO: (style) no \forall, no w.r.t., s.t.
-% TODO: high-level overview of the proof
-
-\begin{theorem}[Differentiating under the integral sign]
-  Assume $f : R \times R \to R$ is such that $x \mapsto f(x, t)$ is measurable
-  for each $t \in R$, that $f(x, t_0)$ is integrable for some $t_0 \in R$ and
-  $\frac{\partial f(x, t)}{\partial t}$ exists for each $(x, t)$. Assume also
-  that there is an integrable $g : R \to R$ with $\left| \frac{\partial f(x,
-      t)}{\partial t} \right| \le g(x)$ for each $x, t \in R$. Then the function
-  $x \mapsto f(x, t)$ is integrable for each $t$ and the function $F : R \to R$
-  defined by
-  \[ F(t) = \int_R f_t\,d\mu = \int_R f(x, t)\,d\mu(x) \]
-  is differentiable with derivative
-  \[ F'(t) = \frac{d}{dt} \int_R f(x, t)\,d\mu(x) = \int_R
-    \frac{\partial}{\partial t} f(x, t)\,d\mu(x). \]
-\end{theorem}
-\begin{proof}
-%  Applying the mean value theorem to the function $t \mapsto f(x, t)$, for each
-%  $t = t_0$ we have to have some $c$ between $t_0$ and $t$ so that
-%  \[ f(x, t) - f(x, t_0) = \left.\frac{\partial f}{\partial t}\right|_{(x, c)}(t
-%    - t_0). \]
-%  It follows that
-%  \[ |f(x, t) - f(x, t_0)| \le g(x)|t - t_0| \]
-%  and so
-%  \[ |f(x, t)| \le |f(x, t_0)| + g(x)|t - t_0|. \]
-%  Thus
-%  \[ \int_R |f(x, t)|\,d\mu(x) \le \int (|f(x, t_0)| + g(x)|t - t_0|)\,d\mu(x)
-%    = \int_R |f(x, t_0)|\,d\mu(x) + |t - t_0|\int_R g\,d\mu < \infty, \]
-%  which establishes that the function $x \mapsto f(x, t)$ is integrable for each
-%  $t$.
-  To prove the formula for $F(t)$ consider any sequence $(t_n)_{n=1}^\infty$ so
-  that $\lim_{n \to \infty} t_n = t$ but $t_n \neq t$ for each $t$. We claim
-  that
-  \begin{equation} \label{tempEq}
-    \lim_{n \to \infty} \frac{F(t_n) - F(t)}{t_n - t} = \int_R
-    \frac{\partial f(x, t)}{\partial t}\,d\mu(x).
-  \end{equation}
-  We have
-  \[ \frac{F(t_n) - F(t)}{t_n - t} = \int_R \frac{f(x, t_n) - f(x, t)}{t_n -
-      t}\,d\mu(x) = \int_R f_n(x)\,d\mu(x) \]
-  where
-  \[ f_n(x) = \frac{f(x, t_n) - f(x, t)}{t_n - t}. \]
-  Notice that, for each $x$ we know
-  \[ \lim_{n \to \infty} f_n(x) = \left.\frac{\partial f}{\partial
-        t}\right|_{(x, t)} \]
-  and so \eqref{tempEq} will follow from the dominated convergence theorem once we show
-  that $|f_n(x)| \le g(x)$ for each $x$.
-
-  That follows from the mean value theorem again because there is $c$ between $t$
-  and $t_0$ (with $c$ depending on $x$) so that
-  \[ f_n(x) = \frac{f(x, t_n) - f(x, t)}{t_n - t} = \left.\frac{\partial
-        f}{\partial t}\right|_{(x, c)}. \]
-  So $|f_n(x)| \le g(x)$ for each $x$.
-\end{proof}
+% TODO: high-level introduction and conclusion of the proof
 
 \section{Derivatives of the Evidence Lower Bound}
 
