@@ -14,6 +14,8 @@
   \renewcommand{\proofname}{Proof sketch}\proof}{\endproof}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
 
 \DeclareMathOperator{\tr}{tr}
 
@@ -59,6 +61,7 @@ In this paper, all references to measurability are with respect to the Lebesgue
 measure. Similarly, whenever we consider the existence of an integral, we use
 the Lebesgue definition of integration.
 
+% TODO: merge (3) and (4) into one
 \begin{lemma}[Derivatives of probability
   distributions] \label{lemma:derivatives}
   \begin{enumerate}
@@ -184,7 +187,6 @@ the Lebesgue definition of integration.
 
 \subsection{Linear Algebra and Numerical Analysis}
 
-% TODO: maybe source?
 \begin{definition}[Norms]
   For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
   its \emph{maximum norm} is
@@ -207,7 +209,6 @@ the Lebesgue definition of integration.
   \]
 \end{definition}
 
-% TODO: source/fix this
 \begin{definition}[Condition number]
   For any norm $\lVert \cdot \rVert$, the \emph{condition number} of a matrix
   $\mathbf{A}$ is
@@ -217,16 +218,18 @@ the Lebesgue definition of integration.
   if $\mathbf{A}$ is invertible, and $\kappa(\mathbf{A}) = \infty$ otherwise.
 \end{definition}
 
-% TODO: find source
-% TODO: mention that this applies to any vector/matrix norm
-% TODO: do I need to prove this for the infinity norm?
-\begin{proposition} \label{prop:condition_number}
+\begin{lemma}[Perturbation Lemma
+  \cite{layton2014numerical}] \label{prop:condition_number}
+  Let $\lVert \cdot \rVert$ be any matrix norm, and let $\mathbf{A}$ and
+  $\mathbf{E}$ be matrices such that $\mathbf{A}$ is invertible and $\lVert
+  \mathbf{A}^{-1} \rVert \lVert \mathbf{E} \rVert < 1$, then $\mathbf{A} +
+  \mathbf{E}$ is invertible, and
   \[
-    \frac{\lVert (\mathbf{A} + \mathbf{E})^{-1} - \mathbf{A}^{-1} \rVert}{\lVert
-    \mathbf{A}^{-1} \rVert} \le \kappa(\mathbf{A})\frac{\lVert \mathbf{E}
-    \rVert}{\lVert \mathbf{A} \rVert}
+    \lVert (\mathbf{A} + \mathbf{E})^{-1} \rVert \le \frac{\lVert
+      \mathbf{A}^{-1} \rVert}{1 - \lVert \mathbf{A}^{-1} \rVert \lVert
+      \mathbf{E} \rVert}.
   \]
-\end{proposition}
+\end{lemma}
 
 \section{Proofs}
 
@@ -367,12 +370,248 @@ all states and returns the value of state $s$.
   \]
 \end{theorem}
 
-% TODO: still need lambda in the list, since p(r) uses the covariance matrices
-% TODO: do I need to show that the original integral exists?
+\begin{definition}
+  Let $\mathbf{x} = (x_1, \dots, x_n)^\intercal$ be a vector. For any
+  coefficients $a_{i,j} \in \mathbb{R}$, we will call
+  \[ \sum_{i=1}^n \sum_{j=1}^n a_{i, j}x_ix_j \]
+  a \emph{quadratic form} of $\mathbf{x}$.
+\end{definition}
+
+% TODO: move the reasoning about epsilon somewhere around here
+% TODO: move (Kuu u)^T to u^T Kuu^T
+
+% need to establish upper and lower bounds on the derivative
+% can use triangle inequality: |AB| <= A'B', where A'_i = |A_i|
+\begin{lemma} \label{lemma:bound1}
+  For $i = 0, \dots, d$,
+  \[
+    q(\mathbf{r})(a + b(\mathbf{u})) \le \left. \frac{\partial
+        q(\mathbf{r})}{\partial \lambda_i} \right|_{\lambda_i = c(\mathbf{r},
+      \mathbf{u})} \le q(\mathbf{r})(c + d(\mathbf{u})),
+  \]
+  where $a, c > 0$ are constants independent of $\mathbf{r}$ and $\mathbf{u}$,
+  and $b(\mathbf{u})$, $d(\mathbf{u})$ are quadratic forms.
+\end{lemma}
+\begin{proof}
+  Since
+  \[
+    \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
+    q(\mathbf{r})\frac{1}{2}\tr
+    \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
+      \frac{\partial \Kuu}{\partial \lambda_i}
+    \right)
+  \]
+  by Lemma \ref{lemma:derivatives}, we need to bound the elements of
+  \[
+    \left. \frac{\partial \Kuu}{\partial \lambda_i}
+      \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \quad \text{and} \quad
+    \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal}
+      \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+        c(\mathbf{r}, \mathbf{u})}.
+  \]
+  If $i = 0$, then each element of $\frac{\partial
+    \Kuu}{\partial \lambda_0}$ is of the form
+  \[
+    \exp \left( -\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal
+      \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) - \mathbbm{1}[j \ne
+      k]\sigma^2\tr(\bm\Lambda) \right),
+  \]
+  i.e., without $\lambda_0$, so
+  \[
+    \left. \frac{\partial \Kuu}{\partial \lambda_0} \right|_{\lambda_0 =
+      c(\mathbf{r}, \mathbf{u})} = \frac{\partial \Kuu}{\partial \lambda_0}
+  \]
+  is already independent of $\mathbf{r}$ and $\mathbf{u}$---there is no need
+  for any bound.
+
+  If $i > 0$, then each element of $\frac{\partial \Kuu}{\partial
+    \lambda_i}$ is a constant multiple of $k_{\bm\lambda}(\mathbf{x}_j,
+  \mathbf{x}_k)$ for some $\mathbf{x}_j$ and $\mathbf{x}_k$. Since
+  $k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
+  $\lambda_i$, and $c(\mathbf{u}) > \lambda_i - \epsilon$,
+  \[
+    \begin{split}
+      k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = 
+        c(\mathbf{r}, \mathbf{u})} &=
+      \begin{multlined}[t]
+        \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
+        \right. -\frac{1}{2}c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2 -
+        \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{r}, \mathbf{u}) \\
+        - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}}
+          \frac{1}{2} \lambda_n(x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne
+          k]\sigma^2 \lambda_n \right)
+      \end{multlined} \\
+      &<
+      \begin{multlined}[t]
+        \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
+        \right. -\frac{1}{2}(\lambda_i - \epsilon)(x_{j,i} - x_{k,i})^2 -
+        \mathbbm{1}[j \ne k]\sigma^2(\lambda_i - \epsilon) \\
+        - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}}
+          \frac{1}{2} \lambda_n(x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne
+          k]\sigma^2 \lambda_n \right),
+      \end{multlined}
+    \end{split}
+  \]
+  which gives an upper bound on each element of
+  \[
+    \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+      c(\mathbf{r}, \mathbf{u})}.
+  \]
+  A similar line of reasoning establishes lower bounds as well. Combining this
+  result with...
+
+  Since we already found an upper bound for
+  \[
+    \left. \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
+      c(\mathbf{u})}
+  \]
+  in ..., $\mathbb{E}[\Kuu^{-1}] = \Kuu^{-1}$, and
+  $\mathbb{E}[\mathbf{u}\mathbf{u}^\intercal]$ clearly exists,
+  \[
+    \mathbb{E} \left[
+      \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} \left.
+        \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
+        c(\mathbf{u})} \right]
+  \]
+  also exists.
+\end{proof}
+
+\begin{remark}
+  In order to find $\frac{\partial q(\mathbf{u})}{\partial t}$,
+  where $t$ is the $i$th element of the vector $\mathbf{m}$, we can
+  find $\frac{\partial q(\mathbf{u})}{\partial \mathbf{m}}$ and simply take the
+  $i$th element. A similar line of reasoning applies to matrices as well. Thus,
+  we only need to consider derivatives with respect to $\mathbf{m}$,
+  $\mathbf{S}$, and $\lambda_i$ (for $i = 0, \dots, d$).
+\end{remark}
+
+\begin{lemma} \label{lemma:bound2}
+  Let $t$ denote any scalar part of $\mathbf{m}$ or $\mathbf{S}$. Then
+  \[ \left| \left. \frac{\partial q(\mathbf{u})}{\partial t} \right|_{t =
+        c(\mathbf{r}, \mathbf{u})} \right| \le cq(\mathbf{u}), \]
+  where $c > 0$ is independent of $\mathbf{r}$ and $\mathbf{u}$.
+\end{lemma}
+\begin{proof}
+  Since
+  \[
+    \frac{\partial q(\mathbf{u})}{\partial \mathbf{m}} = q(\mathbf{u})
+    \frac{1}{2}\tr \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal -
+      \Kuu^{-1}) \left. \frac{\partial \Kuu}{\partial \lambda_i}
+      \right|_{\lambda_i = c(\mathbf{u})} \right)
+  \]
+  by Lemma \ref{lemma:derivatives}.
+
+  Hereinafter we fix $i$ and $j$ to refer respectively to the row and
+  column of $t$ in case of derivative by a matrix, and we fix $i$ to be the
+  index of $t$ in $\mathbf{m}$ if the derivative is taken with respect to a
+  vector. We will analyse each of the three cases separately.
+
+  The $i$th element of the vector
+    \[
+      \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
+      \mathbf{c}(\mathbf{u})) \in \mathbb{R}^m,
+    \]
+    for $i = 1, \dots, m$, where $\mathbf{c}(\mathbf{u}) = (c_1, \dots, c_{i -
+      1}, c(\mathbf{u}), c_{i + 1} \dots, c_m)$ (constant everywhere except the
+    $i$th element).
+
+    The $(i,j)$-th element of the matrix
+    \[
+      -\frac{1}{2}\mathbf{C}(\mathbf{u})^{-\intercal} +
+      \frac{1}{2}\mathbf{C}(\mathbf{u})^{-\intercal}(\mathbf{u} -
+      \mathbf{m})(\mathbf{u} -
+      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal} \in \mathbb{R}^{m
+        \times m},
+    \]
+    for $i, j = 1, \dots, m$, where $[\mathbf{C}(\mathbf{u})]_{i,j} =
+    c(\mathbf{u})$, and all other elements are constant.
+
+    Since
+    \[
+      \mathbb{E} \left[ \frac{1}{2}(\mathbf{S}^{-1} +
+        \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{c}(\mathbf{u})) \right] =
+      \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})],
+    \]
+    we just need to bound $\mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]$. For
+    any $k \in \{ 1, \dots, m \} \setminus \{ i \}$,
+    \[
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_k = \mathbb{E}[u_k - c_k]
+      = m_k - c_k,
+    \]
+    while
+    \[
+      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_i = \mathbb{E}[u_i
+      - c(\mathbf{u})] = m_i - \mathbb{E}[c(\mathbf{u})],
+    \]
+    where $\mathbb{E}[c(\mathbf{u})]$ exists because $|c(\mathbf{u})|$ has an
+    integrable upper bound in \eqref{eq:c_bound}.
+
+    First, we can express $\mathbf{C}(\mathbf{u})$ as
+    $\mathbf{C}(\mathbf{u}) = \mathbf{S} + \mathbf{E}(\mathbf{u})$, where
+    $\mathbf{S}$ is a constant invertible positive semi-definite matrix, and
+    $\mathbf{E}(\mathbf{u})$ is a matrix such that
+    $[\mathbf{E}(\mathbf{u})]_{i,j} = c(\mathbf{u}) - t$, while all other
+    elements of $\mathbf{E}(\mathbf{u})$ are zero.
+
+    Next, we can divide the problem into two parts; namely, proving the
+    existence of
+    \[
+      \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}] \quad \text{and} \quad
+      \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}(\mathbf{u} -
+      \mathbf{m})(\mathbf{u} -
+      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal}].
+    \]
+    \begin{enumerate} % TODO: update this to use the real lemma
+    \item \label{part_2a} Applying Lemma \ref{prop:condition_number} to
+      $\mathbf{S}$ and $\mathbf{E}(\mathbf{u})$ gives
+      \[
+        \frac{\lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1}
+          \rVert}{\lVert \mathbf{S}^{-1} \rVert} \le
+        \kappa(\mathbf{S})\frac{\lVert \mathbf{E}(\mathbf{u}) \rVert}{\lVert
+          \mathbf{S} \rVert},
+      \]
+      which can be reformulated to
+      \[
+        \lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1} \rVert \le \lVert
+        \mathbf{S}^{-1} \rVert^2 \lVert \mathbf{E}(\mathbf{u}) \rVert.
+      \]
+      Choosing to use the maximum norm we get
+      \[
+        \max_k \sum_l \left| [\mathbf{C}(\mathbf{u})^{-1}]_{k,l} -
+          [\mathbf{S}^{-1}]_{k,l} \right| \le \lVert \mathbf{S}^{-1}
+        \rVert_\infty^2 |c(\mathbf{u}) - t|.
+      \]
+      Using \eqref{eq:epsilon_bound} we get that for any row $k$,
+      \[
+        \sum_l \left| [\mathbf{C}(\mathbf{u})^{-1}]_{k,l} -
+          [\mathbf{S}^{-1}]_{k,l} \right| <
+        \lVert \mathbf{S}^{-1} \rVert_\infty^2\epsilon,
+      \]
+      and for any row $k$ and column $l$,
+      \[
+        \left| [\mathbf{C}(\mathbf{u})^{-1}]_{k,l} - [\mathbf{S}^{-1}]_{k,l}
+        \right| < \lVert \mathbf{S}^{-1} \rVert_\infty^2\epsilon,
+      \]
+      which bounds all elements of $\mathbf{C}(\mathbf{u})^{-1}$ and proves that
+      $\mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}]$ exists.
+    \item Because of the result in \ref{part_2a}, we only need to prove the
+      existence of % TODO: true because each element has an absolute value upper
+                   % bound, so we can replace C(u)^-T with a sufficiently big
+                   % constant
+      \[
+        \mathbb{E}[(\mathbf{u} - \mathbf{m})(\mathbf{u} -
+        \mathbf{m})^\intercal].
+      \]
+      The desired result follows from the existence of $\mathbb{E}[\mathbf{u}]$
+      and $\mathbb{E}[\mathbf{u}\mathbf{u}^\intercal]$.
+    \end{enumerate}
+\end{proof}
+
 Our main theorem is a specialised version of an integral differentiation result
 by Chen \cite{lecture_notes}.
 \begin{theorem}
-  Using our usual notation,
+  Whenever the derivative exists,
   \[
     \dt\iint
     V_{\mathbf{r}}(s)q(\mathbf{r})q(\mathbf{u})\dx
@@ -417,290 +656,57 @@ by Chen \cite{lecture_notes}.
   density functions (PDFs)) to a measurable function is still measurable. Thus,
   both $f$ and $f_n$ are measurable.
 
-  % TODO: C is measurable since it is bounded
   It remains to find $g$. For the time being, we can assume that $t$ is a
-  parameter of $q(\mathbf{u})$. Then
+  parameter of $q(\mathbf{r})$. Then
   \[
-    |\fn| = |V_{\mathbf{r}}(s)|q(\mathbf{r}) \left| \frac{q(\mathbf{u})|_{t =
-          t_n} - q(\mathbf{u})}{t_n - t} \right|
+    |\fn| = |V_{\mathbf{r}}(s)| \left| \frac{q(\mathbf{r})|_{t =
+          t_n} - q(\mathbf{r})}{t_n - t} \right| q(\mathbf{u})
   \]
   since PDFs are non-negative. An upper bound for
   $|V_{\mathbf{r}}(s)|$ is given by Proposition \ref{thm:bound}, while
   \[
-    \frac{q(\mathbf{u})|_{t = t_n} - q(\mathbf{u})}{t_n - t} = \left.
-      \frac{\partial q(\mathbf{u})}{\partial t} \right|_{t = c(\mathbf{u})}
+    \frac{q(\mathbf{r})|_{t = t_n} - q(\mathbf{r})}{t_n - t} = \left.
+      \frac{\partial q(\mathbf{r})}{\partial t} \right|_{t = c(\mathbf{r},
+      \mathbf{u})}
   \]
-  for some function $c : \mathbb{R}^m \to (\min\{t, t_n\}, \max\{t, t_n\})$
-  due to the mean value theorem (since $q$ is a continuous and differentiable
-  function of $t$, regardless of the specific choices of $q$ and $t$).
+  for some function $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to
+  (\min\{t, t_n\}, \max\{t, t_n\})$ due to the mean value theorem (since $q$ is
+  a continuous and differentiable function of $t$, regardless of the specific
+  choices of $q$ and $t$).
 
   Let $\epsilon > 0$ be arbitrary. Then, for sufficiently large $n$, $|t_n - t|
   < \epsilon$, and thus
   \begin{equation} \label{eq:epsilon_bound}
-    |c(\mathbf{u}) - t| < \epsilon.
+    |c(\mathbf{r}, \mathbf{u}) - t| < \epsilon.
   \end{equation}
-  We can rearrange the inequality to produce bounds on $c(\mathbf{u})$ and
-  $|c(\mathbf{u})|$ that will be useful later:
+  We can rearrange the inequality to produce bounds on $c(\mathbf{r},
+  \mathbf{u})$ and $|c(\mathbf{r}, \mathbf{u})|$ that will be useful later:
   \begin{align}
-    t - \epsilon < c(\mathbf{u}) < t + \epsilon, \nonumber \\
-    |c(\mathbf{u})| < \max \{ |t - \epsilon|, |t + \epsilon| \}. \label{eq:c_bound}
+    t - \epsilon < c(\mathbf{r}, \mathbf{u}) < t + \epsilon, \nonumber \\
+    |c(\mathbf{r}, \mathbf{u})| < \max \{ |t - \epsilon|, |t + \epsilon| \}. \label{eq:c_bound}
   \end{align}
   
   We then have that
   \[
-    |\fn| \le \vbound q(\mathbf{r}) \left| \left. \frac{\partial
-          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|.
+    |\fn| \le \vbound \left| \left. \frac{\partial
+          q(\mathbf{r})}{\partial t} \right|_{t=c(\mathbf{r}, \mathbf{u})}
+    \right| q(\mathbf{u}).
   \]
   The bound is clearly non-negative and measurable. It remains to show that it
-  is also integrable. Since $\rinf \le \lVert \mathbf{r} \rVert_1$, and
+  is also integrable. Let $c > 0$ be as given by either Lemma \ref{lemma:bound1}
+  or Lemma \ref{lemma:bound2}. Then
   \[
-    \int \frac{\lVert \mathbf{r} \rVert_1 + \log|\mathcal{A}|}{1 -
-      \gamma}q(\mathbf{r}) \,d\mathbf{r} = \frac{\log|\mathcal{A}|}{1 - \gamma}
-    + \frac{1}{1 - \gamma} \sum_{i=1}^k \mathbb{E}[|r_i|],
+    \vbound \left| \left. \frac{\partial q(\mathbf{r})}{\partial t}
+      \right|_{t=c(\mathbf{r}, \mathbf{u})} \right| q(\mathbf{u}) \le \vbound c
+    q(\mathbf{r}) q(\mathbf{u}).
   \]
-  which clearly exists and is finite, so
+  Since $\rinf \le \lVert \mathbf{r} \rVert_1$, and
   \[
-    \int \vbound q(\mathbf{r}) \,d\mathbf{r} < \infty.
+    \iint \lVert \mathbf{r} \rVert_1 q(\mathbf{r}) q(\mathbf{u})\dx =
+    \sum_{i=1}^{|\mathcal{S}|} \mathbb{E}[|r_i|]
   \]
-  Now we just need to show that
-  \begin{equation} \label{eq:last_goal}
-    \iint \vbound q(\mathbf{r}) \left| \left. \frac{\partial
-          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|\dx
-  \end{equation}
-  exists. If $t$ is the $i$th element of the vector $\mathbf{m}$, we can get
-  \[
-    \left. \frac{\partial q(\mathbf{u})}{\partial t} \right|_{t = c(\mathbf{u})}
-  \]
-  by first finding the derivative $\frac{\partial q(\mathbf{u})}{\partial
-    \mathbf{m}}$, then replacing $t$ with $c(\mathbf{u})$, and finally taking
-  the $i$th element of
-  \[
-    \left. \frac{\partial q(\mathbf{u})}{\partial \mathbf{m}} \right|_{t =
-      c(\mathbf{u})}.
-  \]
-  A similar line of reasoning applies to matrices as well. Thus, we only need to
-  consider derivatives with respect to $\mathbf{m}$, $\mathbf{S}$, and
-  $\lambda_i$ (for $i = 0, \dots, d$). Regardless of what $t$ represents, we can
-  use results in Lemma \ref{lemma:derivatives} to show that
-  \[
-    \iint \vbound q(\mathbf{r}) \left| \left. \frac{\partial
-          q(\mathbf{u})}{\partial t} \right|_{t=c(\mathbf{u})} \right|\dx =
-    \iint \vbound q(\mathbf{r}) q(\mathbf{u}) |h(\mathbf{u})| \dx,
-  \]
-  where $h(\mathbf{u})$ is one of:
-  \begin{enumerate}
-  \item The $i$th element of the vector
-    \[
-      \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})(\mathbf{u} -
-      \mathbf{c}(\mathbf{u})) \in \mathbb{R}^m,
-    \]
-    for $i = 1, \dots, m$, where $\mathbf{c}(\mathbf{u}) = (c_1, \dots, c_{i -
-      1}, c(\mathbf{u}), c_{i + 1} \dots, c_m)$ (constant everywhere except the
-    $i$th element).
-  \item The $(i,j)$-th element of the matrix
-    \[
-      -\frac{1}{2}\mathbf{C}(\mathbf{u})^{-\intercal} +
-      \frac{1}{2}\mathbf{C}(\mathbf{u})^{-\intercal}(\mathbf{u} -
-      \mathbf{m})(\mathbf{u} -
-      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal} \in \mathbb{R}^{m
-        \times m},
-    \]
-    for $i, j = 1, \dots, m$, where $[\mathbf{C}(\mathbf{u})]_{i,j} =
-    c(\mathbf{u})$, and all other elements are constant.
-  \item $\frac{1}{2}\tr
-    \left((\Kuu^{-1}\mathbf{u}(\Kuu^{-1}\mathbf{u})^\intercal - \Kuu^{-1})
-      \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i = c(\mathbf{u})}
-    \right)$, where $i = 0, \dots, d$.
-  \end{enumerate} % TODO: prove continuity for MVT
-  % TODO: looking for an upper bound only applies to positive functions.
-  % Otherwise bound the absolute value.
-  % TODO: mention that i,j are fixed and will appear later
-  % TODO: the 'As' part should be higher up, I think (with the talk about
-  % integrating out r from c(u, r))
-  As
-  \[
-    \int \vbound q(\mathbf{r})\,d\mathbf{r}
-  \]
-  gives us a constant, it remains to show that
-  \[
-    \mathbb{E}_{\mathbf{u} \sim q(\mathbf{u})}[|h(\mathbf{u})|] = \int
-    |h(\mathbf{u})| q(\mathbf{u}) \,d\mathbf{u}
-  \]
-  exists. Hereinafter we fix $i$ and $j$ to refer respectively to the row and
-  column of $t$ in case of derivative by a matrix, and we fix $i$ to be the
-  index of $t$ in $\mathbf{m}$ if the derivative is taken with respect to a
-  vector. We will analyse each of the three cases separately.
-  \begin{enumerate}
-  \item Since
-    \[
-      \mathbb{E} \left[ \frac{1}{2}(\mathbf{S}^{-1} +
-        \mathbf{S}^{-\intercal})(\mathbf{u} - \mathbf{c}(\mathbf{u})) \right] =
-      \frac{1}{2}(\mathbf{S}^{-1} + \mathbf{S}^{-\intercal})
-      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})],
-    \]
-    we just need to bound $\mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]$. For
-    any $k \in \{ 1, \dots, m \} \setminus \{ i \}$,
-    \[
-      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_k = \mathbb{E}[u_k - c_k]
-      = m_k - c_k,
-    \]
-    while
-    \[
-      \mathbb{E}[\mathbf{u} - \mathbf{c}(\mathbf{u})]_i = \mathbb{E}[u_i
-      - c(\mathbf{u})] = m_i - \mathbb{E}[c(\mathbf{u})],
-    \]
-    where $\mathbb{E}[c(\mathbf{u})]$ exists because $|c(\mathbf{u})|$ has an
-    integrable upper bound in \eqref{eq:c_bound}. % TODO: double check this
-  \item First, we can express $\mathbf{C}(\mathbf{u})$ as
-    $\mathbf{C}(\mathbf{u}) = \mathbf{S} + \mathbf{E}(\mathbf{u})$, where
-    $\mathbf{S}$ is a constant invertible positive semi-definite matrix, and
-    $\mathbf{E}(\mathbf{u})$ is a matrix such that
-    $[\mathbf{E}(\mathbf{u})]_{i,j} = c(\mathbf{u}) - t$, while all other
-    elements of $\mathbf{E}(\mathbf{u})$ are zero.
-
-    Next, we can divide the problem into two parts; namely, proving the
-    existence of
-    \[
-      \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}] \quad \text{and} \quad
-      \mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}(\mathbf{u} -
-      \mathbf{m})(\mathbf{u} -
-      \mathbf{m})^\intercal\mathbf{C}(\mathbf{u})^{-\intercal}].
-    \]
-    \begin{enumerate}
-    \item \label{part_2a} Applying Proposition \ref{prop:condition_number} to
-      $\mathbf{S}$ and $\mathbf{E}(\mathbf{u})$ gives
-      \[
-        \frac{\lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1}
-          \rVert}{\lVert \mathbf{S}^{-1} \rVert} \le
-        \kappa(\mathbf{S})\frac{\lVert \mathbf{E}(\mathbf{u}) \rVert}{\lVert
-          \mathbf{S} \rVert},
-      \] % TODO: what about norms equal to zero or infinity?
-      which can be reformulated to
-      \[
-        \lVert \mathbf{C}(\mathbf{u})^{-1} - \mathbf{S}^{-1} \rVert \le \lVert
-        \mathbf{S}^{-1} \rVert^2 \lVert \mathbf{E}(\mathbf{u}) \rVert.
-      \]
-      Choosing to use the maximum norm we get % TODO: actually use the sign for
-                                % the norm
-      % TODO: larger absolute value signs?
-      \[
-        \max_k \sum_l |[\mathbf{C}(\mathbf{u})^{-1}]_{k,l} -
-        [\mathbf{S}^{-1}]_{k,l}| \le \lVert \mathbf{S}^{-1} \rVert^2
-        |c(\mathbf{u}) - t|.
-      \]
-      Using \eqref{eq:epsilon_bound} we get that for any row $k$,
-      \[
-        \sum_l \left| [\mathbf{C}(\mathbf{u})^{-1}]_{k,l} -
-          [\mathbf{S}^{-1}]_{k,l} \right| <
-        \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
-      \]
-      and for any row $k$ and column $l$,
-      \[
-        \left| [\mathbf{C}(\mathbf{u})^{-1}]_{k,l} - [\mathbf{S}^{-1}]_{k,l}
-        \right| < \lVert \mathbf{S}^{-1} \rVert^2\epsilon,
-      \]
-      which bounds all elements of $\mathbf{C}(\mathbf{u})^{-1}$ and proves that
-      $\mathbb{E}[\mathbf{C}(\mathbf{u})^{-\intercal}]$ exists.
-    \item Because of the result in \ref{part_2a}, we only need to prove the
-      existence of
-      \[
-        \mathbb{E}[(\mathbf{u} - \mathbf{m})(\mathbf{u} -
-        \mathbf{m})^\intercal].
-      \]
-      The desired result follows from the existence of $\mathbb{E}[\mathbf{u}]$
-      and $\mathbb{E}[\mathbf{u}\mathbf{u}^\intercal]$.
-    \end{enumerate}
-  \item Again, we can split the proof into two parts: showing the existence of
-    \[
-      \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_k}
-        \right|_{\lambda_k = c(\mathbf{u})} \right] \quad \text{and} \quad
-      \mathbb{E} \left[ \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal}
-        \left. \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
-          c(\mathbf{u})} \right].
-    \]
-    \begin{enumerate}
-    \item \label{part_a} If $k = 0$, then each element of $\frac{\partial
-        \Kuu}{\partial \lambda_0}$ is of the form
-      \[
-        \exp \left( -\frac{1}{2}(\mathbf{x}_l - \mathbf{x}_m)^\intercal
-          \bm\Lambda (\mathbf{x}_l - \mathbf{x}_m) - \mathbbm{1}[l \ne
-          m]\sigma^2\tr(\bm\Lambda) \right),
-      \]
-      i.e., without $\lambda_0$, so
-      \[
-        \left. \frac{\partial \Kuu}{\partial \lambda_0} \right|_{\lambda_0 =
-          c(\mathbf{u})} = \frac{\partial \Kuu}{\partial \lambda_0}
-      \]
-      has no $\mathbf{u}$, which means that
-      \[
-        \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_0}
-          \right|_{\lambda_0 = c(\mathbf{u})} \right] = \frac{\partial
-          \Kuu}{\partial \lambda_0}.
-      \]
-
-      If $k > 0$, then each element of $\frac{\partial \Kuu}{\partial
-        \lambda_k}$ is a constant multiple of $k_{\bm\lambda}(\mathbf{x}_l,
-      \mathbf{x}_m)$ for some $\mathbf{x}_l$ and $\mathbf{x}_m$. Since
-      $k_{\bm\lambda}(\mathbf{x}_l, \mathbf{x}_m)$ is a decreasing function of
-      $\lambda_k$, and $c(\mathbf{u}) > \lambda_k - \epsilon$,
-      \[
-        \begin{split}
-          k_{\bm\lambda}(\mathbf{x}_l, \mathbf{x}_m)|_{\lambda_k = 
-            c(\mathbf{u})} &=
-          \begin{multlined}[t]
-            \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
-            \right. -\frac{1}{2}c(\mathbf{u})(x_{l,k} - x_{m,k})^2 -
-            \mathbbm{1}[l \ne m]\sigma^2c(\mathbf{u}) \\
-            - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ k \}}
-              \frac{1}{2} \lambda_n(x_{l,n} - x_{m,n})^2 + \mathbbm{1}[l \ne
-              m]\sigma^2 \lambda_n \right)
-          \end{multlined} \\
-          &<
-          \begin{multlined}[t]
-            \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
-            \right. -\frac{1}{2}(\lambda_k - \epsilon)(x_{l,k} - x_{m,k})^2 -
-            \mathbbm{1}[l \ne m]\sigma^2(\lambda_k - \epsilon) \\
-            - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ k \}}
-              \frac{1}{2} \lambda_n(x_{l,n} - x_{m,n})^2 + \mathbbm{1}[l \ne
-              m]\sigma^2 \lambda_n \right),
-          \end{multlined}
-        \end{split}
-      \]
-      which gives an upper bound on each element of
-      \[
-        \left. \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
-          c(\mathbf{u})}.
-      \]
-      and shows the existence of
-      \[
-        \mathbb{E} \left[ \left. \frac{\partial \Kuu}{\partial \lambda_k}
-          \right|_{\lambda_k = c(\mathbf{u})} \right].
-      \]
-    \item Since we already found an upper bound for
-      \[
-        \left. \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
-          c(\mathbf{u})}
-      \]
-      in \ref{part_a}, $\mathbb{E}[\Kuu^{-1}] = \Kuu^{-1}$, and
-      $\mathbb{E}[\mathbf{u}\mathbf{u}^\intercal]$ clearly exists,
-      \[
-        \mathbb{E} \left[
-          \Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} \left.
-            \frac{\partial \Kuu}{\partial \lambda_k} \right|_{\lambda_k =
-            c(\mathbf{u})} \right]
-      \]
-      also exists.
-    \end{enumerate}
-  \end{enumerate}
+  results in a finite number, we get the required result.
 \end{proof}
-% TODO: replace c, bold c, bold capital C with a function of u, r. After
-% integrating out r, leave it as a function of u.
-% TODO: can c be a function of r? I think so. We can probably just integrate the
-% r part by adding an upper bound, similarly to the situation with u.
-% TODO: why can S be invertible? I probably need something different here
-% TODO: the variable i has multiple meanings
-% TODO: are the inequalities with epsilon actually useful?
-% TODO: high-level introduction and conclusion of the proof
 
 \section{Derivatives of the Evidence Lower Bound}
 
