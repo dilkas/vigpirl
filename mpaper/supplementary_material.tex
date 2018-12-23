@@ -57,11 +57,14 @@ For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
 $[\mathbf{A}]_{i,j}$ to denote the element of $\mathbf{A}$ in row $i$ and column
 $j$.
 
+For any vector $\mathbf{x}$, we write $\mathbb{R}_d[\mathbf{x}]$ to denote a
+vector space of polynomials with degree at most $d$, where variables are
+elements of $\mathbf{x}$, and coefficients are in $\mathbb{R}$.
+
 In this paper, all references to measurability are with respect to the Lebesgue
 measure. Similarly, whenever we consider the existence of an integral, we use
 the Lebesgue definition of integration.
 
-% TODO: merge (3) and (4) into one
 \begin{lemma}[Derivatives of probability
   distributions] \label{lemma:derivatives}
   \begin{enumerate}
@@ -73,23 +76,25 @@ the Lebesgue definition of integration.
     -\frac{1}{2}\mathbf{S}^{-\intercal}q(\mathbf{u}) +
     \frac{1}{2}q(\mathbf{u})\mathbf{S}^{-\intercal}(\mathbf{u} -
     \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal}$.
-  \item $\frac{\partial q(\mathbf{r})}{\partial \lambda_0} =
-    q(\mathbf{r})\frac{1}{2}\tr
-    \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
-      \frac{1}{\lambda_0}\Kuu \right)$.
-  \item For $i = 1, \dots, d$,
+  \item For $i = 0, \dots, d$,
     \[
       \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
       q(\mathbf{r})\frac{1}{2}\tr
-      \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
-        \Luu \right),
+      \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} -
+        \Kuu^{-1}) \frac{\partial \Kuu}{\partial \lambda_i} \right),
     \]
     where
     \[
-      [\Luu]_{j,k} = k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j},
-      \mathbf{x}_{\mathbf{u},k}) \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
-        x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
+      \frac{\partial \Kuu}{\partial \lambda_i} = \frac{1}{\lambda_i}\Kuu
     \]
+    if $i = 0$, and
+    \[
+      \left[ \frac{\partial \Kuu}{\partial \lambda_i} \right]_{j,k} =
+      k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+      \left( -\frac{1}{2}(x_{\mathbf{u},j,i} - x_{\mathbf{u},k,i})^2 -
+        \mathbbm{1}[j \ne k]\sigma^2 \right)
+    \]
+    otherwise.
   \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -140,28 +145,29 @@ the Lebesgue definition of integration.
       \mathbf{m})] = -\mathbf{S}^{-\intercal}(\mathbf{u} - \mathbf{m})(\mathbf{u} -
                      \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
     \end{gather*}
-    Plugging them back in gives
+    Substituting them back in gives
     \[
       \frac{\partial q(\mathbf{u})}{\partial \mathbf{S}} =
       -\frac{1}{2}\mathbf{S}^{-\intercal}q(\mathbf{u}) +
       \frac{1}{2}q(\mathbf{u})\mathbf{S}^{-\intercal}(\mathbf{u} -
       \mathbf{m})(\mathbf{u} - \mathbf{m})^\intercal\mathbf{S}^{-\intercal}.
     \]
-  \item
+  \item Using a result by Rasmussen and Williams
+    \cite{DBLP:books/lib/RasmussenW06},
     \[
-      \frac{\partial q(\mathbf{r})}{\partial \lambda_0} = q(\mathbf{r}) \dlz
+      \frac{\partial q(\mathbf{r})}{\partial \lambda_i} = q(\mathbf{r}) \dl
       \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
         \frac{1}{2}\log|\Kuu| \right] = q(\mathbf{r})\frac{1}{2}\tr
       \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
-        \frac{\partial \Kuu}{\partial \lambda_0} \right)
+        \frac{\partial \Kuu}{\partial \lambda_i} \right).
     \]
-    by Rasmussen and Williams \cite{DBLP:books/lib/RasmussenW06}, where
+    The remaining derivative is
     \[
-      \frac{\partial \Kuu}{\partial \lambda_0} = \frac{1}{\lambda_0}\Kuu.
-    \]
-  \item The derivation is the same as above, except
-    \[
-      \frac{\partial \Kuu}{\partial \lambda_i} = \Luu,
+      \frac{\partial \Kuu}{\partial \lambda_i} =
+      \begin{cases}
+        \frac{1}{\lambda_i}\Kuu & \text{if } i = 0, \\
+        \Luu & \text{otherwise,}
+      \end{cases}
     \]
     where
     \[
@@ -237,10 +243,6 @@ state $s \in \mathcal{S}$ and returns a function $V(s) :
 \in \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state $s$,
 $V_{\mathbf{r}}(s) \in \mathbb{R}$. The function $V(s)$ computes the values of
 all states and returns the value of state $s$.
-
-For any vector $\mathbf{x}$, we write $\mathbb{R}_d[\mathbf{x}]$ to denote a
-vector space of polynomials with degree at most $d$, where variables are
-elements of $\mathbf{x}$, and coefficients are in $\mathbb{R}$.
 
 \begin{proposition} \label{thm:measurability}
   MDP value functions $V(s) : \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ (for $s
@@ -486,8 +488,6 @@ elements of $\mathbf{x}$, and coefficients are in $\mathbb{R}$.
   of the required form.
 \end{proof}
 
-% TODO: two uses for m. Maybe rename (m, S) to (mu, Sigma)
-% TODO: add a note about vector notation.
 \begin{lemma} \label{lemma:bound3}
   Let $i, j = 1, \dots, m$, and let $\epsilon > 0$ be arbitrary. Furthermore,
   let
@@ -571,6 +571,44 @@ elements of $\mathbf{x}$, and coefficients are in $\mathbb{R}$.
   follows.
 \end{proof}
 
+\begin{lemma} \label{lemma:integral_of_r}
+  \begin{equation} \label{eq:r-inequality}
+    \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r})\,d\mathbf{r} \le a +
+    \lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1,
+  \end{equation}
+  where $a$ is a constant independent of $\mathbf{u}$.
+\end{lemma}
+\begin{proof}
+  Since $\rinf \le \lVert \mathbf{r} \rVert_1$,
+  \[
+    \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r})\,d\mathbf{r} \le \int
+    \lVert \mathbf{r} \rVert_1 q(\mathbf{r})\,d\mathbf{r} =
+    \sum_{i=1}^{|\mathcal{S}|} \mathbb{E}[|r_i|].
+  \]
+  As each $\mathbb{E}[|r_i|]$ is a mean of a folded Gaussian distribution,
+  \[
+    \mathbb{E}[|r_i|] = \sigma_i \sqrt{\frac{2}{\pi}} \exp
+    \left(-\frac{\mu_i^2}{2\sigma_i^2} \right) + \mu_i \left( 1 - 2\Phi \left(
+        -\frac{\mu_1}{\sigma_1} \right) \right),
+  \]
+  where $\mu_i = \left[\Kru^\intercal\Kuu^{-1}\mathbf{u}\right]_i$, $\sigma_i =
+  \sqrt{[\Krr - \Kru^\intercal\Kuu^{-1}\Kru]_{i,i}}$\footnote{The expression
+    under the square root sign is non-negative because $\Krr -
+    \Kru^\intercal\Kuu^{-1}\Kru$ is a covariance matrix of a Gaussian
+    distribution, hence also positive semi-definite, which means that its
+    diagonal entries are non-negative.}, and $\Phi$ is the cumulative
+  distribution function of the standard normal distribution. Furthermore,
+  \[
+    \mathbb{E}[|r_i|] \le \sigma_i\sqrt{\frac{2}{\pi}} + |\mu_i|,
+  \]
+  as $\sigma_i$ is non-negative, and $\Phi(x) \in [0, 1]$ for all $x$. Since
+  \[ \sum_{i=1}^{|\mathcal{S}|} |\mu_i| = \lVert \Kru^\intercal \Kuu^{-1}
+    \mathbf{u} \rVert_1, \]
+  we can set
+  \[ a = \sum_{i=1}^{|\mathcal{S}|} \sigma_i \sqrt{\frac{2}{\pi}} \]
+  to get \eqref{eq:r-inequality}.
+\end{proof}
+
 Our main theorem is a specialised version of an integral differentiation result
 by Chen \cite{lecture_notes}.
 \begin{theorem}
@@ -619,8 +657,9 @@ by Chen \cite{lecture_notes}.
   density functions (PDFs)) to a measurable function is still measurable. Thus,
   both $f$ and $f_n$ are measurable.
 
-  It remains to find $g$. For the time being, we can assume that $t$ is a
-  parameter of $q(\mathbf{r})$. Then
+  It remains to find $g$. For notational simplicity and without loss of
+  generality, we will temporarily assume that $t$ is a parameter of
+  $q(\mathbf{r})$. Then
   \[
     |\fn| = |V_{\mathbf{r}}(s)| \left| \frac{q(\mathbf{r})|_{t =
           t_n} - q(\mathbf{r})}{t_n - t} \right| q(\mathbf{u})
@@ -637,18 +676,6 @@ by Chen \cite{lecture_notes}.
   a continuous and differentiable function of $t$, regardless of the specific
   choices of $q$ and $t$).
 
-  Let $\epsilon > 0$ be arbitrary. Then, for sufficiently large $n$, $|t_n - t|
-  < \epsilon$, and thus
-  \begin{equation} \label{eq:epsilon_bound}
-    |c(\mathbf{r}, \mathbf{u}) - t| < \epsilon.
-  \end{equation}
-  We can rearrange the inequality to produce bounds on $c(\mathbf{r},
-  \mathbf{u})$ and $|c(\mathbf{r}, \mathbf{u})|$ that will be useful later:
-  \begin{align}
-    t - \epsilon < c(\mathbf{r}, \mathbf{u}) < t + \epsilon, \nonumber \\
-    |c(\mathbf{r}, \mathbf{u})| < \max \{ |t - \epsilon|, |t + \epsilon| \}. \label{eq:c_bound}
-  \end{align}
-  
   We then have that
   \[
     |\fn| \le \vbound \left| \left. \frac{\partial
@@ -656,22 +683,42 @@ by Chen \cite{lecture_notes}.
     \right| q(\mathbf{u}).
   \]
   The bound is clearly non-negative and measurable. It remains to show that it
-  is also integrable. Let $c > 0$ be as given by either Lemma \ref{lemma:bound1}
-  or Lemma \ref{lemma:bound2}. Then
+  is also integrable. Depending on what $t$ represents, we can use one of the
+  Lemmas \ref{lemma:bound1}, \ref{lemma:bound2}, and \ref{lemma:bound3}, which
+  gives us two polynomials $p_1(\mathbf{u}), p_2(\mathbf{u}) \in
+  \mathbb{R}_2[\mathbf{u}]$ such that
   \[
-    \vbound \left| \left. \frac{\partial q(\mathbf{r})}{\partial t}
-      \right|_{t=c(\mathbf{r}, \mathbf{u})} \right| q(\mathbf{u}) \le \vbound c
-    q(\mathbf{r}) q(\mathbf{u}).
+    p_1(\mathbf{u})q(\mathbf{r}) < \left. \frac{\partial q(\mathbf{r})}{\partial
+        t} \right|_{t=c(\mathbf{r}, \mathbf{u})} < p_2(\mathbf{u})q(\mathbf{r}).
   \]
-  Since $\rinf \le \lVert \mathbf{r} \rVert_1$, and
+  Then
   \[
-    \iint \lVert \mathbf{r} \rVert_1 q(\mathbf{r}) q(\mathbf{u})\dx =
-    \sum_{i=1}^{|\mathcal{S}|} \mathbb{E}[|r_i|]
+    \left| \left. \frac{\partial q(\mathbf{r})}{\partial t}
+      \right|_{t=c(\mathbf{r}, \mathbf{u})} \right| < q(\mathbf{r}) \max \{
+    |p_1(\mathbf{u})|, |p_2(\mathbf{u})| \}.
   \]
-  results in a finite number, we get the required result.
+  We can now apply Lemma \ref{lemma:integral_of_r}, which allows us to integrate
+  out $\mathbf{r}$, and we are left with showing the existence of
+  \begin{equation} \label{eq:remaining_integral}
+    \int \left( a + \lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1 \right) \max \{|p_1(\mathbf{u})|, |p_2(\mathbf{u})| \} q(\mathbf{u})\,d\mathbf{u},
+  \end{equation}
+  where $a$ is a constant. The integral
+  \[
+    \int \max \{|p_1(\mathbf{u})|, |p_2(\mathbf{u})| \}
+    q(\mathbf{u})\,d\mathbf{u} = \int \max \{|p_1(\mathbf{u})q(\mathbf{u})|,
+    |p_2(\mathbf{u})q(\mathbf{u})| \}\,d\mathbf{u}
+  \]
+  exists because $p_1(\mathbf{u})q(\mathbf{u})$ and
+  $p_2(\mathbf{u})q(\mathbf{u})$ are both integrable, hence their absolute
+  values are integrable, and the maximum of two integrable functions is also
+  integrable. Since $\lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1 \in
+  \mathbb{R}_1[\mathbf{u}]$, a similar argument can be applied to the rest of
+  \eqref{eq:remaining_integral} as well.
 \end{proof}
 
-\section{Derivatives of the Evidence Lower Bound}
+\section{Evidence Lower Bound}
+
+% TODO: how does the derivation change? What's the new ELBO?
 
 \subsection{$\partial/\partial\mathbf{m}$}
 
