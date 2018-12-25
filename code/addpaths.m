@@ -22,7 +22,8 @@ addpath LinearMDP
 % IRL algorithms.
 addpath FIRL
 addpath GPIRL
-addpath MaxEnt 
+addpath MaxEnt
+addpath VIGPIRL
 
 addpath Binaryworld
 addpath deepGPIRL

@@ -1,5 +1,5 @@
 % Fill in default parameters for the GPIRL algorithm.
-function algorithm_params = gpirldefaultparams(algorithm_params)
+function algorithm_params = vigpirldefaultparams(algorithm_params)
 
 % Create default parameters.
 default_params = struct(...
@@ -46,7 +46,8 @@ default_params = struct(...
     'warp_s_init',1,...
     ...% These parameters control how the inducing points are selected.
     'inducing_pts','examplesplus',...
-    'inducing_pts_count',64);
+    'inducing_pts_count',64,...
+    'samples_count',1000);
 
 % Set parameters.
 algorithm_params = filldefaultparams(algorithm_params,default_params);

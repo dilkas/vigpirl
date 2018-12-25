@@ -1,5 +1,5 @@
 % Get a good set of inducing states under the specified parameters.
-function gp = gpirlgetinducingpoints(gp,~,mu_sa,algorithm_params)
+function gp = vigpirlgetinducingpoints(gp,mu_sa,algorithm_params)
 
 % Constants.
 states = size(mu_sa,1);
