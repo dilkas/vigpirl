@@ -10,10 +10,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
                                 % Fill in default parameters.
   algorithm_params = vigpirldefaultparams(algorithm_params);
 
-                                % Set random seed.
-  rand('seed',algorithm_params.seed);
-  randn('seed',algorithm_params.seed);
-
                       % Get state-action counts and initial state distributions.
   [mu_sa,init_s] = vigpirlgetstatistics(example_samples,mdp_data);
 
@@ -48,7 +44,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   L(1:m+1:end) = random('Chisquare', 1, [m, 1]);
   L = tril(L);
 
-  function fun = estimate_derivative(solution, Kuu_inv, Kuu_derivative)
+  function fun = estimate_derivative(solution, Kuu_inv, Kuu_derivative, u)
                                 % TODO: make this return a function that takes u
     function derivative = wrapped(u)
       function a = inner(state)
@@ -66,7 +62,15 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
       derivative = sum(sum(cellfun(@foo, example_samples)));
     end;
 
-    fun = @wrapped;
+    fun = wrapped(u);
+  end;
+
+  % TODO: lambda should be part of gp
+  function answer = estimate_derivative_outer(u, KruKuu, Krr,...
+     Kru, Kuu_inv, Kuu_derivative)
+    r = mvnrnd(KruKuu * u', Krr - KruKuu * Kru)';
+    solution = feval([mdp_model 'solve'], mdp_data, r);
+    answer = estimate_derivative(solution, Kuu_inv, Kuu_derivative, u');
   end;
 
   tic;
@@ -75,36 +79,22 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
                  % TODO: use more than one sample
                  % Draw samples_count samples from the variational approximation
     disp(lambda0);
-    u = mvnrnd(mu, L * L')';
     rho = 1; % TODO: implement AdaGrad from BBVI
-    gp.Y = u; % TODO: probably not needed
-    [Kru, ~, Kuu_inv, Kuu, KruKuu, Krr, Kuu_derivative, Kru_derivative] = vigpirlkernel(gp, u);
-    r = mvnrnd(KruKuu * u, Krr - KruKuu * Kru)';
-    solution = feval([mdp_model 'solve'], mdp_data, r);
-    estimator = estimate_derivative(solution, Kuu_inv, Kuu_derivative);
+    [Kru, Kuu_inv, Kuu, KruKuu, Krr, Kuu_derivative, Kru_derivative] = vigpirlkernel(gp);
+    z = mvnrnd(mu, L * L', algorithm_params.samples_count);
+    estimate = mean(arrayfun(@(row_id)...
+      estimate_derivative_outer(z(row_id, :), KruKuu, Krr, Kru, Kuu_inv,...
+      Kuu_derivative), (1:size(z, 1)).'));
     lambda0 = lambda0 + rho * (-0.5 * trace(Kuu_inv * Kuu_derivative)...
                                + init_s' * (Kru_derivative' - KruKuu * Kuu_derivative)...
-                                 * Kuu_inv * mu - 0.5 * estimator(u));
+                                 * Kuu_inv * mu - 0.5 * estimate);
   end;
   time = toc;
                                 % TODO: stopping condition
 
-                           % Uncomment the following line to enable derivatives.
-                           %options.DerivativeCheck = 'on';
-
-      % Since we will be running multiple iterations, start with high tolerance.
-  options.TolFun = algorithm_params.restart_tolerance;
-
-                 % Now run additional restarts to get kernel parameters correct.
-  if gp.warp_x,
-                                % Doing random restarts.
-    iterations = algorithm_params.warp_x_restarts;
-  else
-                         % Restart is deterministic, so no need for more than 2.
-    iterations = 1;
-  end;
-
                                 % Return corresponding reward function.
+  r = KruKuu * u';
+  solution = feval([mdp_model 'solve'], mdp_data, r);
   v = solution.v;
   q = solution.q;
   p = solution.p;

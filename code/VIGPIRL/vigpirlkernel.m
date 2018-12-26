@@ -1,5 +1,5 @@
                       % Optimized kernel computation function for DC mode GPIRL.
-function [K_uf, alpha, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deriv_lambda0] = vigpirlkernel(gp,y,Xstar)
+function [K_uf, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deriv_lambda0] = vigpirlkernel(gp,Xstar)
 
                                 % Constants.
   dims = length(gp.inv_widths);
@@ -23,14 +23,14 @@ function [K_uf, alpha, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deri
   if gp.warp_x,
     [X_u_warped,dxu] = gpirlwarpx(gp.X_u,warp_c,warp_l,warp_s);
     [X_f_warped,dxf] = gpirlwarpx(gp.X,warp_c,warp_l,warp_s);
-    if nargin >= 3,
+    if nargin >= 2,
       [X_s_warped,dxs] = gpirlwarpx(Xstar,warp_c,warp_l,warp_s);
     end;
   else
     dxf = [];
     X_u_warped = gp.X_u;
     X_f_warped = gp.X;
-    if nargin >= 3,
+    if nargin >= 2,
       X_s_warped = Xstar;
     end;
   end;
@@ -87,7 +87,7 @@ function [K_uf, alpha, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deri
   end;
 
   % TODO: could reduce this (and similar pieces of code) to a single function call
-  if nargin < 3,
+  if nargin < 2,
     K_uf = compute_uf_matrix(X_f_scaled, dxf, false);
     K_uf_deriv_lambda0 = compute_uf_matrix(X_f_scaled, dxf, true);
   else
@@ -99,10 +99,8 @@ function [K_uf, alpha, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deri
 
                                 % Invert the kernel matrix.
   try
-    [alpha,~,invK] = gpirlsafeinv(K_uu,y);
+    invK = vigpirlsafeinv(K_uu);
   catch err
-                                % Save dump.
-    save dump_file_chol;
                                 % Display the error.
     rethrow(err);
   end;
