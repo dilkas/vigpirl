@@ -1,5 +1,5 @@
                       % Optimized kernel computation function for DC mode GPIRL.
-function [K_uf, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
+function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
     K_uu_deriv_lambda, K_uf_deriv_lambda0, K_uf_deriv_lambda] = vigpirlkernel(gp,Xstar)
 
                                 % Constants.

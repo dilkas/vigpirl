@@ -23,9 +23,8 @@ gp.rbf_prior_wt = algorithm_params.rbf_prior_wt;
 
 % Initialize hyperparameters.
 gp.noise_var = gpirlhpxform(algorithm_params.noise_init,[],algorithm_params.noise_xform,3);
-gp.rbf_var = gpirlhpxform(random('Chisquare', algorithm_params.rbf_init),[],algorithm_params.ard_xform,3);
-gp.inv_widths = gpirlhpxform(algorithm_params.ard_init*ones(1,size(feature_data.splittable,2)),...
-    [],algorithm_params.ard_xform,3);
+gp.rbf_var = random('Chisquare', algorithm_params.rbf_init);
+gp.inv_widths = random('Chisquare', algorithm_params.ard_init, [d, 1]);
 
 % Specify which values to optimize and how to optimize them.
 gp.learn_noise = algorithm_params.learn_noise;
