@@ -1,5 +1,6 @@
                       % Optimized kernel computation function for DC mode GPIRL.
-function [K_uf, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deriv_lambda0] = vigpirlkernel(gp,Xstar)
+function [K_uf, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
+    K_uu_deriv_lambda, K_uf_deriv_lambda0] = vigpirlkernel(gp,Xstar)
 
                                 % Constants.
   dims = length(gp.inv_widths);
@@ -23,23 +24,34 @@ function [K_uf, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deriv_lambd
   X_u_scaled = bsxfun(@times,iw_sqrt,X_u_warped);
   X_f_scaled = bsxfun(@times,iw_sqrt,X_f_warped);
 
-  function [nmat, nconst, dxu_ssum] = construct_noise_matrix(n)
+  function [nmat, nmat2, nconst, nconst2] = construct_noise_matrix(n)
     mask_mat = ones(n)-eye(n);
     nconst = exp(-0.5*noise_var*sum(inv_widths));
-    dxu_ssum = [];
+    nconst2 = -0.5 * noise_var;
     nmat = nconst*ones(n) + (1-nconst)*eye(n);
+    nmat2 = nconst2*ones(n) + (1-nconst2)*eye(n);
   end;
 
-  function [K_uu, K_uu_deriv_lambda0, nconst, dxu_ssum] = compute_covariance_matrix(X)
+  function deriv = K_uu_lambda_i_derivatives(K_uu, X, nmat2, i)
+    xi = X(:, i);
+    xi_sq = xi .^ 2;
+    n = size(X, 1);
+    inner = repmat(xi_sq', n, 1) + repmat(xi_sq, 1, n) - 2 * xi * xi';
+    deriv = K_uu .* (-0.5 * inner + nmat2);
+  end;
+
+  function [K_uu, K_uu_deriv_lambda0, K_uu_deriv_lambda, nconst] = compute_covariance_matrix(X)
     d_uu = bsxfun(@plus,sum(X.^2,2),sum(X.^2,2)') - 2 * X * X';
     d_uu = max(d_uu,0);
-    [nmat, nconst, dxu_ssum] = construct_noise_matrix(size(X, 1));
+    [nmat, nmat2, nconst, nconst2] = construct_noise_matrix(size(X, 1));
     K_uu_deriv_lambda0 = exp(-0.5*d_uu).*nmat;
     K_uu = rbf_var * K_uu_deriv_lambda0;
+    K_uu_deriv_lambda = arrayfun(@(i)...
+      K_uu_lambda_i_derivatives(K_uu, X, nmat2, i), 1:size(X, 2), 'Uniform', 0);
   end;
 
   [K_ff, ~, ~, ~] = compute_covariance_matrix(X_f_scaled);
-  [K_uu, K_uu_deriv_lambda0, nconst, dxu_ssum] = compute_covariance_matrix(X_u_scaled);
+  [K_uu, K_uu_deriv_lambda0, K_uu_deriv_lambda, nconst] = compute_covariance_matrix(X_u_scaled);
 
   function [K_uf, K_uf_deriv_lambda0] = compute_uf_matrix(X_f_scaled)
     d_uf = bsxfun(@plus,sum(X_u_scaled.^2,2),sum(X_f_scaled.^2,2)') - 2*(X_u_scaled*(X_f_scaled'));
@@ -48,7 +60,6 @@ function [K_uf, invK, K_uu, K_ufKinv, K_ff, K_uu_deriv_lambda0, K_uf_deriv_lambd
     K_uf = rbf_var * K_uf_deriv_lambda0;
   end;
 
-  % TODO: could reduce this (and similar pieces of code) to a single function call
   if nargin < 2,
     [K_uf, K_uf_deriv_lambda0] = compute_uf_matrix(X_f_scaled);
   else
