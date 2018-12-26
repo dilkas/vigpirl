@@ -1,6 +1,6 @@
 % Initialize the GP structure for GPIRL based on feature data and algorithm
 % parameters.
-function gp = gpirlinit(algorithm_params,feature_data)
+function gp = vigpirlinit(algorithm_params,feature_data)
 
 % Create GP.
 gp = struct();
@@ -23,7 +23,7 @@ gp.rbf_prior_wt = algorithm_params.rbf_prior_wt;
 
 % Initialize hyperparameters.
 gp.noise_var = gpirlhpxform(algorithm_params.noise_init,[],algorithm_params.noise_xform,3);
-gp.rbf_var = gpirlhpxform(algorithm_params.rbf_init,[],algorithm_params.ard_xform,3);
+gp.rbf_var = gpirlhpxform(random('Chisquare', algorithm_params.rbf_init),[],algorithm_params.ard_xform,3);
 gp.inv_widths = gpirlhpxform(algorithm_params.ard_init*ones(1,size(feature_data.splittable,2)),...
     [],algorithm_params.ard_xform,3);
 

@@ -20,15 +20,10 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     options.display = 'none';
   end;
 
-                                % Create GP.
-  if ~isempty(algorithm_params.initial_gp),
-    gp = algorithm_params.initial_gp;
-  else
-                                % Create initial GP.
-    gp = gpirlinit(algorithm_params,feature_data);
-                                % Choose inducing points.
-    gp = vigpirlgetinducingpoints(gp,mu_sa,algorithm_params);
-  end;
+                              % Create initial GP.
+  gp = gpirlinit(algorithm_params,feature_data);
+                              % Choose inducing points.
+  gp = vigpirlgetinducingpoints(gp,mu_sa,algorithm_params);
 
   m = size(gp.X_u, 1);
   d = size(feature_data.splittable, 2);
@@ -36,7 +31,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
                                 % Randomly initialize variational parameters
                                 % TODO: do the optimal thing instead
   mu = rand(m, 1);
-  lambda0 = random('Chisquare', algorithm_params.rbf_init);
   lambda = random('Chisquare', algorithm_params.ard_init, [d, 1]);
 
                  % L is a lower triangular matrix with positive diagonal entries
@@ -45,7 +39,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   L = tril(L);
 
   function fun = estimate_derivative(solution, Kuu_inv, Kuu_derivative, u)
-                                % TODO: make this return a function that takes u
     function derivative = wrapped(u)
       function a = inner(state)
         a = solution.v(state, 1) * trace((Kuu_inv * u * u' * Kuu_inv' - Kuu_inv) * Kuu_derivative);
@@ -65,7 +58,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     fun = wrapped(u);
   end;
 
-  % TODO: lambda should be part of gp
   function answer = estimate_derivative_outer(u, KruKuu, Krr,...
      Kru, Kuu_inv, Kuu_derivative)
     r = mvnrnd(KruKuu * u', Krr - KruKuu * Kru)';
@@ -74,26 +66,26 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   end;
 
   tic;
-  % TODO: lambda0 should not be negative. Exp?
-  for i = 1:100,
-                 % TODO: use more than one sample
+  log_rbf_var = log(gp.rbf_var);
+  for i = 1:10,
                  % Draw samples_count samples from the variational approximation
-    disp(lambda0);
+    disp(log_rbf_var);
     rho = 1; % TODO: implement AdaGrad from BBVI
     [Kru, Kuu_inv, Kuu, KruKuu, Krr, Kuu_derivative, Kru_derivative] = vigpirlkernel(gp);
     z = mvnrnd(mu, L * L', algorithm_params.samples_count);
     estimate = mean(arrayfun(@(row_id)...
       estimate_derivative_outer(z(row_id, :), KruKuu, Krr, Kru, Kuu_inv,...
       Kuu_derivative), (1:size(z, 1)).'));
-    lambda0 = lambda0 + rho * (-0.5 * trace(Kuu_inv * Kuu_derivative)...
+    log_rbf_var = log_rbf_var + rho * gp.rbf_var * (-0.5 * trace(Kuu_inv * Kuu_derivative)...
                                + init_s' * (Kru_derivative' - KruKuu * Kuu_derivative)...
                                  * Kuu_inv * mu - 0.5 * estimate);
+    gp.rbf_var = exp(log_rbf_var);
   end;
   time = toc;
                                 % TODO: stopping condition
 
                                 % Return corresponding reward function.
-  r = KruKuu * u';
+  r = KruKuu * mu;
   solution = feval([mdp_model 'solve'], mdp_data, r);
   v = solution.v;
   q = solution.q;
