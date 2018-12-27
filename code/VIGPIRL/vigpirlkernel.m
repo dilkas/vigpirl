@@ -18,9 +18,9 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
                                 % Scale positions in feature space.
   X_u_warped = gp.X_u;
   X_f_warped = gp.X;
-  if nargin >= 2,
+  if nargin >= 2
     X_s_warped = Xstar;
-  end;
+  end
   X_u_scaled = bsxfun(@times,iw_sqrt,X_u_warped);
   X_f_scaled = bsxfun(@times,iw_sqrt,X_f_warped);
 
@@ -30,7 +30,7 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
     nconst2 = -0.5 * noise_var;
     nmat = nconst*ones(n) + (1-nconst)*eye(n);
     nmat2 = nconst2*ones(n) + (1-nconst2)*eye(n);
-  end;
+  end
 
   function deriv = K_uu_lambda_i_derivatives(K_uu, X, Y, nmat2, i)
     xi = X(:, i);
@@ -39,7 +39,7 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
     yi_sq = yi .^ 2;
     inner = repmat(xi_sq', size(Y, 1), 1) + repmat(yi_sq, 1, size(X, 1)) - 2 * yi * xi';
     deriv = K_uu .* (-0.5 * inner + nmat2);
-  end;
+  end
 
   function [K_uu, K_uu_deriv_lambda0, K_uu_deriv_lambda, nconst] = compute_covariance_matrix(X)
     d_uu = bsxfun(@plus,sum(X.^2,2),sum(X.^2,2)') - 2 * X * X';
@@ -47,9 +47,9 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
     [nmat, nmat2, nconst, nconst2] = construct_noise_matrix(size(X, 1));
     K_uu_deriv_lambda0 = exp(-0.5*d_uu).*nmat;
     K_uu = rbf_var * K_uu_deriv_lambda0;
-    K_uu_deriv_lambda = arrayfun(@(i)...
-      K_uu_lambda_i_derivatives(K_uu, X, X, nmat2, i), 1:size(X, 2), 'Uniform', 0);
-  end;
+    c = arrayfun(@(i) K_uu_lambda_i_derivatives(K_uu, X, X, nmat2, i), 1:size(X, 2), 'Uniform', 0);
+    K_uu_deriv_lambda = cat(3, c{:});
+  end
 
   [K_ff, ~, ~, ~] = compute_covariance_matrix(X_f_scaled);
   [K_uu, K_uu_deriv_lambda0, K_uu_deriv_lambda, nconst] = compute_covariance_matrix(X_u_scaled);
@@ -61,18 +61,18 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
     K_uf = rbf_var * K_uf_deriv_lambda0;
     a = size(K_uf, 1);
     b = size(K_uf, 2);
-    K_uf_deriv_lambda = arrayfun(@(i)...
-      K_uu_lambda_i_derivatives(K_uf, X_f_scaled, X_u_scaled,...
-      zeros(a, b), i), 1:size(X_f_scaled, 2), 'Uniform', 0);
-  end;
+    c = arrayfun(@(i) K_uu_lambda_i_derivatives(K_uf, X_f_scaled,...
+      X_u_scaled, zeros(a, b), i), 1:size(X_f_scaled, 2), 'Uniform', 0);
+    K_uf_deriv_lambda = cat(3, c{:});
+  end
 
-  if nargin < 2,
+  if nargin < 2
     [K_uf, K_uf_deriv_lambda0, K_uf_deriv_lambda] = compute_uf_matrix(X_f_scaled);
   else
                                 % Use Xstar to compute K_uf matrix.
     X_s_scaled = bsxfun(@times,iw_sqrt,X_s_warped);
     [K_uf, K_uf_deriv_lambda0, K_uf_deriv_lambda] = compute_uf_matrix(X_s_scaled);
-  end;
+  end
 
                                 % Invert the kernel matrix.
   try
@@ -80,6 +80,6 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
   catch err
                                 % Display the error.
     rethrow(err);
-  end;
+  end
   K_ufKinv = K_uf'*invK;
 end
