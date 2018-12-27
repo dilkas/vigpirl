@@ -1,6 +1,5 @@
                       % Optimized kernel computation function for DC mode GPIRL.
-function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
-    K_uu_deriv_lambda, K_uf_deriv_lambda0, K_uf_deriv_lambda] = vigpirlkernel(gp,Xstar)
+function [K_uf, invK, K_ufKinv, K_ff, K_uu_grad, K_uf_grad] = vigpirlkernel(gp, Xstar)
 
                                 % Constants.
   dims = length(gp.inv_widths);
@@ -41,20 +40,20 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
     deriv = K_uu .* (-0.5 * inner + nmat2);
   end
 
-  function [K_uu, K_uu_deriv_lambda0, K_uu_deriv_lambda, nconst] = compute_covariance_matrix(X)
+  function [K_uu, K_uu_grad, nconst] = compute_covariance_matrix(X)
     d_uu = bsxfun(@plus,sum(X.^2,2),sum(X.^2,2)') - 2 * X * X';
     d_uu = max(d_uu,0);
     [nmat, nmat2, nconst, nconst2] = construct_noise_matrix(size(X, 1));
     K_uu_deriv_lambda0 = exp(-0.5*d_uu).*nmat;
     K_uu = rbf_var * K_uu_deriv_lambda0;
     c = arrayfun(@(i) K_uu_lambda_i_derivatives(K_uu, X, X, nmat2, i), 1:size(X, 2), 'Uniform', 0);
-    K_uu_deriv_lambda = cat(3, c{:});
+    K_uu_grad = cat(3, K_uu_deriv_lambda0, c{:});
   end
 
-  [K_ff, ~, ~, ~] = compute_covariance_matrix(X_f_scaled);
-  [K_uu, K_uu_deriv_lambda0, K_uu_deriv_lambda, nconst] = compute_covariance_matrix(X_u_scaled);
+  [K_ff, ~, ~] = compute_covariance_matrix(X_f_scaled);
+  [K_uu, K_uu_grad, nconst] = compute_covariance_matrix(X_u_scaled);
 
-  function [K_uf, K_uf_deriv_lambda0, K_uf_deriv_lambda] = compute_uf_matrix(X_f_scaled)
+  function [K_uf, K_uf_grad] = compute_uf_matrix(X_f_scaled)
     d_uf = bsxfun(@plus,sum(X_u_scaled.^2,2),sum(X_f_scaled.^2,2)') - 2*(X_u_scaled*(X_f_scaled'));
     d_uf = max(d_uf,0);
     K_uf_deriv_lambda0 = nconst * exp(-0.5*d_uf);
@@ -63,15 +62,15 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_deriv_lambda0,...
     b = size(K_uf, 2);
     c = arrayfun(@(i) K_uu_lambda_i_derivatives(K_uf, X_f_scaled,...
       X_u_scaled, zeros(a, b), i), 1:size(X_f_scaled, 2), 'Uniform', 0);
-    K_uf_deriv_lambda = cat(3, c{:});
+    K_uf_grad = cat(3, K_uf_deriv_lambda0, c{:});
   end
 
   if nargin < 2
-    [K_uf, K_uf_deriv_lambda0, K_uf_deriv_lambda] = compute_uf_matrix(X_f_scaled);
+    [K_uf, K_uf_grad] = compute_uf_matrix(X_f_scaled);
   else
                                 % Use Xstar to compute K_uf matrix.
     X_s_scaled = bsxfun(@times,iw_sqrt,X_s_warped);
-    [K_uf, K_uf_deriv_lambda0, K_uf_deriv_lambda] = compute_uf_matrix(X_s_scaled);
+    [K_uf, K_uf_grad] = compute_uf_matrix(X_s_scaled);
   end
 
                                 % Invert the kernel matrix.

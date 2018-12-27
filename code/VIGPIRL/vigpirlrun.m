@@ -53,34 +53,28 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     answer = sum(cat(3, derivatives_for_each_state_action{:}), 3);
   end
 
-  % FIXME: Kru_derivative_lambda is not used. Replace Kuu_derivate_lambda with pairs of derivatives
+  % FIXME: Kru_derivative_lambda is not used.
   tic;
-  log_rbf_var = log(gp.rbf_var);
-  log_lambda = log(gp.inv_widths);
   for i = 1:10
                  % Draw samples_count samples from the variational approximation
-    disp(log_rbf_var);
     rho = 0.001; % TODO: implement AdaGrad from BBVI
-    [Kru, Kuu_inv, KruKuu, Krr, Kuu_derivative, Kuu_derivative_lambda,...
-      Kru_derivative, Kru_derivative_lambda] = vigpirlkernel(gp);
+    [Kru, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad] = vigpirlkernel(gp);
     z = mvnrnd(mu, L * L', algorithm_params.samples_count);
 
-    %estimate = mean(arrayfun(@(row_id)...
-    %  estimate_derivative(z(row_id, :)', KruKuu, Krr, Kru, Kuu_inv,...
-    %  Kuu_derivative), (1:size(z, 1)).'));
-    derivatives_for_each_u = arrayfun(@(i) estimate_derivative(z(i, :),...
-      KruKuu, Krr, Kru, Kuu_inv, Kuu_derivative_lambda), 1:size(z, 1), 'Uniform', 0);
-    estimates = mean(cat(3, derivatives_for_each_u{:}), 3);
+    grad_prediction_for_each_u = arrayfun(@(i) estimate_derivative(z(i, :),...
+      KruKuu, Krr, Kru, Kuu_inv, Kuu_grad), 1:size(z, 1), 'Uniform', 0);
+    estimated_grad = mean(cat(3, grad_prediction_for_each_u{:}), 3);
 
-    %log_rbf_var = log_rbf_var + rho * gp.rbf_var * (-0.5 * trace(Kuu_inv * Kuu_derivative)...
-    %                           + init_s' * (Kru_derivative' - KruKuu * Kuu_derivative)...
-    %                             * Kuu_inv * mu - 0.5 * estimate);
-    log_lambda = log_lambda - 0.5 * rho * gp.inv_widths .*...
-      arrayfun(@(i) trace(Kuu_inv * Kuu_derivative_lambda(:, :, i)) + init_s' *...
-      (Kru_derivative' - KruKuu * Kuu_derivative_lambda(:, :, i)) * Kuu_inv *...
-      mu, 1:size(Kuu_derivative_lambda, 3)) - 0.5 * rho * gp.inv_widths .* estimates;
-    gp.rbf_var = exp(log_rbf_var);
-    gp.inv_widths = exp(log_lambda);
+    not_estimated = arrayfun(@(i) trace(Kuu_inv * Kuu_grad(:, :, i)) + init_s' *...
+      (Kru_grad(:, :, i)' - KruKuu * Kuu_grad(:, :, i)) * Kuu_inv *...
+      mu, 1:size(Kuu_grad, 3));
+    changes = - 0.5 * (not_estimated + estimated_grad);
+
+    hyperparameters = vigpirlpackparam(gp);
+    disp(hyperparameters);
+    hyperparameters = hyperparameters + rho *...
+      gpirlhpxform(hyperparameters, changes, 'exp', 2);
+    gp = vigpirlunpackparam(gp, hyperparameters);
   end
 
   time = toc;
