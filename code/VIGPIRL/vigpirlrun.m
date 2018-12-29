@@ -54,9 +54,9 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   end
 
   tic;
-  for i = 1:10
+  for n = 1:10
                  % Draw samples_count samples from the variational approximation
-    rho = 0.001; % TODO: implement AdaGrad from BBVI
+    rho = 1/n; % TODO: implement AdaGrad from BBVI
     [Kru, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad] = vigpirlkernel(gp);
     z = mvnrnd(gp.mu, Sigma, algorithm_params.samples_count);
 
@@ -72,7 +72,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     changes = not_estimated - 0.5 * estimated_grad;
 
     hyperparameters = vigpirlpackparam(gp);
-    disp(hyperparameters);
+    %disp(hyperparameters);
     fprintf('-----');
     hyperparameters = hyperparameters + rho *...
       gpirlhpxform(hyperparameters, changes, 'exp', 2);
