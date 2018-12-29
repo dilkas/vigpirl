@@ -5,6 +5,7 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_grad, K_uf_grad] = vigpirlkernel(gp, 
   dims = length(gp.inv_widths);
   n = size(gp.X_u,1);
 
+  % TODO: is this necessary?
                                                             % Undo transforms.
   inv_widths = gpirlhpxform(gp.inv_widths,[],gp.ard_xform,1); % This is \Lambda
   noise_var = gpirlhpxform(gp.noise_var,[],gp.noise_xform,1); % This is 2\sigma^2

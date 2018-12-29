@@ -819,16 +819,14 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}.
 Hence
 \[
   \frac{\partial\mathcal{L}}{\partial\bm\mu} =
-  \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1} -
-  \frac{1}{2}\sum_{i=1}^N\sum_{t=1}^T \mathbb{E}[\V(s_{i,t})
-  (\bm\Sigma^{-1} + \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)] -
-  \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')
-  \mathbb{E}[\V(s') (\bm\Sigma^{-1} +
-  \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)].
+  \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1} - \frac{1}{2}\mathbb{E} \left[
+    (\bm\Sigma^{-1} + \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)
+    \sum_{i=1}^N\sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in \mathcal{S}}
+    \mathcal{T}(s_{i,t}, a_{i,t}, s') \V(s') \right].
 \]
 
 \subsection{$\partial/\partial\bm\Sigma$}
-% TODO: d/dL
+% TODO: d/dL and move the matrix/vector stuff in front of the sums
 
 Similarly to the previous section,
 \[
