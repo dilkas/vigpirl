@@ -1,6 +1,6 @@
                       % Optimized kernel computation function for DC mode GPIRL.
 function [K_uf, invK, K_ufKinv, K_ff, K_uu_grad, K_uf_grad] = vigpirlkernel(gp, Xstar)
-  inv_widths = min(gp.inv_widths,1e100); % Prevent overflow.
+  inv_widths = min(gp.inv_widths, 1e100); % Prevent overflow.
   iw_sqrt = sqrt(inv_widths); % Compute scales.
 
                                 % Scale positions in feature space.
@@ -9,9 +9,10 @@ function [K_uf, invK, K_ufKinv, K_ff, K_uu_grad, K_uf_grad] = vigpirlkernel(gp, 
   if nargin >= 2
     X_s_warped = Xstar;
   end
-  X_u_scaled = bsxfun(@times,iw_sqrt,X_u_warped);
-  X_f_scaled = bsxfun(@times,iw_sqrt,X_f_warped);
+  X_u_scaled = bsxfun(@times, iw_sqrt, X_u_warped);
+  X_f_scaled = bsxfun(@times, iw_sqrt, X_f_warped);
 
+  % TODO: I think dK/dmu is not used and doesn't have to be computed
   function [K_uu, K_uu_grad, nconst] = compute_covariance_matrix(X)
     d_uu = bsxfun(@plus, sum(X.^2, 2), sum(X.^2, 2)') - 2 * X * X';
     d_uu = max(d_uu, 0);

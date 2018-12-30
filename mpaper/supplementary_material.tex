@@ -884,7 +884,7 @@ by Petersen and Pedersen \cite{petersen2008matrix}, and
   \dlj \mathbb{E}[\V(s)] = \iint\V(s)\frac{\partial q(\mathbf{r})}{\partial
     \lambda_j}q(\mathbf{u})\dx = \frac{1}{2}\mathbb{E} \left[ \V(s) \tr
     \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
-      \frac{\partial \Kuu}{\partial \lambda_i} \right) \right]
+      \frac{\partial \Kuu}{\partial \lambda_j} \right) \right]
 \]
 by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
 \[
@@ -896,7 +896,7 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
         \Kuu}{\partial \lambda_j} \right) \Kuu^{-1} \bm\mu \\
     &- \frac{1}{2} \mathbb{E} \left[ \tr \left(
         (\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
-        \frac{\partial \Kuu}{\partial \lambda_i} \right) \sum_{i=1}^N
+        \frac{\partial \Kuu}{\partial \lambda_j} \right) \sum_{i=1}^N
       \sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in \mathcal{S}}
       \mathcal{T}(s_{i,t}, a_{i,t}, s') \V(s') \right],
   \end{split}
