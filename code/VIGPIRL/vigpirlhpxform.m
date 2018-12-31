@@ -1,5 +1,5 @@
 % Transform hyperparameter to enforce constraints.
-function hp = gpirlhpxform(hp,grad,xform,mode)
+function hp = vigpirlhpxform(hp, grad, xform, mode)
 
 if mode == 1,
     % Transform from optimization mode to actual value.
@@ -16,8 +16,8 @@ elseif mode == 2,
     % Transform derivative.
     if strcmp(xform,'quad'),
         hp = 2*bsxfun(@times,hp',grad);
-    elseif strcmp(xform,'exp'),
-        hp = bsxfun(@times,exp(hp'),grad);
+    elseif strcmp(xform, 'exp'),
+        hp = bsxfun(@times, exp(hp), grad);
         hp(grad == 0) = 0;
     elseif strcmp(xform,'sig'),
         exphp = exp(min(-hp',1e2));

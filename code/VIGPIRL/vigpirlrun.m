@@ -21,22 +21,27 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   m = size(gp.X_u, 1);
 
                  % L is a lower triangular matrix with positive diagonal entries
-  L = normrnd(0, 1, [m, m]);
-  L(1:m+1:end) = random('Chisquare', 4, [m, 1]);
-  L = tril(L);
-  Sigma = L * L';
+  %L = normrnd(0, 1, [m, m]);
+  %L(1:m+1:end) = random('Chisquare', 4, [m, 1]);
+  %L = tril(L);
+  %Sigma = L * L';
+  Sigma = eye(m);
+  Sigma_inv = inv(Sigma);
 
   tic;
-  for n = 1:10
+  for n = 1:100
                  % Draw samples_count samples from the variational approximation
-    rho = 1/n; % TODO: implement AdaGrad from BBVI
-    [Kru, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad] = vigpirlkernel(gp);
-    z = mvnrnd(mu, Sigma, algorithm_params.samples_count);
-    changes = full_gradient(Sigma, mdp_model, mdp_data, example_samples,...
-      counts, mu, Kru, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad, z);
+    rho = 0.00001/n; % TODO: implement AdaGrad from BBVI
+    [Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad] = vigpirlkernel(gp);
+    z = mvnrnd(gp.mu, Sigma, algorithm_params.samples_count);
+    grad = full_gradient(Sigma, Sigma_inv, mdp_model, mdp_data,...
+      example_samples, counts, gp.mu, Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad,...
+      Kru_grad, z);
+    disp(grad(1));
+    %disp(gp.mu);
     hyperparameters = vigpirlpackparam(gp);
     hyperparameters = hyperparameters + rho *...
-      gpirlhpxform(hyperparameters, changes, 'exp', 2);
+      vigpirlhpxform(hyperparameters, grad(2:end), 'exp', 2);
     gp = vigpirlunpackparam(gp, hyperparameters);
   end
   time = toc;

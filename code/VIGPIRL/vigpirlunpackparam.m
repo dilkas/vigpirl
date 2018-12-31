@@ -4,11 +4,11 @@ function [gp] = vigpirlunpackparam(gp, x)
 % Count the last index read.
 endi = length(x);
 
-gp.rbf_var = gpirlhpxform(x(endi), [], 'exp', 1);
+gp.rbf_var = vigpirlhpxform(x(endi), [], 'exp', 1);
 endi = endi - 1;
 
 % Read ARD kernel parameters.
-gp.inv_widths = gpirlhpxform(x(endi-length(gp.inv_widths)+1:endi), [], 'exp', 1);
+gp.inv_widths = vigpirlhpxform(x(endi-length(gp.inv_widths)+1:endi), [], 'exp', 1)';
 endi = endi - length(gp.inv_widths);
 
 gp.mu = x(endi-length(gp.mu)+1:endi);
