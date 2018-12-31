@@ -17,8 +17,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   gp = vigpirlinit(algorithm_params,feature_data);
                                 % Choose inducing points.
   gp = vigpirlgetinducingpoints(gp,mu_sa,algorithm_params);
-
   m = size(gp.X_u, 1);
+  gp.mu = rand(1, m)';
 
                  % L is a lower triangular matrix with positive diagonal entries
   %L = normrnd(0, 1, [m, m]);
@@ -28,21 +28,33 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   Sigma = eye(m);
   Sigma_inv = inv(Sigma);
 
+  d = size(feature_data.splittable, 2);
+  G = zeros(m + d + 1, 1);
+  eta = 1;
+
   tic;
-  for n = 1:100
+  while true
                  % Draw samples_count samples from the variational approximation
-    rho = 0.00001/n; % TODO: implement AdaGrad from BBVI
     [Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad] = vigpirlkernel(gp);
-    z = mvnrnd(gp.mu, Sigma, algorithm_params.samples_count);
+    z = mvnrnd(gp.mu', Sigma, algorithm_params.samples_count);
     grad = full_gradient(Sigma, Sigma_inv, mdp_model, mdp_data,...
       example_samples, counts, gp.mu, Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad,...
       Kru_grad, z);
-    disp(grad(1));
-    %disp(gp.mu);
-    hyperparameters = vigpirlpackparam(gp);
-    hyperparameters = hyperparameters + rho *...
-      vigpirlhpxform(hyperparameters, grad(2:end), 'exp', 2);
+    %disp(grad(1));
+    changes = grad(2:end);
+    changes(1) = 0; % TEMP
+    G = G + changes .^ 2;
+    rho = eta / sqrt(G);
+    disp(changes);
+    fprintf('----------');
+    old_hyperparameters = vigpirlpackparam(gp);
+    hyperparameters = old_hyperparameters + rho' .*...
+      vigpirlhpxform(old_hyperparameters, changes, 'exp', 2);
     gp = vigpirlunpackparam(gp, hyperparameters);
+
+    if norm(hyperparameters(2:end) - old_hyperparameters(2:end), 1) < 0.01
+      break;
+    end
   end
   time = toc;
                                 % TODO: stopping condition

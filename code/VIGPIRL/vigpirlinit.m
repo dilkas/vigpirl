@@ -26,7 +26,6 @@ gp.noise_var = algorithm_params.noise_init;
 gp.rbf_var = random('Chisquare', algorithm_params.rbf_init);
 gp.inv_widths = random('Chisquare', algorithm_params.ard_init,...
     [1, size(feature_data.splittable, 2)]);
-gp.mu = rand(1, algorithm_params.inducing_pts_count)';
 
 % Specify which values to optimize and how to optimize them.
 gp.learn_noise = algorithm_params.learn_noise;
