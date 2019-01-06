@@ -1,5 +1,5 @@
 % Transfer learned reward function to a new state space.
-function irl_result = gpirltransfer(prev_result,mdp_data,mdp_model,...
+function irl_result = vigpirltransfer(prev_result,mdp_data,mdp_model,...
     feature_data,~,verbosity)
 
 % To transfer the result to the new state space, we must first compute

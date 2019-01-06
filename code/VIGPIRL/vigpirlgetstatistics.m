@@ -16,14 +16,5 @@ for i=1:N,
         % Add to state action and state expectations.
         mu_sa(s,a) = mu_sa(s,a) + 1;
         init_s(s) = init_s(s) + 1;
-        
-        % Subtract off probabilities of transitioning to other states.
-        % See notes on computing state visitation counts for details of
-        % what's going on here.
-        % This is the - \sum_{i,t} \gamma P(s_j | s_it, a_it) term.
-%        for k=1:transitions,
-%            sp = mdp_data.sa_s(s,a,k);
-%            init_s(sp) = init_s(sp) - mdp_data.discount*mdp_data.sa_p(s,a,k);
-%        end;
     end;
 end;

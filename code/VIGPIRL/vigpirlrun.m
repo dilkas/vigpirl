@@ -20,27 +20,30 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   m = size(gp.X_u, 1);
   gp.mu = rand(1, m)';
 
-                 % L is a lower triangular matrix with positive diagonal entries
-  %L = normrnd(0, 1, [m, m]);
-  %L(1:m+1:end) = random('Chisquare', 4, [m, 1]);
-  %L = tril(L);
-  %Sigma = L * L';
-  Sigma = eye(m);
-  Sigma_inv = inv(Sigma);
+                 % B is a lower triangular matrix with positive diagonal entries
+  gp.B = normrnd(0, 1, [m, m]);
+  gp.B(1:m+1:end) = random('Chisquare', 4, [m, 1]);
+  gp.B = tril(gp.B);
+%  gp.D = diag(normrnd(0, 1));
+  gp.D = zeros(m, m);
+  % TODO: B could be m x p for p << m
+  % TODO: diag() might not work in that case, and need to update the initialisation
 
   d = size(feature_data.splittable, 2);
-  G = zeros(m + d + 1, 1);
+  G = zeros(2 * m + d + 1, 1);
   eta = 1;
 
   tic;
   while true
                  % Draw samples_count samples from the variational approximation
     [Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad] = vigpirlkernel(gp);
+    Sigma = gp.B * gp.B' + gp.D * gp.D;
+    Sigma_inv = inv(Sigma);
     z = mvnrnd(gp.mu', Sigma, algorithm_params.samples_count);
+    T = inv(gp.B * gp.B' + (gp.D * gp.D)');
     grad = full_gradient(Sigma, Sigma_inv, mdp_model, mdp_data,...
       example_samples, counts, gp.mu, Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad,...
-      Kru_grad, z);
-    %disp(grad(1));
+      Kru_grad, z, T, gp.B);
     changes = grad(2:end);
     changes(1) = 0; % TEMP
     G = G + changes .^ 2;
@@ -57,7 +60,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     end
   end
   time = toc;
-                                % TODO: stopping condition
 
                                 % Return corresponding reward function.
   r = KruKuu * gp.mu;
@@ -67,7 +69,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   p = solution.p;
 
                                 % Construct returned structure.
-                                % TODO: score = best elbo
   irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
                       'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
                       'model_p_itr', {{p}}, 'time', time, 'score', 0);

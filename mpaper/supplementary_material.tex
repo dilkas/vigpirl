@@ -6,6 +6,7 @@
 \usepackage{bm}
 \usepackage{bbm}
 \usepackage{mathtools}
+\usepackage{url}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{proposition}[theorem]{Proposition}
@@ -18,6 +19,8 @@
 \newtheorem*{remark}{Remark}
 
 \DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\adj}{adj}
 
 \newcommand{\Eq}{\mathbb{E}_{(\mathbf{u}, \mathbf{r}) \sim \approximation}}
 \newcommand{\pfull}{p(\mathcal{D}, \mathbf{X_u}, \mathbf{u}, \mathbf{r})}
@@ -29,7 +32,9 @@
 \newcommand{\V}{V_{\mathbf{r}}}
 
 \newcommand{\dm}{\frac{\partial}{\partial\bm\mu}}
-\newcommand{\dS}{\frac{\partial}{\partial\bm\Sigma}}
+\newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
+\newcommand{\dD}{\frac{\partial}{\partial\mathbf{D}}}
+\newcommand{\dB}{\frac{\partial}{\partial\mathbf{B}}}
 \newcommand{\dt}{\frac{\partial}{\partial t}}
 \newcommand{\dl}{\frac{\partial}{\partial \lambda_i}}
 \newcommand{\dlj}{\frac{\partial}{\partial \lambda_j}}
@@ -66,21 +71,46 @@ In this paper, all references to measurability are with respect to the Lebesgue
 measure. Similarly, whenever we consider the existence of an integral, we use
 the Lebesgue definition of integration.
 
+As recently suggested by Ong et al. \cite{ong2018gaussian}, we use a
+decomposition $\bm\Sigma = \mathbf{B}\mathbf{B}^\intercal + \mathbf{D}^2$, where
+$\mathbf{B}$ is a lower triangular $m \times p$ matrix with positive diagonal
+entries, and $\mathbf{D} = \diag(d_1, \dots, d_m)$. Typically, we would set $p$
+so that $p \ll m$ to get an efficient approximation, but it is also worth
+pointing out that we can retain full accuracy by setting $p = m$ and $\mathbf{D}
+= \mathbf{O}$. Moreover, we define a few matrices that will simplify expressions
+for the derivatives: $\mathbf{T} = (\mathbf{B}\mathbf{B}^\intercal +
+(\mathbf{D}^2)^\intercal)^{-1}$ and $\mathbf{U} = (\mathbf{u} -
+\bm\mu)(\mathbf{u} - \bm\mu)^\intercal$.
+
 \begin{lemma}[Derivatives of probability
   distributions] \label{lemma:derivatives}
   \begin{enumerate}
     \leavevmode
   \item $\frac{\partial q(\mathbf{u})}{\partial \bm\mu} =
-    q(\mathbf{u})\frac{1}{2}(\bm\Sigma^{-1} +
-    \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)$.
-  \item $\frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} =
-    -\frac{1}{2}\bm\Sigma^{-\intercal}q(\mathbf{u}) +
-    \frac{1}{2}q(\mathbf{u})\bm\Sigma^{-\intercal}(\mathbf{u} -
-    \bm\mu)(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-\intercal}$.
+    \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} + \bm\Sigma^{-\intercal})(\mathbf{u}
+    - \bm\mu)$.
+  \item
+    \begin{enumerate}
+    \item
+      $\frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} =
+      \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
+      - \bm\Sigma^{-\intercal})$.
+    \item
+      $\frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} =
+      \frac{1}{2}q(\mathbf{u}) \{ |\bm\Sigma|^{-1}(\adj(\mathbf{T}) +
+      \adj(\bm\Sigma)) + \mathbf{TUT} +
+      \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}$.
+    \item
+      $\frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} =
+      \frac{1}{2}q(\mathbf{u}) \{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
+      \mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
+      |\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal +
+      \mathbf{D}^\intercal \adj(\mathbf{T})) \}$.
+    \end{enumerate}
   \item For $i = 0, \dots, d$,
     \[
       \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
-      q(\mathbf{r})\frac{1}{2}\tr
+      \frac{1}{2}q(\mathbf{r})\tr
       \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} -
         \Kuu^{-1}) \frac{\partial \Kuu}{\partial \lambda_i} \right),
     \]
@@ -108,57 +138,70 @@ the Lebesgue definition of integration.
         q(\mathbf{u})\dm\left[-\frac{1}{2}(\mathbf{u} -
           \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)\right]
         \\
-        &= q(\mathbf{u})\left(-\frac{1}{2}\right)(\bm\Sigma^{-1} +
+        &= -\frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
         \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)\dm[\mathbf{u} -
         \bm\mu] \\
-        &= q(\mathbf{u})\frac{1}{2}(\bm\Sigma^{-1} +
+        &= \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
         \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu).
       \end{split}
     \]
-  \item
-    \[
-      \begin{split}
-        \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} &=
-        \dS\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\exp \left( -\frac{1}{2}
-            (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
-            \bm\mu)\right)\right] \\
-        &= \dS\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\right]\exp \left( -\frac{1}{2}
-          (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
-          \bm\mu)\right) \\
-        &+ \frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\dS\left[\exp\left( -\frac{1}{2}
-            (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
-            \bm\mu)\right)\right] \\
-        &=
-        \frac{1}{(2\pi)^{m/2}}\dS\left[\frac{1}{|\bm\Sigma|^{1/2}}\right]\exp
-        \left( -\frac{1}{2} (\mathbf{u} -
-          \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)\right) \\
-        &- \frac{1}{2}q(\mathbf{u})\dS[(\mathbf{u}
-        - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)]. \\
-      \end{split}
-    \]
-    The two remaining derivatives can be taken with the help of \emph{The Matrix
-      Cookbook} \cite{petersen2008matrix}:
+  \item For $\mathbf{S} \in \{ \bm\Sigma, \mathbf{B}, \mathbf{D} \}$,
+    \begin{align}
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{S}} &= \dS\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\exp \left( -\frac{1}{2} (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)\right)\right] \nonumber \\
+                                                         &= \dS\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\right]\exp \left( -\frac{1}{2} (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)\right) \nonumber \\
+                                                         &+ \frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\dS\left[\exp\left( -\frac{1}{2} (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)\right)\right] \nonumber \\
+                                                         &= -\frac{1}{2} q(\mathbf{u}) \left( |\bm\Sigma|^{-3/2} \frac{\partial |\bm\Sigma|}{\partial \mathbf{S}} + \dS[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)] \right). \label{eq:2_before}
+    \end{align}
+    For derivatives with respect to $\bm\Sigma$, we can refer to Petersen and
+    Pedersen \cite{petersen2008matrix}:
+    \begin{equation} \label{eq:partial_derivatives1}
+      \begin{gathered}
+        \frac{\partial |\bm\Sigma|}{\partial \bm\Sigma} =
+        |\bm\Sigma|\bm\Sigma^{-\intercal}, \\
+        \dS[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
+        \bm\mu)] = -\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal},
+      \end{gathered}
+    \end{equation}
+    while we can use an online tool by Laue et
+    al.\footnote{\url{http://www.matrixcalculus.org/}}
+    \cite{DBLP:conf/nips/LaueMG18} for the remaining ones:
+    \begin{equation} \label{eq:partial_derivatives2}
+      \begin{gathered}
+        \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} =
+        (\adj(\mathbf{T}) + \adj(\bm\Sigma))\mathbf{B}, \\
+        \frac{\partial |\bm\Sigma|}{\partial \mathbf{D}} =
+        \adj(\mathbf{T})\mathbf{D}^\intercal + \mathbf{D}^\intercal
+        \adj(\mathbf{T}), \\
+        \dB[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
+        \bm\mu)] = -(\mathbf{TUT} +
+        \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1})\mathbf{B}, \\
+        \dD[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu)] =
+        -\mathbf{T}\mathbf{UT}\mathbf{D}^\intercal -
+        \mathbf{D}^\intercal\mathbf{T}\mathbf{UT}.
+      \end{gathered}
+    \end{equation}
+    Substituting results from \eqref{eq:partial_derivatives1} and
+    \eqref{eq:partial_derivatives2} back into \eqref{eq:2_before} gives:
     \begin{gather*}
-      \dS\left[\frac{1}{|\bm\Sigma|^{1/2}}\right] =
-      -\frac{1}{2}|\bm\Sigma|^{-3/2}\frac{\partial |\bm\Sigma|}{\partial \bm\Sigma} =
-      -\frac{1}{2}|\bm\Sigma|^{-3/2}|\bm\Sigma|\bm\Sigma^{-\intercal} = -\frac{1}{2|\bm\Sigma|^{1/2}}\bm\Sigma^{-\intercal}, \\
-      \dS[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
-      \bm\mu)] = -\bm\Sigma^{-\intercal}(\mathbf{u} - \bm\mu)(\mathbf{u} -
-                     \bm\mu)^\intercal\bm\Sigma^{-\intercal}.
-    \end{gather*}
-    Substituting them back in gives
-    \[
       \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} =
-      -\frac{1}{2}\bm\Sigma^{-\intercal}q(\mathbf{u}) +
-      \frac{1}{2}q(\mathbf{u})\bm\Sigma^{-\intercal}(\mathbf{u} -
-      \bm\mu)(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-\intercal}.
-    \]
+      \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
+      - \bm\Sigma^{-\intercal}), \\
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} =
+      \frac{1}{2}q(\mathbf{u}) \{ |\bm\Sigma|^{-3/2}(\adj(\mathbf{T}) +
+      \adj(\bm\Sigma)) + \mathbf{TUT} +
+      \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}, \\
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} =
+      \frac{1}{2}q(\mathbf{u}) \{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
+      \mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
+      |\bm\Sigma|^{-3/2}(\adj(\mathbf{T})\mathbf{D}^\intercal +
+      \mathbf{D}^\intercal \adj(\mathbf{T})) \}.
+    \end{gather*}
   \item Using a result by Rasmussen and Williams
     \cite{DBLP:books/lib/RasmussenW06},
     \[
       \frac{\partial q(\mathbf{r})}{\partial \lambda_i} = q(\mathbf{r}) \dl
       \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
-        \frac{1}{2}\log|\Kuu| \right] = q(\mathbf{r})\frac{1}{2}\tr
+        \frac{1}{2}\log|\Kuu| \right] = \frac{1}{2}q(\mathbf{r})\tr
       \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
         \frac{\partial \Kuu}{\partial \lambda_i} \right).
     \]
@@ -383,7 +426,7 @@ all states and returns the value of state $s$.
   Remember that
   \[
     \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
-    q(\mathbf{r})\frac{1}{2}\tr
+    \frac{1}{2}q(\mathbf{r})\tr
     \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
       \frac{\partial \Kuu}{\partial \lambda_i}
     \right)
@@ -474,7 +517,7 @@ all states and returns the value of state $s$.
   Using Lemma \ref{lemma:derivatives},
   \[
     \left. \frac{\partial q(\mathbf{u})}{\partial \bm\mu} \right|_{\mu_i =
-      c(\mathbf{r}, \mathbf{u})} = q(\mathbf{u})\frac{1}{2}(\bm\Sigma^{-1} +
+      c(\mathbf{r}, \mathbf{u})} = \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
     \bm\Sigma^{-\intercal})(\mathbf{u} - \mathbf{c}(\mathbf{r}, \mathbf{u})),
   \]
   where $\mathbf{c}(\mathbf{r}, \mathbf{u}) = (\mu_1, \dots, \mu_{i - 1},
@@ -510,10 +553,9 @@ all states and returns the value of state $s$.
   \[
     \left. \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} \right|_{\Sigma_{i,j} =
     c(\mathbf{r}, \mathbf{u})} =
-    -\frac{1}{2}\mathbf{C}(\mathbf{r}, \mathbf{u})^{-\intercal} +
-    \frac{1}{2}\mathbf{C}(\mathbf{r}, \mathbf{u})^{-\intercal}(\mathbf{u} -
-    \bm\mu)(\mathbf{u} -
-    \bm\mu)^\intercal\mathbf{C}(\mathbf{r}, \mathbf{u})^{-\intercal},
+    \frac{1}{2}q(\mathbf{u})(\mathbf{C}(\mathbf{r},
+    \mathbf{u})^{-\intercal}\mathbf{UC}(\mathbf{r}, \mathbf{u})^{-\intercal} -
+    \mathbf{C}(\mathbf{r}, \mathbf{u})^{-\intercal}),
   \]
   where
   \[
@@ -566,7 +608,7 @@ all states and returns the value of state $s$.
       \rVert_\infty \epsilon},
   \]
   which bounds all elements of $\mathbf{C}(\mathbf{r}, \mathbf{u})^{-1}$ as
-  required. Since every element of $(\mathbf{u} - \bm\mu)(\mathbf{u} -
+  required. Since every element of $\mathbf{U} = (\mathbf{u} - \bm\mu)(\mathbf{u} -
   \bm\mu)^\intercal$ is in $\mathbb{R}_2[\mathbf{u}]$, and the elements of
   $\mathbf{C}(\mathbf{r}, \mathbf{u})^{-1}$ are bounded, the desired result
   follows.
@@ -783,30 +825,20 @@ across all demonstrations. Then
 This allows us to simplify $\mathcal{L}$ to
 \[
   \mathcal{L} = \frac{1}{2}\log|\bm\Sigma| - \frac{1}{2}\log|\Kuu| +
-  \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu - \sum_{i=1}^N \sum_{t=1}^T
-  \mathbb{E}[\V(s_{i,t})] - \gamma\sum_{s' \in \mathcal{S}}
-  \mathcal{T}(s_{i,t}, a_{i,t}, s')\mathbb{E}[\V(s')].
+  \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu - \mathbb{E}[v],
 \]
-
-% TODO: move this somewhere else
-% TODO: source (wikipedia)
-We use Cholesky decomposition $\bm\Sigma = \mathbf{L}\mathbf{L}^\intercal$,
-where $\mathbf{L} \in \mathbb{R}^{m \times m}$ is a lower triangular matrix with
-positive diagonal entries. As this decomposition is bijective as a mapping
-between positive-definite real matrices and $\mathbf{L}$ as described
-previously, we can construct any viable covariance matrix $\bm\Sigma$ from
-$\mathbf{L}$ (except matrices that are positive semi-definite but not positive
-definite, which is a reasonable compromise).
+where
+\[
+v = \sum_{i=1}^N \sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in
+  \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
+\]
 
 \subsection{$\partial/\partial\bm\mu$}
 
 We begin by removing terms independent of $\bm\mu$:
 \[
   \frac{\partial\mathcal{L}}{\partial\bm\mu} =
-  \dm[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu] -
-  \sum_{i=1}^N \sum_{t=1}^T \dm\mathbb{E}[\V(s_{i,t})] -
-  \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-  s')\dm\mathbb{E}[\V(s')].
+  \dm[\mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu] - \dm\mathbb{E}[v].
 \]
 Here
 \[
@@ -816,48 +848,56 @@ Here
   (\bm\Sigma^{-1} + \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)]
 \]
 by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}.
-Hence
+Hence,
 \[
   \frac{\partial\mathcal{L}}{\partial\bm\mu} =
   \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1} - \frac{1}{2}\mathbb{E} \left[
-    (\bm\Sigma^{-1} + \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)
-    \sum_{i=1}^N\sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in \mathcal{S}}
-    \mathcal{T}(s_{i,t}, a_{i,t}, s') \V(s') \right].
+    (\bm\Sigma^{-1} + \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu) v \right].
 \]
 
-\subsection{$\partial/\partial\bm\Sigma$}
-% TODO: d/dL and move the matrix/vector stuff in front of the sums
+\subsection{$\partial/\partial\mathbf{B}$, $\partial/\partial\mathbf{D}$}
 
-Similarly to the previous section,
+For $\mathbf{S} \in \{ \mathbf{B}, \mathbf{D} \}$,
 \[
-  \frac{\partial\mathcal{L}}{\partial\bm\Sigma} = \frac{1}{2}\dS\log|\bm\Sigma|
-  - \sum_{i=1}^N \sum_{t=1}^T \dS\mathbb{E}[\V(s_{i,t})] -
-  \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-  s')\dS\mathbb{E}[\V(s')],
+  \frac{\partial\mathcal{L}}{\partial\mathbf{S}} = \frac{1}{2}\dS\log|\bm\Sigma|
+  - \dS\mathbb{E}[v].
 \]
-where $\dS\log|\bm\Sigma| = \bm\Sigma^{-\intercal}$ by Petersen and Pedersen
-\cite{petersen2008matrix}, and
+By Theorem \ref{thm:main},
 \[
   \dS\mathbb{E}[\V(s)] = \iint \V(s) q(\mathbf{r})
-  \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma}\dx =
-  \frac{1}{2}\mathbb{E}[\V(s)(\bm\Sigma^{-\intercal}(\mathbf{u} -
-  \bm\mu)(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-\intercal} -
-  \bm\Sigma^{-\intercal})],
+  \frac{\partial q(\mathbf{u})}{\partial \mathbf{S}}\dx.
 \]
-by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Therefore,
-\[
-  \begin{split}
-    \frac{\partial\mathcal{L}}{\partial\bm\Sigma} &=
-    \frac{1}{2}\bm\Sigma^{-\intercal} - \frac{1}{2} \sum_{i=1}^N\sum_{t=1}^T
-    \mathbb{E}[\V(s_{i,t})(\bm\Sigma^{-\intercal}(\mathbf{u} -
-    \bm\mu)(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-\intercal} -
-    \bm\Sigma^{-\intercal})] \\
-    &- \gamma\sum_{s' \in \mathcal{S}}\mathcal{T}(s_{i,t}, a_{i,t}, s')
-    \mathbb{E}[\V(s')(\bm\Sigma^{-\intercal}(\mathbf{u} -
-    \bm\mu)(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-\intercal} -
-    \bm\Sigma^{-\intercal})].
-  \end{split}
-\]
+Then, using the aforementioned tool by Laue et al.
+\cite{DBLP:conf/nips/LaueMG18}, we get
+\begin{gather*}
+  \dB\log|\bm\Sigma| = (\mathbf{T} + \bm\Sigma^{-1})\mathbf{B}, \\
+  \dD\log|\bm\Sigma| = \mathbf{T}\mathbf{D}^\intercal +
+  \mathbf{D}^\intercal\mathbf{T},
+\end{gather*}
+and Lemma \ref{lemma:derivatives} gives
+\begin{gather*}
+  \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} = \frac{1}{2}q(\mathbf{u})
+  \{ |\bm\Sigma|^{-1}(\adj(\mathbf{T}) + \adj(\bm\Sigma)) + \mathbf{TUT} +
+  \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}, \\
+  \frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} = \frac{1}{2}q(\mathbf{u})
+  \{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
+  \mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
+  |\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal + \mathbf{D}^\intercal
+  \adj(\mathbf{T})) \}.
+\end{gather*}
+Therefore,
+\begin{gather*}
+  \frac{\partial \mathcal{L}}{\partial \mathbf{B}} = \frac{1}{2}(\mathbf{T} +
+  \bm\Sigma^{-1})\mathbf{B} - \frac{1}{2} \mathbb{E} [\{
+  |\bm\Sigma|^{-1}(\adj(\mathbf{T}) + \adj(\bm\Sigma)) + \mathbf{TUT} +
+  \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}v], \\
+  \frac{\partial \mathcal{L}}{\partial \mathbf{D}} =
+  \frac{1}{2}(\mathbf{TD}^\intercal + \mathbf{D}^\intercal\mathbf{T}) -
+  \frac{1}{2}\mathbb{E}[\{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
+  \mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
+  |\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal + \mathbf{D}^\intercal
+  \adj(\mathbf{T})) \}v].
+\end{gather*}
 
 \subsection{$\partial/\partial \lambda_j$}
 
@@ -865,9 +905,7 @@ For $j = 0, \dots, d$,
 \[
   \frac{\partial \mathcal{L}}{\partial \lambda_j} = - \frac{1}{2}\dlj\log|\Kuu|
   + \mathbf{t}^\intercal\dlj \left[ \Kru^\intercal\Kuu^{-1} \right] \bm\mu -
-  \sum_{i=1}^N \sum_{t=1}^T \dlj\mathbb{E}[\V(s_{i,t})] -
-  \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-  s')\dlj\mathbb{E}[\V(s')],
+  \dlj\mathbb{E}[v],
 \]
 where
 \begin{align*}
@@ -896,12 +934,11 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
         \Kuu}{\partial \lambda_j} \right) \Kuu^{-1} \bm\mu \\
     &- \frac{1}{2} \mathbb{E} \left[ \tr \left(
         (\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
-        \frac{\partial \Kuu}{\partial \lambda_j} \right) \sum_{i=1}^N
-      \sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in \mathcal{S}}
-      \mathcal{T}(s_{i,t}, a_{i,t}, s') \V(s') \right],
+        \frac{\partial \Kuu}{\partial \lambda_j} \right) v \right],
   \end{split}
 \]
 where the remaining derivatives can be found in Lemma \ref{lemma:derivatives}.
+% TODO: define adj() (adjugate/adjoint)
 
 \bibliographystyle{abbrv}
 \bibliography{paper.bib}
