@@ -30,8 +30,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   % TODO: diag() might not work in that case, and need to update the initialisation
 
   d = size(feature_data.splittable, 2);
-  G = zeros(2 * m + d + 1, 1);
-  eta = 1;
+  G = zeros(m + d + 1 + m*(m+1)/2, 1);
+  eta = 1e2;
 
   tic;
   while true
@@ -45,17 +45,16 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
       example_samples, counts, gp.mu, Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad,...
       Kru_grad, z, T, gp.B);
     changes = grad(2:end);
-    changes(1) = 0; % TEMP
     G = G + changes .^ 2;
     rho = eta / sqrt(G);
-    disp(changes);
-    fprintf('----------');
+    %disp(changes);
+    fprintf('----------\n');
     old_hyperparameters = vigpirlpackparam(gp);
     hyperparameters = old_hyperparameters + rho' .*...
       vigpirlhpxform(old_hyperparameters, changes, 'exp', 2);
     gp = vigpirlunpackparam(gp, hyperparameters);
 
-    if norm(hyperparameters(2:end) - old_hyperparameters(2:end), 1) < 0.01
+    if norm(hyperparameters - old_hyperparameters, 1) < 0.01
       break;
     end
   end

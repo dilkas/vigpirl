@@ -20,7 +20,7 @@ addpaths;
 % VIGPIRL
 test_result = runtest('vigpirl',struct(),'linearmdp',...
     'objectworld',struct('n',6,'determinism',0.7,'seed',1,'continuous',0),...
-    struct('training_sample_lengths',16,'training_samples',8,'verbosity',2));
+    struct('training_sample_lengths',16,'training_samples',16,'verbosity',2));
 
 % Visualize solution.
 printresult(test_result);

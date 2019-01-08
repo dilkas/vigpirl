@@ -17,3 +17,8 @@ endi = endi - m;
 
 gp.B(1:m+1:end) = vigpirlhpxform(x(endi-m+1:endi), [], 'exp', 1)';
 endi = endi - m;
+
+lower_triangle_mask = tril(true(size(gp.B)), -1);
+lower_triangle_size = sum(lower_triangle_mask(:) == true);
+gp.B(lower_triangle_mask) = x(endi-lower_triangle_size+1:endi);
+endi = endi - lower_triangle_size;
