@@ -70,3 +70,9 @@ function test_remaining_vigpirlkernel(testCase)
                        Kru, Kuu, Kuuinv, KruKuu, Krr, Kuu_grad, Kru_grad, u);
   verifyEqual(testCase, grad, [3; 11; -2; 1; 4] - 0.5 * [-14; 35; 0; -28; 42]);
 end
+
+function test_hyperparameter_packing(testCase)
+  gp = struct('rbf_var', 0, 'inv_widths', [1 2],...
+    'B', [3 0 0; 4 5 0; 6 7 8], 'mu', [-1; -2; -3]);
+  verifyEqual(testCase, vigpirlunpackparam(gp, vigpirlpackparam(gp)), gp, 'AbsTol', 1e-10);
+end

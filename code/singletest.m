@@ -18,10 +18,16 @@ addpaths;
 %   'training_samples',64,'verbosity',1));
 
 % VIGPIRL
-test_result = runtest('vigpirl',struct(),'linearmdp',...
-    'objectworld',struct('n',6,'determinism',0.7,'seed',1,'continuous',0),...
-    struct('training_sample_lengths',16,'training_samples',16,'verbosity',2));
+%test_result = runtest('vigpirl',struct(),'linearmdp',...
+%    'gridworld',struct('n',4,'determinism',0.7,'seed',1,'continuous',0),...
+%    struct('training_sample_lengths',10,'training_samples',10,'verbosity',2));
 
 % Visualize solution.
-printresult(test_result);
-visualize(test_result);
+%printresult(test_result);
+%visualize(test_result);
+
+mdp_data = struct('sa_s', [2; 1], 'sa_p', [1; 1], 'discount', 0, 'states', 2, 'actions', 1);
+feature_data = struct('splittable', [1; 2]);
+example_samples = {[1, 1]};
+
+vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, example_samples);

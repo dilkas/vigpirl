@@ -17,6 +17,6 @@ function changes = full_gradient(Sigma, Sigma_inv, mdp_model,...
   not_estimated_B = 0.5 * (T + Sigma_inv) * B;
 
   not_estimated = vertcat(not_estimated_elbo, not_estimated_lambda',...
-    not_estimated_mu', diag(not_estimated_B), get_lower_triangle(not_estimated_B));
+    diag(not_estimated_B), not_estimated_mu', get_lower_triangle(not_estimated_B));
   changes = not_estimated - 0.5 * estimated_grad;
 end
