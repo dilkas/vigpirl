@@ -8,6 +8,8 @@
 \usepackage{mathtools}
 \usepackage{url}
 
+% TODO: make q(r) into q(r \mid u)
+
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{lemma}[theorem]{Lemma}
@@ -56,7 +58,6 @@
 \begin{document}
 \maketitle
 
-% TODO: d q(u) d mu should be transposed
 % TODO: express all lambdas as exponentials (update the derivatives or sth)
 \section{Preliminaries}
 
@@ -83,6 +84,7 @@ for the derivatives: $\mathbf{T} = (\mathbf{B}\mathbf{B}^\intercal +
 (\mathbf{D}^2)^\intercal)^{-1}$ and $\mathbf{U} = (\mathbf{u} -
 \bm\mu)(\mathbf{u} - \bm\mu)^\intercal$.
 
+% TODO: d q(u) d mu should be transposed.
 \begin{lemma}[Derivatives of probability
   distributions] \label{lemma:derivatives}
   \begin{enumerate}
@@ -108,7 +110,7 @@ for the derivatives: $\mathbf{T} = (\mathbf{B}\mathbf{B}^\intercal +
       |\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal +
       \mathbf{D}^\intercal \adj(\mathbf{T})) \}$.
     \end{enumerate}
-  \item For $i = 0, \dots, d$,
+  \item For $i = 0, \dots, d$, % TODO: this is wrong!
     \[
       \frac{\partial q(\mathbf{r})}{\partial \lambda_i} =
       \frac{1}{2}q(\mathbf{r})\tr
@@ -412,7 +414,8 @@ all states and returns the value of state $s$.
   \]
 \end{theorem}
 
-\begin{lemma} \label{lemma:bound1}
+\begin{lemma} \label{lemma:bound1} % TODO: Lemma 1.1 is wrong about the
+                                % derivative. Fix
   Let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (a, b) \subset
   \mathbb{R}$ be an arbitrary bounded function. Then, for $i = 0,
   \dots, d$,

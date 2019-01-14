@@ -33,17 +33,18 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
   d = size(feature_data.splittable, 2);
   elbo_list = [];
+  grad_history = [];
+  hyperparameter_history = [];
 
   % for AdaGrad
   G = zeros(m + d + 1 + m*(m+1)/2, 1);
-  eta = 0.1;
 
   % for AdaDelta
   %num_hyperparameters = m + d + 1 + m*(m+1)/2;
   %E_g = zeros(num_hyperparameters, 1);
   %E_x = zeros(num_hyperparameters, 1);
   %epsilon = 1e-6;
-  %rho = 0.1;
+  %rho = 0.95;
 
   tic;
   i = 0;
@@ -61,10 +62,11 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     old_hyperparameters = vigpirlpackparam(gp);
     grad = transform_gradient(full_grad(2:end), old_hyperparameters, d, m);
 
-    %grad(1:d+1) = 0; % lambda
-    %grad(d+m+2:d+2*m+1) = 0; % mu
-    %grad(d+2:d+m+1) = 0; % B diagonal
-    %grad(d+2*m+2:end) = 0; % rest of B
+    %grad(1) = 0; % labmda_0
+    grad(2:d+1) = 0; % lambda (except first)
+    grad(d+m+2:d+2*m+1) = 0; % mu
+    grad(d+2:d+m+1) = 0; % B diagonal
+    grad(d+2*m+2:end) = 0; % rest of B
 
     fprintf('Hyperparameters:\n');
     %disp(old_hyperparameters(d+m+2:d+2*m+1));
@@ -73,18 +75,20 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %disp(grad(d+m+2:d+2*m+1));
     disp(grad);
 
+    hyperparameter_history = horzcat(hyperparameter_history, old_hyperparameters);
+
     % for AdaGrad
     G = G + grad .^ 2;
-    rho = (eta / sqrt(G))';
+    rho = (algorithm_params.learning_rate / sqrt(G))';
 
     % for AdaDelta
     %E_g = rho * E_g + (1 - rho) * grad .^ 2;
     %delta = sqrt(E_x + epsilon) ./ sqrt(E_g + epsilon) .* grad;
     %E_x = rho * E_x + (1 - rho) * delta .^ 2;
 
-    %hyperparameters = old_hyperparameters + 10 * delta;
-    %hyperparameters = old_hyperparameters + eta * grad;
-    hyperparameters = old_hyperparameters + rho .* grad;
+    %hyperparameters = old_hyperparameters + delta;
+    hyperparameters = old_hyperparameters + algorithm_params.learning_rate * grad;
+    %hyperparameters = old_hyperparameters + rho .* grad;
     gp = vigpirlunpackparam(gp, hyperparameters);
 
     %fprintf('New hyperparameters:\n');
@@ -92,18 +96,23 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     disp(full_grad(1));
     fprintf('----------\n');
     elbo_list = horzcat(elbo_list, full_grad(1));
+    grad_history = horzcat(grad_history, grad);
 
     %if norm(hyperparameters - old_hyperparameters, 1) < 0.001
     %  break;
     %end
 
     i = i + 1;
-    if (i > 100)
+    if (i >= 100)
       break;
     end
   end
   time = toc;
+
   stem(elbo_list);
+  %ylim([-10 10]);
+  plot_history(hyperparameter_history);
+  plot_history(grad_history);
 
                                 % Return corresponding reward function.
   r = KruKuu * gp.mu;
@@ -122,4 +131,14 @@ function new_grad = transform_gradient(grad, hyperparameters, d, m)
   num_transformed = 1 + d + m;
   new_grad = vertcat(vigpirlhpxform(hyperparameters(1:num_transformed),...
     grad(1:num_transformed), 'exp', 2), grad(num_transformed+1:end));
+end
+
+function plot_history(matrix)
+  figure();
+  %ylim([-10 10]);
+  hold on;
+  for row = 1:size(matrix, 1)
+    plot(matrix(row,:));
+  end
+  hold off;
 end

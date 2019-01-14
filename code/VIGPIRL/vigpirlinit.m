@@ -16,4 +16,4 @@ gp.rbf_var = random('Chisquare', algorithm_params.rbf_init);
 %gp.rbf_var = 1; % TEMP
 gp.inv_widths = random('Chisquare', algorithm_params.ard_init,...
     [1, size(feature_data.splittable, 2)]);
-%gp.inv_widths = ones(1, size(feature_data.splittable, 2));
+%gp.inv_widths = ones(1, size(feature_data.splittable, 2)); % TEMP

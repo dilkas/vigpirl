@@ -14,7 +14,7 @@ function answer = estimate_derivative(u, KruKuu, Kuu, Kuu_inv, r_covariance_matr
     unique_mu_part = (u' - mu)' * (Sigma_inv + Sigma_inv');
     %unique_B_part = ((adjoint(T) + adjoint(Sigma)) / det(Sigma) + T*U*T +...
     %  Sigma_inv*U*Sigma_inv) * B;
-    unique_B_part = Sigma_inv*U*Sigma_inv*B - adjoint(B*B')*B/det(Sigma);
+    unique_B_part = Sigma_inv*U*Sigma_inv*B - adjoint(Sigma)*B/det(Sigma);
 
     unique_part = vertcat(2, unique_lambda_part', diag(unique_B_part),...
       unique_mu_part', get_lower_triangle(unique_B_part));
