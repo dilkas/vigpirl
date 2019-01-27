@@ -24,8 +24,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
                  % B is a lower triangular matrix with positive diagonal entries
   gp.B = normrnd(0, 1, [m, m]);
   gp.B(1:m+1:end) = random('Chisquare', 4, [m, 1]);
-  gp.B = tril(gp.B);
-  %gp.B = eye(m); % TEMP
+  %gp.B = tril(gp.B);
+  gp.B = eye(m); % TEMP
   %gp.D = diag(normrnd(0, 1));
   gp.D = zeros(m, m); % TEMP
   % TODO: B could be m x p for p << m
@@ -50,21 +50,21 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   i = 0;
   while true
     % Compute the gradient
-    [Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad] = vigpirlkernel(gp);
+    [Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad, Krr_grad] = vigpirlkernel(gp);
     Sigma = gp.B * gp.B' + gp.D * gp.D;
     Sigma_inv = inv(Sigma);
     z = mvnrnd(gp.mu', Sigma, algorithm_params.samples_count);
     T = inv(gp.B * gp.B' + (gp.D * gp.D)');
     full_grad = full_gradient(Sigma, Sigma_inv, mdp_model, mdp_data,...
       example_samples, counts, gp.mu, Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad,...
-      Kru_grad, z, T, gp.B);
+      Kru_grad, Krr_grad, z, T, gp.B);
 
     old_hyperparameters = vigpirlpackparam(gp);
     grad = transform_gradient(full_grad(2:end), old_hyperparameters, d, m);
 
     %grad(1) = 0; % labmda_0
-    grad(2:d+1) = 0; % lambda (except first)
-    grad(d+m+2:d+2*m+1) = 0; % mu
+    %grad(2:d+1) = 0; % lambda (except first)
+    %grad(d+m+2:d+2*m+1) = 0; % mu
     grad(d+2:d+m+1) = 0; % B diagonal
     grad(d+2*m+2:end) = 0; % rest of B
 
@@ -98,12 +98,12 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     elbo_list = horzcat(elbo_list, full_grad(1));
     grad_history = horzcat(grad_history, grad);
 
-    %if norm(hyperparameters - old_hyperparameters, 1) < 0.001
-    %  break;
-    %end
+    if norm(hyperparameters - old_hyperparameters, 1) < 0.001
+      break;
+    end
 
     i = i + 1;
-    if (i >= 100)
+    if (i >= 1000)
       break;
     end
   end
