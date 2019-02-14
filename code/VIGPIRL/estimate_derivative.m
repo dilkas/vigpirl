@@ -1,14 +1,12 @@
-function answer = estimate_derivative(u, Krr, Kru, Kuu, Kuu_inv, r_covariance_matrix,...
-                                      Kuu_derivatives, Kru_derivatives, Krr_derivatives, mdp_data, Sigma, Sigma_inv,...
-                                      mu, mdp_model, example_samples, counts, T, B)
+function answer = estimate_derivative(u, matrices, r_covariance_matrix,...
+  mdp_data, Sigma, mu, mdp_model, example_samples, counts, T, B)
              % Uses a point-sample of u to estimate the part of dL/dnu under E[]
 
   function answer = lambda_derivative(i)
     % Returns the derivative of the ELBO w.r.t. lambda_i.
     % (Actually, the part of the derivative inside E[] without v)
-
-    R = S * Kru_derivatives(:, :, i) - Krr_derivatives(:, :, i) +...
-      (Kru_derivatives(:, :, i)' - S * Kuu_derivatives(:, :, i)) * Kuu_inv * Kru;
+    R = S * matrices.Kru_grad(:, :, i) - matrices.Krr_grad(:, :, i) +...
+      (matrices.Kru_grad(:, :, i)' - S * matrices.Kuu_grad(:, :, i)) * Kuu_inv * matrices.Kru;
     t = r' - S * u';
     answer = trace(R * adjoint(Gamma)) / det(Gamma) - t' * Gamma_inv * R * Gamma_inv * t;
   end
@@ -23,9 +21,11 @@ function answer = estimate_derivative(u, Krr, Kru, Kuu, Kuu_inv, r_covariance_ma
     elbo_part = solution.v(state, 1) - mdp_data.discount * s;
   end
 
+  Kuu_inv = inv(matrices.Kuu);
+  Sigma_inv = inv(Sigma);
   U = (u - mu) * (u - mu)';
-  S = Kru' * Kuu_inv;
-  Gamma = Krr - S * Kru;
+  S = matrices.Kru' * Kuu_inv;
+  Gamma = matrices.Krr - S * matrices.Kru;
   Gamma_inv = inv(Gamma);
   %r = mvnrnd(S * u', r_covariance_matrix);
   r = (S * u')';
@@ -34,7 +34,7 @@ function answer = estimate_derivative(u, Krr, Kru, Kuu, Kuu_inv, r_covariance_ma
     example_samples, 'Uniform', 0);
   v = sum(cat(3, v_for_each_state_action{:}), 3);
 
-  unique_lambda_part = arrayfun(@lambda_derivative, 1:size(Kuu_derivatives, 3));
+  unique_lambda_part = arrayfun(@lambda_derivative, 1:size(matrices.Kuu_grad, 3));
   unique_mu_part = (u' - mu)' * (Sigma_inv + Sigma_inv');
   unique_B_part = 2*(Sigma_inv*U*Sigma_inv - adjoint(Sigma)/det(Sigma)) * B;
 

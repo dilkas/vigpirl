@@ -50,14 +50,12 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   tic;
   while true
     % Compute the gradient
-    [Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad, Kru_grad, Krr_grad] = vigpirlkernel(gp);
+    matrices = vigpirlkernel(gp);
     Sigma = gp.B * gp.B' + gp.D * gp.D;
-    Sigma_inv = inv(Sigma);
     z = mvnrnd(gp.mu', Sigma, algorithm_params.samples_count);
     T = inv(gp.B * gp.B' + (gp.D * gp.D)');
-    full_grad = full_gradient(Sigma, Sigma_inv, mdp_model, mdp_data,...
-      example_samples, counts, gp.mu, Kru, Kuu, Kuu_inv, KruKuu, Krr, Kuu_grad,...
-      Kru_grad, Krr_grad, z, T, gp.B);
+    full_grad = full_gradient(Sigma, mdp_model, mdp_data,...
+      example_samples, counts, gp.mu, matrices, z, T, gp.B);
 
     old_hyperparameters = vigpirlpackparam(gp);
     grad = transform_gradient(full_grad(2:end), old_hyperparameters, d, m);
@@ -115,7 +113,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   plot_history(grad_history);
 
                                 % Return corresponding reward function.
-  r = KruKuu * gp.mu;
+  r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
   solution = feval([mdp_model 'solve'], mdp_data, r);
   v = solution.v;
   q = solution.q;

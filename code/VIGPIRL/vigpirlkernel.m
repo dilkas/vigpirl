@@ -1,5 +1,5 @@
                       % Optimized kernel computation function for DC mode GPIRL.
-function [K_uf, K_uu, invK, K_ufKinv, K_ff, K_uu_grad, K_uf_grad, K_ff_grad] = vigpirlkernel(gp, Xstar)
+function matrices = vigpirlkernel(gp, Xstar)
   inv_widths = min(gp.inv_widths, 1e100); % Prevent overflow.
   iw_sqrt = sqrt(inv_widths); % Compute scales.
 
@@ -56,4 +56,6 @@ function [K_uf, K_uu, invK, K_ufKinv, K_ff, K_uu_grad, K_uf_grad, K_ff_grad] = v
     rethrow(err);
   end
   K_ufKinv = K_uf' * invK;
+  matrices = struct('Kuu', K_uu, 'Kru', K_uf, 'Krr', K_ff, 'Kuu_grad',...
+    K_uu_grad, 'Kru_grad', K_uf_grad, 'Krr_grad', K_ff_grad);
 end
