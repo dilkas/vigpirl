@@ -18,6 +18,7 @@
 \theoremstyle{remark}
 \newtheorem*{remark}{Remark}
 
+% TODO: T is not necessary because D is symmetric
 \DeclareMathOperator{\tr}{tr}
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\adj}{adj}
@@ -89,7 +90,6 @@ for the derivatives:
   \mathbf{U} &= (\mathbf{u} - \bm\mu)(\mathbf{u} - \bm\mu)^\intercal
 \end{align*}
 
-% TODO: is d q(u) d B the same as in code?
 \begin{lemma}[Derivatives of probability
   distributions] \label{lemma:derivatives}
   \begin{enumerate}
@@ -105,9 +105,8 @@ for the derivatives:
       - \bm\Sigma^{-\intercal})$.
     \item
       $\frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} =
-      \frac{1}{2}q(\mathbf{u}) \{ |\bm\Sigma|^{-1}(\adj(\mathbf{T}) +
-      \adj(\bm\Sigma)) + \mathbf{TUT} +
-      \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}$.
+      q(\mathbf{u})(\bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} -
+      |\bm\Sigma|^{-1}\adj(\bm\Sigma))\mathbf{B}$.
     \item
       $\frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} =
       \frac{1}{2}q(\mathbf{u}) \{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
@@ -896,7 +895,8 @@ Hence,
 For $\mathbf{S} \in \{ \mathbf{B}, \mathbf{D} \}$,
 \[
   \frac{\partial\mathcal{L}}{\partial\mathbf{S}} =
-  \frac{1}{2}(\dS\log|\bm\Sigma| - \tr \left( \right)) % TODO: finish this
+  \frac{1}{2} \left( \dS\log|\bm\Sigma| - \dS\tr \left( \Kuu^{-1} \bm\Sigma
+    \right) \right)
   - \dS\mathbb{E}[v].
 \]
 By Theorem \ref{thm:main},
@@ -907,34 +907,35 @@ By Theorem \ref{thm:main},
 Then, using the aforementioned tool by Laue et al.
 \cite{DBLP:conf/nips/LaueMG18}, we get
 \begin{gather*}
-  \dB\log|\bm\Sigma| = (\mathbf{T} + \bm\Sigma^{-1})\mathbf{B}, \\
-  \dD\log|\bm\Sigma| = \mathbf{T}\mathbf{D}^\intercal +
-  \mathbf{D}^\intercal\mathbf{T},
+  \dB\log|\bm\Sigma| = 2\bm\Sigma^{-1}\mathbf{B}, \\
+  %\dD\log|\bm\Sigma| = \mathbf{T}\mathbf{D}^\intercal +
+  %\mathbf{D}^\intercal\mathbf{T}, \\
+  \dB \tr \left( \Kuu^{-1} \bm\Sigma \right) = 2\Kuu^{-1}\mathbf{B},
 \end{gather*}
 and Lemma \ref{lemma:derivatives} gives
 \begin{gather*}
-  \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} = \frac{1}{2}q(\mathbf{u})
-  \{ |\bm\Sigma|^{-1}(\adj(\mathbf{T}) + \adj(\bm\Sigma)) + \mathbf{TUT} +
-  \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}, \\
-  \frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} = \frac{1}{2}q(\mathbf{u})
-  \{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
-  \mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
-  |\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal + \mathbf{D}^\intercal
-  \adj(\mathbf{T})) \}.
+  \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} =
+  q(\mathbf{u})(\bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} -
+  |\bm\Sigma|^{-1}\adj(\bm\Sigma))\mathbf{B}.
+  %\frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} = \frac{1}{2}q(\mathbf{u})
+  %\{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
+  %\mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
+  %|\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal + \mathbf{D}^\intercal
+  %\adj(\mathbf{T})) \}.
 \end{gather*}
 Therefore,
 \begin{gather*}
-  \frac{\partial \mathcal{L}}{\partial \mathbf{B}} = \frac{1}{2}(\mathbf{T} +
-  \bm\Sigma^{-1})\mathbf{B} - \frac{1}{2} \mathbb{E} [\{
-  |\bm\Sigma|^{-1}(\adj(\mathbf{T}) + \adj(\bm\Sigma)) + \mathbf{TUT} +
-  \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}v], \\
-  \frac{\partial \mathcal{L}}{\partial \mathbf{D}} =
-  \frac{1}{2}(\mathbf{TD}^\intercal + \mathbf{D}^\intercal\mathbf{T}) -
-  \frac{1}{2}\mathbb{E}[\{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
-  \mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
-  |\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal + \mathbf{D}^\intercal
-  \adj(\mathbf{T})) \}v].
-\end{gather*}
+  \frac{\partial \mathcal{L}}{\partial \mathbf{B}} =
+  \left( \bm\Sigma^{-1} - \Kuu^{-1} \right) \mathbf{B} - \mathbb{E}
+  [(\bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} -
+  |\bm\Sigma|^{-1}\adj(\bm\Sigma))\mathbf{B}v].
+  %\frac{\partial \mathcal{L}}{\partial \mathbf{D}} =
+  %\frac{1}{2}(\mathbf{TD}^\intercal + \mathbf{D}^\intercal\mathbf{T}) -
+  %\frac{1}{2}\mathbb{E}[\{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
+  %\mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
+  %|\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal + \mathbf{D}^\intercal
+  %\adj(\mathbf{T})) \}v].
+\end{gather*} % TODO: update the D derivative
 
 \subsection{$\partial/\partial \lambda_j$}
 

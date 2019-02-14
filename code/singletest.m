@@ -26,8 +26,14 @@ addpaths;
 %printresult(test_result);
 %visualize(test_result);
 
-mdp_data = struct('sa_s', [2; 1], 'sa_p', [1; 1], 'discount', 0, 'states', 2, 'actions', 1);
-feature_data = struct('splittable', [1; 2]);
-example_samples = {[1, 1]};
+%mdp_data = struct('sa_s', [2; 1], 'sa_p', [1; 1], 'discount', 0.9, 'states', 2, 'actions', 1);
+%feature_data = struct('splittable', [1; 2]);
+%example_samples = {[1, 1]};
+
+mdp_data = struct('discount', 0, 'states', 3, 'actions', 2);
+mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
+mdp_data.sa_p(1:3, 1:2, 1) = 1;
+feature_data = struct('splittable', [1; 2; 3]);
+example_samples = {[1, 1], [3, 2]};
 
 vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, example_samples);
