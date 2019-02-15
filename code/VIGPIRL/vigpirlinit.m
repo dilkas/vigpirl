@@ -12,8 +12,8 @@ gp.X_u = feature_data.splittable;
 
 % Initialize hyperparameters.
 gp.noise_var = algorithm_params.noise_init;
-gp.rbf_var = random('Chisquare', algorithm_params.rbf_init);
-%gp.rbf_var = 1; % TEMP
-gp.inv_widths = random('Chisquare', algorithm_params.ard_init,...
+%gp.lambda0 = random('Chisquare', algorithm_params.rbf_init);
+gp.lambda0 = 1; % TEMP
+gp.lambda = random('Chisquare', algorithm_params.ard_init,...
     [1, size(feature_data.splittable, 2)]);
-%gp.inv_widths = ones(1, size(feature_data.splittable, 2)); % TEMP
+%gp.lambda = ones(1, size(feature_data.splittable, 2)); % TEMP

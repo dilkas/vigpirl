@@ -1,30 +1,86 @@
-function changes = full_gradient(Sigma, mdp_model,...
-  mdp_data, example_samples, counts, mu, matrices, z, T, B)
+function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, matrices)
+% TODO: will need to make this return optimal r as a function of mu so that
+% vigpirlrun can construct an optimal solution (just like before)
+% NOTE: returns the gradient for parameters in vector form
 
-  Kuu_inv = inv(matrices.Kuu);
+  function answer = estimate_derivative(u)
+   % Uses a point-sample of u to estimate the part of dL/dnu under E[]
+
+    function answer = lambda_derivative(i)
+      % Returns the derivative of the ELBO w.r.t. lambda_i.
+      % (Actually, the part of the derivative inside E[] without v)
+      R = S * matrices.Kru_grad(:, :, i) - matrices.Krr_grad(:, :, i) +...
+        (matrices.Kru_grad(:, :, i)' - S * matrices.Kuu_grad(:, :, i)) * Kuu_inv * matrices.Kru;
+      t = r' - S * u';
+      answer = trace(R * adjoint(Gamma)) / det(Gamma) - t' * Gamma_inv * R * Gamma_inv * t;
+    end
+
+    % The part of v specific to a single state-action pair
+    function elbo_part = expected_derivative_for(state_action)
+      state = state_action(1);
+      action = state_action(2);
+      next_states = extract(mdp_data.sa_s, state, action);
+      next_probabilities = extract(mdp_data.sa_p, state, action);
+      s = next_probabilities' * solution.v(next_states, 1);
+      elbo_part = solution.v(state, 1) - mdp_data.discount * s;
+    end
+
+    U = (u - gp.mu) * (u - gp.mu)';
+    %r = mvnrnd(S * u', Gamma);
+    r = (S * u')';
+    solution = linearmdpsolve(mdp_data, r');
+    v_for_each_state_action = cellfun(@expected_derivative_for,...
+      demonstrations, 'Uniform', 0);
+    v = sum(cat(3, v_for_each_state_action{:}), 3);
+
+    unique_lambda_part = arrayfun(@lambda_derivative, 1:size(matrices.Kuu_grad, 3));
+    unique_mu_part = (u' - gp.mu)' * (Sigma_inv + Sigma_inv');
+    unique_B_part = 2*(Sigma_inv*U*Sigma_inv - adjoint(Sigma)/det(Sigma)) * gp.B;
+
+    unique_part = vertcat(2, unique_lambda_part', diag(unique_B_part),...
+      unique_mu_part', get_lower_triangle(unique_B_part));
+    answer = unique_part * v;
+  end
+
+  Sigma = gp.B * gp.B';
   Sigma_inv = inv(Sigma);
-  r_covariance_matrix = matrices.Krr - matrices.Kru' * Kuu_inv * matrices.Kru;
-  grad_prediction_for_each_u = arrayfun(@(i) estimate_derivative(z(i, :),...
-    matrices, r_covariance_matrix, mdp_data, Sigma, mu, mdp_model,...
-    example_samples, counts, T, B), 1:size(z, 1), 'Uniform', 0);
+  Kuu_inv = inv(matrices.Kuu);
+  S = matrices.Kru' * Kuu_inv;
+  Gamma = matrices.Krr - S * matrices.Kru;
+  Gamma_inv = inv(Gamma);
+
+  grad_prediction_for_each_u = arrayfun(@(i) estimate_derivative(z(i, :)), 1:size(z, 1), 'Uniform', 0);
   estimated_grad = mean(cat(3, grad_prediction_for_each_u{:}), 3);
 
   not_estimated_lambda = arrayfun(@(i) counts' * (matrices.Kru_grad(:, :, i)' -...
-    matrices.Kru' * Kuu_inv * matrices.Kuu_grad(:, :, i)) * Kuu_inv * mu +...
+    S * matrices.Kuu_grad(:, :, i)) * Kuu_inv * gp.mu +...
     0.5 * (trace(Kuu_inv * matrices.Kuu_grad(:, :, i) * Kuu_inv * Sigma) +...
-    mu' * Kuu_inv * matrices.Kuu_grad(:, :, i) * Kuu_inv * mu -...
+    gp.mu' * Kuu_inv * matrices.Kuu_grad(:, :, i) * Kuu_inv * gp.mu -...
     trace(Kuu_inv * matrices.Kuu_grad(:, :, i))), 1:size(matrices.Kuu_grad, 3));
-  not_estimated_mu = (counts' * matrices.Kru' * Kuu_inv)' - 0.5 * (Kuu_inv + Kuu_inv') * mu;
-  not_estimated_elbo = counts' * matrices.Kru' * Kuu_inv * mu -...
-    0.5 * (trace(Kuu_inv * Sigma) + mu' * Kuu_inv * mu + log(det(matrices.Kuu)) - log(det(Sigma)));
-  not_estimated_B = (Sigma_inv - Kuu_inv) * B;
+  not_estimated_mu = (counts' * S)' - 0.5 * (Kuu_inv + Kuu_inv') * gp.mu;
+  not_estimated_elbo = counts' * S * gp.mu -...
+    0.5 * (trace(Kuu_inv * Sigma) + gp.mu' * Kuu_inv * gp.mu + log(det(matrices.Kuu)) - log(det(Sigma)));
+  not_estimated_B = (Sigma_inv - Kuu_inv) * gp.B;
 
   not_estimated = vertcat(not_estimated_elbo, not_estimated_lambda',...
     diag(not_estimated_B), not_estimated_mu, get_lower_triangle(not_estimated_B));
   changes = not_estimated - 0.5 * estimated_grad;
+  elbo = changes(1);
+  grad = transform_gradient(changes(2:end), vigpirlpackparam(gp), size(gp.lambda), size(gp.mu));
 
-  fprintf('Not estimated grad:');
-  disp(not_estimated(2));
-  fprintf('Estimated grad:');
-  disp(estimated_grad(2));
+  %fprintf('Not estimated grad:');
+  %disp(not_estimated(2));
+  %fprintf('Estimated grad:');
+  %disp(estimated_grad(2));
+end
+
+function a = extract(mdp, state, action)
+  temp = mdp(state, action, :);
+  a = reshape(temp, size(mdp, 3), 1);
+end
+
+function new_grad = transform_gradient(grad, hyperparameters, d, m)
+  num_transformed = 1 + d + m;
+  new_grad = vertcat(vigpirlhpxform(hyperparameters(1:num_transformed),...
+    grad(1:num_transformed), 'exp', 2), grad(num_transformed+1:end));
 end

@@ -17,8 +17,8 @@ gp.B(1:m+1:end) = vigpirlhpxform(x(endi-m+1:endi), [], 'exp', 1)';
 endi = endi - m;
 
 % Read ARD kernel parameters.
-gp.inv_widths = vigpirlhpxform(x(endi-length(gp.inv_widths)+1:endi), [], 'exp', 1)';
-endi = endi - length(gp.inv_widths);
+gp.lambda = vigpirlhpxform(x(endi-length(gp.lambda)+1:endi), [], 'exp', 1)';
+endi = endi - length(gp.lambda);
 
-gp.rbf_var = vigpirlhpxform(x(endi), [], 'exp', 1);
+gp.lambda0 = vigpirlhpxform(x(endi), [], 'exp', 1);
 endi = endi - 1;
