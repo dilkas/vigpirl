@@ -15,7 +15,7 @@ if mode == 1,
 elseif mode == 2,
     % Transform derivative.
     if strcmp(xform,'quad'),
-        hp = 2*bsxfun(@times,hp',grad);
+        hp = 2*bsxfun(@times, hp, grad);
     elseif strcmp(xform, 'exp'),
         hp = bsxfun(@times, exp(hp), grad);
         hp(grad == 0) = 0;

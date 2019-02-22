@@ -20,10 +20,10 @@ addpaths;
 % VIGPIRL
 test_result = runtest('vigpirl',struct(),'linearmdp',...
     'gridworld',struct('n',8,'determinism',0.7,'seed',1,'continuous',0),...
-    struct('training_sample_lengths',8,'training_samples',16,'verbosity',2));
+    struct('training_sample_lengths',8,'training_samples',32,'verbosity',2));
 
 % Visualize solution.
-%printresult(test_result);
+printresult(test_result);
 visualize(test_result);
 
 % Two states -- works well
@@ -32,7 +32,7 @@ visualize(test_result);
 %example_samples = {[1, 1]};
 
 % Three states -- doesn't work
-%mdp_data = struct('discount', 0, 'states', 3, 'actions', 2);
+%mdp_data = struct('discount', 0.9, 'states', 3, 'actions', 2);
 %mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
 %mdp_data.sa_p(1:3, 1:2, 1) = 1;
 %feature_data = struct('splittable', [1; 2; 3]);

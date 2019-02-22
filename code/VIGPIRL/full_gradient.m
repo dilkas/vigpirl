@@ -32,6 +32,7 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
     v_for_each_state_action = cellfun(@expected_derivative_for,...
       demonstrations, 'Uniform', 0);
     v = sum(cat(3, v_for_each_state_action{:}), 3);
+    %fprintf('sample of v: %f\n', v);
 
     unique_lambda_part = arrayfun(@lambda_derivative, 1:size(matrices.Kuu_grad, 3));
     unique_mu_part = (u' - gp.mu)' * (Sigma_inv + Sigma_inv');
@@ -54,9 +55,9 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
   not_estimated_lambda = arrayfun(@(i) counts' * (matrices.Kru_grad(:, :, i)' -...
     S * matrices.Kuu_grad(:, :, i)) * Kuu_inv * gp.mu +...
-    0.5 * (trace(Kuu_inv * matrices.Kuu_grad(:, :, i) * Kuu_inv * Sigma) +...
+    0.5 * (trace(matrices.Kuu_grad(:, :, i) * Kuu_inv * Sigma * Kuu_inv) +...
     gp.mu' * Kuu_inv * matrices.Kuu_grad(:, :, i) * Kuu_inv * gp.mu -...
-    trace(Kuu_inv * matrices.Kuu_grad(:, :, i))), 1:size(matrices.Kuu_grad, 3));
+    trace(matrices.Kuu_grad(:, :, i) * Kuu_inv)), 1:size(matrices.Kuu_grad, 3));
   not_estimated_mu = (counts' * S)' - 0.5 * (Kuu_inv + Kuu_inv') * gp.mu;
   not_estimated_elbo = counts' * S * gp.mu -...
     0.5 * (trace(Kuu_inv * Sigma) + gp.mu' * Kuu_inv * gp.mu + log(det(matrices.Kuu)) - log(det(Sigma)));
@@ -65,6 +66,23 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   not_estimated = vertcat(not_estimated_elbo, not_estimated_lambda',...
     diag(not_estimated_B), not_estimated_mu, get_lower_triangle(not_estimated_B));
   changes = not_estimated - 0.5 * estimated_grad;
+
+  % TESTING
+  %fprintf('Not estimated: %f, estimated: %f, total: %f\n', not_estimated(2), estimated_grad(2), changes(2));
+  p_derivative = -0.5 * estimated_grad(2) +...
+    counts' * (matrices.Kru_grad(:, :, 1)' -...
+    matrices.Kru' * Kuu_inv * matrices.Kuu_grad(:, :, 1)) * Kuu_inv * gp.mu;
+  kl_derivative = 0.5 * (trace(Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * Sigma) +...
+    gp.mu' * Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * gp.mu -...
+    trace(Kuu_inv * matrices.Kuu_grad(:, :, 1)));
+  fprintf('d/d_lambda0 of E[log p(D | r)]: %f\n', p_derivative);
+  fprintf('estimated part: %f\n', -0.5 * estimated_grad(2));
+  fprintf('non-estimated part: %f\n', p_derivative + 0.5 * estimated_grad(2));
+  fprintf('average v: %f\n', 0.5 * estimated_grad(1));
+  %fprintf('d/d_lambda0 of -KL(q(u) || p(u)): %f\n', kl_derivative);
+  %fprintf('their sum: %f\n', changes(2));
+  assert(abs(p_derivative + kl_derivative - changes(2)) < 1e-5);
+
   elbo = changes(1);
   grad = transform_gradient(changes(2:end), vigpirlpackparam(gp), size(gp.lambda), size(gp.mu));
 

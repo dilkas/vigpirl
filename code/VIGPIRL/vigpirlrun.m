@@ -22,10 +22,10 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   gp.mu = rand(1, m)';
   %gp.mu = [-2; 3; 3]; % TEMP
                  % B is a lower triangular matrix with positive diagonal entries
-  %gp.B = normrnd(0, 1, [m, m]);
-  %gp.B(1:m+1:end) = random('Chisquare', 4, [m, 1]);
-  %gp.B = tril(gp.B);
-  gp.B = eye(m); % TEMP
+  gp.B = normrnd(0, 1, [m, m]);
+  gp.B(1:m+1:end) = random('Chisquare', 4, [m, 1]);
+  gp.B = tril(gp.B);
+  %gp.B = eye(m); % TEMP
   %gp.D = diag(normrnd(0, 1));
   gp.D = zeros(m, m); % TEMP
 
@@ -42,12 +42,22 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %disp(gp);
     %disp(gp.B * gp.B');
     %disp(gp.mu);
- 
+
     matrices = vigpirlkernel(gp);
     zz = mvnrnd(gp.mu', gp.B * gp.B', algorithm_params.samples_count);
     [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, zz, matrices);
 
+    % Disable gradients that don't work
+    %grad(1) = 0; % lambda0
+    grad(2:d+1) = 0; % lambda (except first)
+    grad(d+m+2:d+2*m+1) = 0; % mu
+    grad(d+2:d+m+1) = 0; % B diagonal
+    grad(d+2*m+2:end) = 0; % rest of B
+    disp(grad(1));
+
     elbo_list = horzcat(elbo_list, elbo);
+    hyperparameter_history = horzcat(hyperparameter_history, parameter_vector);
+    grad_history = horzcat(grad_history, grad);
     fprintf('elbo: %f\n', elbo);
 
     % We want to maximise the ELBO, while fmincon wants to minimize...
@@ -56,24 +66,19 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     elbo = -elbo;
   end
 
-  % Checking if the gradients are correct
-  options = optimoptions('fmincon', 'Algorithm', 'active-set');
-  options = optimoptions(options, 'RelLineSrchBnd', 10);
-  options = optimoptions(options, 'RelLineSrchBndDuration', 10);
-  options = optimoptions(options, 'SpecifyObjectiveGradient', true);
-  %options = optimoptions(options, 'MaxIterations', 10);
-  options = optimoptions(options, 'FunctionTolerance', 10);
-  %options = optimoptions(options, 'CheckGradients', true);
   parameter_vector = vigpirlpackparam(gp);
-  %parameter_vector = log(gp.lambda0);
-  [optimal_lambda0, optimal_elbo, ~, output] = fmincon(@wrapper, parameter_vector, [], [], [], [], [], [], [], options);
-  %disp(optimal_lambda0);
-  disp(optimal_elbo);
-  disp(output);
+  for lambda0 = 5:20
+    parameter_vector(1) = lambda0;
+    wrapper(parameter_vector);
+  end
+
+  % Checking if the gradients are correct
+  options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true);
+  %[optimal_lambda0, optimal_elbo, ~, output] = fminunc(@wrapper, parameter_vector, options);
+  %disp(output);
   stem(elbo_list);
-  ylim([-100 100]);
-  %plot_history(hyperparameter_history);
-  %plot_history(grad_history);
+  plot_history(hyperparameter_history);
+  plot_history(grad_history);
 
   % Return corresponding reward function.
   r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
@@ -81,10 +86,12 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   v = solution.v;
   q = solution.q;
   p = solution.p;
+  disp(r);
+  disp(v);
+  disp(p);
   irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
                       'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
                       'model_p_itr', {{p}}, 'time', 0, 'score', 0);
-
   return;
 
   % for AdaGrad
@@ -102,22 +109,28 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   while true
     % Compute the gradient
     matrices = vigpirlkernel(gp);
+    z = mvnrnd(gp.mu', gp.B * gp.B', algorithm_params.samples_count);
     [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, matrices);
 
     old_hyperparameters = vigpirlpackparam(gp);
 
-    %grad(1) = 0; % lambda0
-    grad(2:d+1) = 0; % lambda (except first)
-    grad(d+m+2:d+2*m+1) = 0; % mu
+    grad(1) = 0; % lambda0
+    %grad(2:d+1) = 0; % lambda (except first)
+    %grad(d+m+2:d+2*m+1) = 0; % mu
     grad(d+2:d+m+1) = 0; % B diagonal
     grad(d+2*m+2:end) = 0; % rest of B
 
-    fprintf('Hyperparameters:\n');
-    disp(old_hyperparameters);
-    fprintf('Gradient:\n');
-    disp(grad);
+    %fprintf('Hyperparameters:\n');
+    %disp(old_hyperparameters);
+    %fprintf('Gradient:\n');
+    %disp(grad);
 
     hyperparameter_history = horzcat(hyperparameter_history, old_hyperparameters);
+
+    % Make the derivative of B weaker
+    learning_rate_vector(1:length(grad), 1) = algorithm_params.learning_rate;
+    learning_rate_vector(d+2:d+m+1) = algorithm_params.B_learning_rate;
+    learning_rate_vector(d+2*m+2:end) = algorithm_params.B_learning_rate;
 
     % for AdaGrad
     G = G + grad .^ 2;
@@ -127,11 +140,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %E_g = rho * E_g + (1 - rho) * grad .^ 2;
     %delta = sqrt(E_x + epsilon) ./ sqrt(E_g + epsilon) .* grad;
     %E_x = rho * E_x + (1 - rho) * delta .^ 2;
-
-    % Make the derivative of B weaker
-    learning_rate_vector(1:length(grad), 1) = algorithm_params.learning_rate;
-    learning_rate_vector(d+2:d+m+1) = algorithm_params.B_learning_rate;
-    learning_rate_vector(d+2*m+2:end) = algorithm_params.B_learning_rate;
 
     %hyperparameters = old_hyperparameters + delta;
     hyperparameters = old_hyperparameters + learning_rate_vector .* grad;

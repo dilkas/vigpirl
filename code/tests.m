@@ -35,7 +35,6 @@ function test_remaining_vigpirlkernel(testCase)
   %verifyEqual(testCase, K_ufKinv, KruKuu, 'AbsTol', 1e-10);
   %verifyEqual(testCase, K_ff, Kff, 'AbsTol', 1e-10);
 
-  % Test estimate_derivative
   demonstrations = {[1, 1], [3, 2]};
   counts = [1; 0; 1];
   u = [1 -2 3];
@@ -65,6 +64,7 @@ function test_remaining_vigpirlkernel(testCase)
   [~, full_gradient_answer] = full_gradient(mdp_data, demonstrations, counts, gp, u, matrices);
   full_gradient_correct_answer = 116 + 0.5 * (417 * v - 25);
   verifyEqual(testCase, full_gradient_answer(1), full_gradient_correct_answer);
+  disp(full_gradient_correct_answer);
 end
 
 function test_hyperparameter_packing(testCase)
