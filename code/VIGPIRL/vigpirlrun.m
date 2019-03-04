@@ -42,18 +42,18 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %disp(gp);
     %disp(gp.B * gp.B');
     %disp(gp.mu);
-
+ 
     matrices = vigpirlkernel(gp);
     zz = mvnrnd(gp.mu', gp.B * gp.B', algorithm_params.samples_count);
     [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, zz, matrices);
 
     % Disable gradients that don't work
     %grad(1) = 0; % lambda0
-    grad(2:d+1) = 0; % lambda (except first)
-    grad(d+m+2:d+2*m+1) = 0; % mu
-    grad(d+2:d+m+1) = 0; % B diagonal
-    grad(d+2*m+2:end) = 0; % rest of B
-    disp(grad(1));
+    %grad(2:d+1) = 0; % lambda (except first)
+    %grad(d+m+2:d+2*m+1) = 0; % mu
+    %grad(d+2:d+m+1) = 0; % B diagonal
+    %grad(d+2*m+2:end) = 0; % rest of B
+    %disp(grad(1));
 
     elbo_list = horzcat(elbo_list, elbo);
     hyperparameter_history = horzcat(hyperparameter_history, parameter_vector);
@@ -67,15 +67,16 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   end
 
   parameter_vector = vigpirlpackparam(gp);
-  for lambda0 = 5:20
-    parameter_vector(1) = lambda0;
-    wrapper(parameter_vector);
-  end
+
+  %for lambda1 = 1:100
+  %  parameter_vector(2) = lambda1/10;
+  %  wrapper(parameter_vector);
+  %end
 
   % Checking if the gradients are correct
   options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true);
-  %[optimal_lambda0, optimal_elbo, ~, output] = fminunc(@wrapper, parameter_vector, options);
-  %disp(output);
+  [optimal_lambda0, optimal_elbo, ~, output] = fminunc(@wrapper, parameter_vector, options);
+  disp(output);
   stem(elbo_list);
   plot_history(hyperparameter_history);
   plot_history(grad_history);
