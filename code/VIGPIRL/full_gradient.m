@@ -48,6 +48,8 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   S = matrices.Kru' * Kuu_inv;
   % we need to round Gamma because otherwise it's not symmetric due to numerical errors
   Gamma = round(matrices.Krr - S * matrices.Kru, 4);
+  %disp(Gamma);
+  %disp(cond(Gamma));
   Gamma_inv = inv(Gamma);
 
   grad_prediction_for_each_u = arrayfun(@(i) estimate_derivative(z(i, :)), 1:size(z, 1), 'Uniform', 0);
@@ -74,8 +76,8 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   kl_derivative = 0.5 * (trace(Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * Sigma) +...
     gp.mu' * Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * gp.mu -...
     trace(Kuu_inv * matrices.Kuu_grad(:, :, 1)));
-  fprintf('d/d_lambda0 of E[log p(D | r)]: %f\n', p_derivative);
-  fprintf('average v: %f\n', 0.5 * estimated_grad(1));
+  %fprintf('d/d_lambda0 of E[log p(D | r)]: %f\n', p_derivative);
+  %fprintf('average v: %f\n', 0.5 * estimated_grad(1));
   %fprintf('d/d_lambda0 of -KL(q(u) || p(u)): %f\n', kl_derivative);
   %fprintf('their sum: %f\n', changes(2));
   %assert(abs(p_derivative + kl_derivative - changes(2)) < 1e-5);

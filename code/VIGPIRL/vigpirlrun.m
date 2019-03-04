@@ -22,10 +22,10 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   gp.mu = rand(1, m)';
   %gp.mu = [-2; 3; 3]; % TEMP
                  % B is a lower triangular matrix with positive diagonal entries
-  gp.B = normrnd(0, 1, [m, m]);
-  gp.B(1:m+1:end) = random('Chisquare', 4, [m, 1]);
-  gp.B = tril(gp.B);
-  %gp.B = eye(m); % TEMP
+  %gp.B = normrnd(0, 1, [m, m]);
+  %gp.B(1:m+1:end) = random('Chisquare', 4, [m, 1]);
+  %gp.B = tril(gp.B);
+  gp.B = eye(m); % TEMP
   %gp.D = diag(normrnd(0, 1));
   gp.D = zeros(m, m); % TEMP
 
@@ -48,11 +48,11 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, zz, matrices);
 
     % Disable gradients that don't work
-    %grad(1) = 0; % lambda0
-    %grad(2:d+1) = 0; % lambda (except first)
+    grad(1) = 0; % lambda0
+    grad(2:d+1) = 0; % lambda (except first)
     %grad(d+m+2:d+2*m+1) = 0; % mu
-    %grad(d+2:d+m+1) = 0; % B diagonal
-    %grad(d+2*m+2:end) = 0; % rest of B
+    grad(d+2:d+m+1) = 0; % B diagonal
+    grad(d+2*m+2:end) = 0; % rest of B
     %disp(grad(1));
 
     elbo_list = horzcat(elbo_list, elbo);
@@ -68,32 +68,65 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
   parameter_vector = vigpirlpackparam(gp);
 
-  %for lambda1 = 1:100
-  %  parameter_vector(2) = lambda1/10;
-  %  wrapper(parameter_vector);
+  %mu1_log = [];
+  %mu2_log = [];
+  %mu3_log = [];
+  %multiplier = 10;
+  %for mu1 = 1:10
+  %  real_mu1 = multiplier * (mu1 - 5);
+  %  parameter_vector(d+m+2) = real_mu1;
+  %  for mu2 = 1:10
+  %    real_mu2 = multiplier * (mu2 - 5);
+  %    parameter_vector(d+m+3) = real_mu2;
+  %    for mu3 = 1:10
+  %      real_mu3 = multiplier * (mu3 - 5)
+  %      parameter_vector(d+m+4) = real_mu3;
+  %      wrapper(parameter_vector);
+  %      mu1_log = [mu1_log real_mu1];
+  %      mu2_log = [mu2_log real_mu2];
+  %      mu3_log = [mu3_log real_mu3];
+  %    end
+  %  end
   %end
 
+  %max_negative = min(elbo_list);
+  %if (max_negative >= 0)
+  %  return;
+  %end
+  %max_positive = max(elbo_list);
+  %if (max_positive <= 0)
+  %  return;
+  %end
+  %[red, green, blue] = arrayfun(@(x) choose_color(x, max_negative, max_positive), elbo_list);
+
+  %scatter3(mu1_log, mu2_log, mu3_log, 100, elbo_list, 'filled');
+  %colorbar();
+  %xlabel('$\mu_1$', 'Interpreter', 'latex');
+  %ylabel('$\mu_2$', 'Interpreter', 'latex');
+  %zlabel('$\mu_3$', 'Interpreter', 'latex');
+
   % Checking if the gradients are correct
-  options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true);
-  [optimal_lambda0, optimal_elbo, ~, output] = fminunc(@wrapper, parameter_vector, options);
-  disp(output);
-  stem(elbo_list);
-  plot_history(hyperparameter_history);
-  plot_history(grad_history);
+  %options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true);
+  %[optimal_lambda0, optimal_elbo, ~, output] = fminunc(@wrapper, parameter_vector, options);
+  %disp(output);
+
+  %stem(elbo_list);
+  %plot_history(hyperparameter_history);
+  %plot_history(grad_history);
 
   % Return corresponding reward function.
-  r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
-  solution = feval([mdp_model 'solve'], mdp_data, r);
-  v = solution.v;
-  q = solution.q;
-  p = solution.p;
-  disp(r);
-  disp(v);
-  disp(p);
-  irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
-                      'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
-                      'model_p_itr', {{p}}, 'time', 0, 'score', 0);
-  return;
+  %r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
+  %solution = feval([mdp_model 'solve'], mdp_data, r);
+  %v = solution.v;
+  %q = solution.q;
+  %p = solution.p;
+  %disp(r);
+  %disp(v);
+  %disp(p);
+  %irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
+  %                    'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
+  %                    'model_p_itr', {{p}}, 'time', 0, 'score', 0);
+  %return;
 
   % for AdaGrad
   G = zeros(m + d + 1 + m*(m+1)/2, 1);
@@ -116,8 +149,10 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     old_hyperparameters = vigpirlpackparam(gp);
 
     grad(1) = 0; % lambda0
-    %grad(2:d+1) = 0; % lambda (except first)
+    grad(2:d+1) = 0; % lambda (except first)
     %grad(d+m+2:d+2*m+1) = 0; % mu
+    grad(d+m+3) = 0; % mu (second)
+    grad(d+m+4) = 0; % mu (third)
     grad(d+2:d+m+1) = 0; % B diagonal
     grad(d+2*m+2:end) = 0; % rest of B
 
@@ -152,7 +187,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     elbo_list = horzcat(elbo_list, elbo);
     grad_history = horzcat(grad_history, grad);
 
-    if norm(hyperparameters - old_hyperparameters, 1) < 0.001
+    if norm(hyperparameters - old_hyperparameters, 1) < algorithm_params.required_precision
       break;
     end
 
@@ -167,14 +202,37 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   plot_history(hyperparameter_history);
   plot_history(grad_history);
 
+  r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
+  solution = feval([mdp_model 'solve'], mdp_data, r);
+  v = solution.v;
+  q = solution.q;
+  p = solution.p;
+  disp(hyperparameters);
+  disp(r);
+  disp(v);
+  disp(p);
+  irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
+                      'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
+                      'model_p_itr', {{p}}, 'time', 0, 'score', 0);
 end
 
 function plot_history(matrix)
   figure();
-  %ylim([-10 10]);
+  %ylim([-400 100]);
   hold on;
   for row = 1:size(matrix, 1)
     plot(matrix(row,:));
   end
   hold off;
+end
+
+function [r, g, b] = choose_color(elbo_value, max_negative, max_positive)
+  b = 0;
+  if elbo_value < 0
+    g = 0;
+    r = elbo_value / max_negative;
+  else
+    r = 0;
+    g = elbo_value / max_positive;
+  end
 end

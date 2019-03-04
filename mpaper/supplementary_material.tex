@@ -7,6 +7,7 @@
 \usepackage{bbm}
 \usepackage{mathtools}
 \usepackage{url}
+\usepackage{graphicx}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{proposition}[theorem]{Proposition}
@@ -18,7 +19,6 @@
 \theoremstyle{remark}
 \newtheorem*{remark}{Remark}
 
-% TODO: T is not necessary because D is symmetric
 \DeclareMathOperator{\tr}{tr}
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\adj}{adj}
@@ -62,87 +62,9 @@
 \begin{document}
 \maketitle
 
-% TODO: express all lambdas as exponentials (update the derivatives or sth)
+% TODO: T is not necessary because D is symmetric
 \section{Preliminaries}
 
-For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
-$[\mathbf{A}]_{i,j}$ to denote the element of $\mathbf{A}$ in row $i$ and column
-$j$.
-
-For any vector $\mathbf{x}$, we write $\mathbb{R}_d[\mathbf{x}]$ to denote a
-vector space of polynomials with degree at most $d$, where variables are
-elements of $\mathbf{x}$, and coefficients are in $\mathbb{R}$.
-
-In this paper, all references to measurability are with respect to the Lebesgue
-measure. Similarly, whenever we consider the existence of an integral, we use
-the Lebesgue definition of integration.
-
-As recently suggested by Ong et al. \cite{ong2018gaussian}, we use a
-decomposition $\bm\Sigma = \mathbf{B}\mathbf{B}^\intercal + \mathbf{D}^2$, where
-$\mathbf{B}$ is a lower triangular $m \times p$ matrix with positive diagonal
-entries, and $\mathbf{D} = \diag(d_1, \dots, d_m)$. Typically, we would set $p$
-so that $p \ll m$ to get an efficient approximation, but it is also worth
-pointing out that we can retain full accuracy by setting $p = m$ and $\mathbf{D}
-= \mathbf{O}$. Moreover, we define a few matrices that will simplify expressions
-for the derivatives:
-\begin{align*}
-  \mathbf{T} &= (\mathbf{B}\mathbf{B}^\intercal + (\mathbf{D}^2)^\intercal)^{-1} \\
-  \mathbf{U} &= (\mathbf{u} - \bm\mu)(\mathbf{u} - \bm\mu)^\intercal
-\end{align*}
-
-\begin{lemma}[Derivatives of probability
-  distributions] \label{lemma:derivatives}
-  \begin{enumerate}
-    \leavevmode
-  \item $\frac{\partial q(\mathbf{u})}{\partial \bm\mu} =
-    \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} + \bm\Sigma^{-\intercal})(\mathbf{u}
-    - \bm\mu)$.
-  \item
-    \begin{enumerate}
-    \item
-      $\frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} =
-      \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
-      - \bm\Sigma^{-\intercal})$.
-    \item
-      $\frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} =
-      q(\mathbf{u})(\bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} -
-      |\bm\Sigma|^{-1}\adj(\bm\Sigma))\mathbf{B}$.
-    \item
-      $\frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} =
-      \frac{1}{2}q(\mathbf{u}) \{ \mathbf{T}\mathbf{UT}\mathbf{D}^\intercal +
-      \mathbf{D}^\intercal\mathbf{T}\mathbf{UT} -
-      |\bm\Sigma|^{-1}(\adj(\mathbf{T})\mathbf{D}^\intercal +
-      \mathbf{D}^\intercal \adj(\mathbf{T})) \}$.
-    \end{enumerate}
-  \item For $i = 0, \dots, d$,
-    \[
-      \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
-      \frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) \left( |\bm\Gamma|^{-1}
-        \tr(\mathbf{R} \adj(\bm\Gamma)) - (\mathbf{r} -
-        \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r}
-        - \mathbf{Su}) \right),
-    \]
-    where % TODO: move this before the lemma
-    \begin{align*}
-      \mathbf{S} &= \Kru^\intercal\Kuu^{-1}, \\
-      \bm\Gamma &= \Krr - \mathbf{S}\Kru, \\
-      \mathbf{R} &= \mathbf{S}\frac{\partial \Kru}{\partial \lambda_i} - \frac{\partial \Krr}{\partial \lambda_i} + \left( \frac{\partial \Kru^\intercal}{\partial \lambda_i} - \mathbf{S}\frac{\partial \Kuu}{\partial \lambda_i} \right) \Kuu^{-1}\Kru,
-    \end{align*}
-    and derivatives such as $\frac{\partial \Kuu}{\partial \lambda_i}$ can be
-    expressed as
-    \[
-      \frac{\partial \Kuu}{\partial \lambda_i} = \frac{1}{\lambda_i}\Kuu
-    \]
-    if $i = 0$, and
-    \[
-      \left[ \frac{\partial \Kuu}{\partial \lambda_i} \right]_{j,k} =
-      k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-      \left( -\frac{1}{2}(x_{\mathbf{u},j,i} - x_{\mathbf{u},k,i})^2 -
-        \mathbbm{1}[j \ne k]\sigma^2 \right)
-    \]
-    otherwise.
-  \end{enumerate}
-\end{lemma}
 \begin{proof}
   \leavevmode
   \begin{enumerate}
@@ -251,43 +173,6 @@ for the derivatives:
     \]
   \end{enumerate}
 \end{proof}
-
-\subsection{Linear Algebra and Numerical Analysis}
-
-\begin{definition}[Norms]
-  For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
-  its \emph{maximum norm} is
-  \[
-    \lVert \mathbf{x} \rVert_\infty = \max_i |x_i|
-  \]
-  whereas its \emph{taxicab} (or \emph{Manhattan}) \emph{norm} is
-  \[
-    \lVert \mathbf{x} \rVert_1 = \sum_{i = 1}^n |x_i|.
-  \]
-  Let $\mathbf{A}$ be a matrix. For any vector norm $\lVert
-  \cdot \rVert_p$, we can also define its \emph{induced norm} for matrices as
-  \[
-    \lVert \mathbf{A} \rVert_p = \sup_{\mathbf{x} \ne \mathbf{0}} \frac{\lVert
-      \mathbf{Ax} \rVert_p}{\lVert \mathbf{x} \rVert_p}.
-  \]
-  In particular, for $p = \infty$, we have
-  \[
-    \lVert \mathbf{A} \rVert_\infty = \max_i \sum_{j} |A_{i,j}|.
-  \]
-\end{definition}
-
-\begin{lemma}[Perturbation Lemma
-  \cite{layton2014numerical}] \label{prop:condition_number}
-  Let $\lVert \cdot \rVert$ be any matrix norm, and let $\mathbf{A}$ and
-  $\mathbf{E}$ be matrices such that $\mathbf{A}$ is invertible and $\lVert
-  \mathbf{A}^{-1} \rVert \lVert \mathbf{E} \rVert < 1$, then $\mathbf{A} +
-  \mathbf{E}$ is invertible, and
-  \[
-    \lVert (\mathbf{A} + \mathbf{E})^{-1} \rVert \le \frac{\lVert
-      \mathbf{A}^{-1} \rVert}{1 - \lVert \mathbf{A}^{-1} \rVert \lVert
-      \mathbf{E} \rVert}.
-  \]
-\end{lemma}
 
 \section{Proofs}
 
@@ -986,7 +871,11 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
   \end{split}
 \]
 where the remaining derivatives can be found in Lemma \ref{lemma:derivatives}.
-% TODO: define adj() (adjugate/adjoint)
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{elbo_over_mu}
+\end{figure}
 
 \bibliographystyle{abbrv}
 \bibliography{paper.bib}
