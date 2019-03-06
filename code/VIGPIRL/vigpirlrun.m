@@ -68,26 +68,26 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
   parameter_vector = vigpirlpackparam(gp);
 
-  %mu1_log = [];
-  %mu2_log = [];
-  %mu3_log = [];
-  %multiplier = 10;
-  %for mu1 = 1:10
-  %  real_mu1 = multiplier * (mu1 - 5);
-  %  parameter_vector(d+m+2) = real_mu1;
-  %  for mu2 = 1:10
-  %    real_mu2 = multiplier * (mu2 - 5);
-  %    parameter_vector(d+m+3) = real_mu2;
-  %    for mu3 = 1:10
-  %      real_mu3 = multiplier * (mu3 - 5)
-  %      parameter_vector(d+m+4) = real_mu3;
-  %      wrapper(parameter_vector);
-  %      mu1_log = [mu1_log real_mu1];
-  %      mu2_log = [mu2_log real_mu2];
-  %      mu3_log = [mu3_log real_mu3];
-  %    end
-  %  end
-  %end
+  mu1_log = [];
+  mu2_log = [];
+  mu3_log = [];
+  multiplier = 10;
+  for mu1 = 5:5
+    real_mu1 = multiplier * (mu1 - 5);
+    parameter_vector(d+m+2) = real_mu1;
+    for mu2 = 1:10
+      real_mu2 = multiplier * (mu2 - 5);
+      parameter_vector(d+m+3) = real_mu2;
+      for mu3 = 1:10
+        real_mu3 = multiplier * (mu3 - 5)
+        parameter_vector(d+m+4) = real_mu3;
+        wrapper(parameter_vector);
+        mu1_log = [mu1_log real_mu1];
+        mu2_log = [mu2_log real_mu2];
+        mu3_log = [mu3_log real_mu3];
+      end
+    end
+  end
 
   %max_negative = min(elbo_list);
   %if (max_negative >= 0)
@@ -99,11 +99,16 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %end
   %[red, green, blue] = arrayfun(@(x) choose_color(x, max_negative, max_positive), elbo_list);
 
+  % 3D Plots
   %scatter3(mu1_log, mu2_log, mu3_log, 100, elbo_list, 'filled');
   %colorbar();
+  %q = quiver3(mu1_log, mu2_log, mu3_log, grad_history(d+m+2, :), grad_history(d+m+3, :), grad_history(d+m+4, :));
+  %q.LineWidth = 2;
+  quiver(mu2_log, mu3_log, grad_history(d+m+3, :), grad_history(d+m+4, :));
   %xlabel('$\mu_1$', 'Interpreter', 'latex');
   %ylabel('$\mu_2$', 'Interpreter', 'latex');
   %zlabel('$\mu_3$', 'Interpreter', 'latex');
+  return;
 
   % Checking if the gradients are correct
   %options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true);
