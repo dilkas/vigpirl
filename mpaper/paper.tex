@@ -2,6 +2,8 @@
 \usepackage{bm}
 \usepackage{bbm}
 \usepackage{mathtools}
+\usepackage[UKenglish]{babel}
+\usepackage[UKenglish]{isodate}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{proposition}[theorem]{Proposition}
@@ -31,12 +33,12 @@
 \newcommand{\Kuu}{\mathbf{K}_{\mathbf{u},\mathbf{u}}}
 \newcommand{\Krr}{\mathbf{K}_{\mathbf{r},\mathbf{r}}}
 \newcommand{\Kru}{\mathbf{K}_{\mathbf{r},\mathbf{u}}}
+\newcommand{\Luu}{\mathbf{L}_{\mathbf{u},\mathbf{u}}}
 
 \newcommand{\pfull}{p(\mathcal{D}, \mathbf{u}, \mathbf{r})}
 \newcommand{\approximation}{q(\mathbf{u}, \mathbf{r})}
 
 \newcommand{\dm}{\frac{\partial}{\partial\bm\mu}}
-\newcommand{\dS}{\frac{\partial}{\partial\mathbf{S}}}
 \newcommand{\dB}{\frac{\partial}{\partial\mathbf{B}}}
 \newcommand{\dl}{\frac{\partial}{\partial \lambda_i}}
 \newcommand{\dlj}{\frac{\partial}{\partial \lambda_j}}
@@ -52,11 +54,6 @@
 \maketitle
 
 \begin{abstract}
-According to Simon Peyton Jones, an abstract should address
-four key questions. First, what is the problem that this
-paper tackles? Second, why is this an interesting problem?
-Third, what is the solution this paper proposes?
-Finally, why is the proposed solution a good one?
 \end{abstract}
 
 \section{Introduction}
@@ -134,13 +131,14 @@ $\mathbf{B}$ is a lower triangular $m \times p$ matrix with positive diagonal
 entries, and $\mathbf{D} = \diag(d_1, \dots, d_m)$. Typically, we would set $p$
 so that $p \ll m$ to get an efficient approximation, but it is also worth
 pointing out that we can retain full accuracy by setting $p = m$ and $\mathbf{D}
-= \mathbf{O}$. Moreover, we define a few matrices that will simplify expressions
-for the derivatives:
+= \mathbf{O}$. Moreover, we define a few variables that will simplify
+expressions for the derivatives:
 \begin{align*}
   \mathbf{U} &= (\mathbf{u} - \bm\mu)(\mathbf{u} - \bm\mu)^\intercal \\
   \mathbf{S} &= \Kru^\intercal\Kuu^{-1}, \\
   \bm\Gamma &= \Krr - \mathbf{S}\Kru, \\
-  \mathbf{R} &= \mathbf{S}\frac{\partial \Kru}{\partial \lambda_i} - \frac{\partial \Krr}{\partial \lambda_i} + \left( \frac{\partial \Kru^\intercal}{\partial \lambda_i} - \mathbf{S}\frac{\partial \Kuu}{\partial \lambda_i} \right) \Kuu^{-1}\Kru.
+  \mathbf{R} &= \mathbf{S}\frac{\partial \Kru}{\partial \lambda_i} - \frac{\partial \Krr}{\partial \lambda_i} + \left( \frac{\partial \Kru^\intercal}{\partial \lambda_i} - \mathbf{S}\frac{\partial \Kuu}{\partial \lambda_i} \right) \Kuu^{-1}\Kru, \\
+  Q &= (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu).
 \end{align*}
 
 Derivatives such as $\frac{\partial \Kuu}{\partial \lambda_i}$ can be expressed
@@ -162,8 +160,8 @@ if $i = 0$, and
 \]
 otherwise.
 
-\begin{lemma}[Derivatives of probability
-  distributions] \label{lemma:derivatives}
+% TODO: define PDF before this point
+\begin{lemma}[Derivatives of PDFs] \label{lemma:derivatives}
   \leavevmode
   \begin{enumerate}
   \item $\frac{\partial q(\mathbf{u})}{\partial \bm\mu} =
@@ -179,12 +177,6 @@ otherwise.
       $\frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} =
       q(\mathbf{u})(\bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} -
       |\bm\Sigma|^{-1}\adj(\bm\Sigma))\mathbf{B}$.
-%    \item
-%      $\frac{\partial q(\mathbf{u})}{\partial \mathbf{D}} =
-%      \frac{1}{2}q(\mathbf{u}) \{ \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1}\mathbf{D}^\intercal +
-%      \mathbf{D}^\intercal\bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} -
-%      |\bm\Sigma|^{-1}(\adj(\bm\Sigma^{-1})\mathbf{D}^\intercal +
-%      \mathbf{D}^\intercal \adj(\bm\Sigma^{-1})) \}$.
     \end{enumerate}
   \item For $i = 0, \dots, d$,
     \[
@@ -199,6 +191,97 @@ otherwise.
     \]
   \end{enumerate}
 \end{lemma}
+\begin{proof}
+  \leavevmode
+  \begin{enumerate}
+  \item
+    \[
+      \begin{split}
+        \frac{\partial q(\mathbf{u})}{\partial m} &=
+        q(\mathbf{u})\dm\left[-\frac{Q}{2}\right]
+        \\
+        &= -\frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
+        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)\dm[\mathbf{u} -
+        \bm\mu] \\
+        &= \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
+        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu).
+      \end{split}
+    \]
+  \item
+    \begin{align}
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\exp \left( -\frac{Q}{2} \right)\right] \nonumber \\
+                                                         &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\right]\exp \left( -\frac{Q}{2} \right) \nonumber \\
+                                                         &+ \frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\dB\left[\exp\left( -\frac{Q}{2} \right)\right] \nonumber \\
+                                                         &= -\frac{1}{2} q(\mathbf{u}) \left( |\bm\Sigma|^{-3/2} \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} + \frac{\partial Q}{\partial \mathbf{B}} \right). \label{eq:2_before}
+    \end{align}
+    For derivatives with respect to $\bm\Sigma$, we can refer to Petersen and
+    Pedersen \cite{petersen2008matrix}:
+    \begin{equation} \label{eq:partial_derivatives1}
+      \frac{\partial |\bm\Sigma|}{\partial \bm\Sigma} = |\bm\Sigma|\bm\Sigma^{-\intercal}, \quad \frac{\partial Q}{\partial \mathbf{B}} = -\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal},
+    \end{equation}
+    while we can use an online tool by Laue et
+    al.\footnote{\url{http://www.matrixcalculus.org/}}
+    \cite{DBLP:conf/nips/LaueMG18} for the remaining ones:
+    \begin{equation} \label{eq:partial_derivatives2}
+      \begin{gathered}
+        \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} =
+        (\adj(\mathbf{T}) + \adj(\bm\Sigma))\mathbf{B}, \\
+        \dB[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
+        \bm\mu)] = -(\mathbf{TUT} +
+        \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1})\mathbf{B}.
+      \end{gathered}
+    \end{equation}
+    Substituting results from \eqref{eq:partial_derivatives1} and
+    \eqref{eq:partial_derivatives2} back into \eqref{eq:2_before} gives:
+    \begin{alignat*}{3}
+      \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} &=
+      \frac{1}{2}q(\mathbf{u})(&&\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
+      - \bm\Sigma^{-\intercal}), \\
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &=
+      \frac{1}{2}q(\mathbf{u}) \{&&|\bm\Sigma|^{-3/2}(\adj(\mathbf{T}) +
+      \adj(\bm\Sigma)) \\
+      & &&+ \mathbf{TUT} + \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}.
+    \end{alignat*}
+  \item Using a result by Rasmussen and Williams % TODO: update the proof
+                                % according to the new result
+    \cite{DBLP:books/lib/RasmussenW06},
+    \[
+      \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
+      q(\mathbf{r} \mid \mathbf{u}) \dl
+      \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
+        \frac{1}{2}\log|\Kuu| \right] = \frac{1}{2}q(\mathbf{r} \mid \mathbf{u})\tr
+      \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} -
+        \Kuu^{-1}) \frac{\partial \Kuu}{\partial \lambda_i} \right).
+    \]
+    The remaining derivative is
+    \[
+      \frac{\partial \Kuu}{\partial \lambda_i} =
+      \begin{cases}
+        \frac{1}{\lambda_i}\Kuu & \text{if } i = 0, \\
+        \Luu & \text{otherwise,}
+      \end{cases}
+    \]
+    where
+    \[
+      \begin{split}
+        [\Luu]_{j,k} &= \dl k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j},
+        \mathbf{x}_{\mathbf{u},k}) \\
+        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+        \dl \left[-\frac{1}{2}(\mathbf{x}_{\mathbf{u},j} -
+          \mathbf{x}_{\mathbf{u},k})^\intercal \bm\Lambda
+          (\mathbf{x}_{\mathbf{u},j} - \mathbf{x}_{\mathbf{u},k}) -
+          \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \right] \\
+        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+        \dl \left[-\frac{1}{2}\sum_{l=1}^d \lambda_l
+          (x_{\mathbf{u},j,l} - x_{\mathbf{u},k,l})^2 -
+          \mathbbm{1}[j \ne k]\sigma^2\sum_{l=1}^d \lambda_l \right] \\
+        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+        \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
+        x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
+      \end{split}
+    \]
+  \end{enumerate}
+\end{proof}
 
 \subsection{Evidence Lower Bound}
 
@@ -473,28 +556,21 @@ all states and returns the value of state $s$.
   \mathbf{x}_k)$, for some $\mathbf{x}_j$ and $\mathbf{x}_k$. Since
   $k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
   $\lambda_i$, and $c(\mathbf{r}, \mathbf{u}) > a$,
-  \[ %TODO: what the hell do I do here?
-    \begin{split}
-      k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = 
-        c(\mathbf{r}, \mathbf{u})} &=
-      \begin{multlined}[t]
-        \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
-        \right. -\frac{1}{2}c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2 \\
-        - \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{r}, \mathbf{u}) \\
-        - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}}
-          \frac{1}{2} \lambda_n(x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne
-          k]\sigma^2 \lambda_n \right)
-      \end{multlined} \\
-      &<
-      \begin{multlined}[t]
-        \lambda_0 \exp \left( \vphantom{\sum_{n \in \{ \} \setminus}}
-        \right. -\frac{1}{2}a(x_{j,i} - x_{k,i})^2 -
-        \mathbbm{1}[j \ne k]\sigma^2a \\
-        - \left. \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}}
-          \frac{1}{2} \lambda_n(x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne
-          k]\sigma^2 \lambda_n \right),
-      \end{multlined}
-    \end{split}
+  \begin{alignat*}{3}
+    k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = c(\mathbf{r},
+      \mathbf{u})} &= \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. &&
+    -\frac{1}{2} c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2 \\
+    & && - \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{r}, \mathbf{u}) - S \left.
+      \vphantom{\frac{1}{2}} \right) \\
+    &< \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. && -\frac{1}{2}
+    a(x_{j,i} - x_{k,i})^2 \\
+    & && - \mathbbm{1}[j \ne k]\sigma^2a - S \left. \vphantom{\frac{1}{2}}
+    \right),
+  \end{alignat*}
+  where
+  \[
+    S = \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{1}{2}
+    \lambda_n(x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne k]\sigma^2 \lambda_n,
   \]
   which gives an upper bound on each element of
   \[
@@ -715,7 +791,7 @@ by Chen \cite{lecture_notes}.
   \]
   The MDP value function is measurable by Proposition \ref{thm:measurability}.
   The result of multiplying or adding measurable functions (e.g., probability
-  density functions (PDFs)) to a measurable function is still measurable. Thus,
+  density functions) to a measurable function is still measurable. Thus,
   both $f$ and $f_n$ are measurable.
 
   It remains to find $g$. For notational simplicity and without loss of
@@ -916,6 +992,11 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
 where the remaining derivatives can be found in Lemma \ref{lemma:derivatives}.
 
 \section{Evaluation} % showing deep understanding
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth]{elbo_over_mu}
+\end{figure*}
 
 \section{Conclusions}
 
