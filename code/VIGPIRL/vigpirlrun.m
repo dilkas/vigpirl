@@ -72,7 +72,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   mu2_log = [];
   mu3_log = [];
   multiplier = 10;
-  for mu1 = 5:5
+  for mu1 = 1:10
     real_mu1 = multiplier * (mu1 - 5);
     parameter_vector(d+m+2) = real_mu1;
     for mu2 = 1:10
@@ -99,12 +99,24 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %end
   %[red, green, blue] = arrayfun(@(x) choose_color(x, max_negative, max_positive), elbo_list);
 
+  % 2D plots
+  for mu1 = 1:10
+    indices = 100*(mu1-1)+1:100*mu1;
+    other_mu = multiplier * ((1:10) - 5);
+    subplot(5, 2, mu1);
+    contourf(other_mu, other_mu, reshape(elbo_list(indices), [10, 10]), 30);
+    xlabel('$\mu_2$', 'Interpreter', 'latex');
+    ylabel('$\mu_3$', 'Interpreter', 'latex');
+    t = ['$\mu_1 = ', num2str(multiplier * (mu1 - 5)), '$'];
+    title(t, 'Interpreter', 'latex');
+  end
+
   % 3D Plots
   %scatter3(mu1_log, mu2_log, mu3_log, 100, elbo_list, 'filled');
   %colorbar();
   %q = quiver3(mu1_log, mu2_log, mu3_log, grad_history(d+m+2, :), grad_history(d+m+3, :), grad_history(d+m+4, :));
   %q.LineWidth = 2;
-  quiver(mu2_log, mu3_log, grad_history(d+m+3, :), grad_history(d+m+4, :));
+  %quiver(mu2_log, mu3_log, grad_history(d+m+3, :), grad_history(d+m+4, :));
   %xlabel('$\mu_1$', 'Interpreter', 'latex');
   %ylabel('$\mu_2$', 'Interpreter', 'latex');
   %zlabel('$\mu_3$', 'Interpreter', 'latex');

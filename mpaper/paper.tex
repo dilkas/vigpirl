@@ -14,12 +14,12 @@
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\adj}{adj}
 \DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator*{\argmax}{arg\,max}
 
 \DeclarePairedDelimiterX{\infdivx}[2]{(}{)}{%
   #1\;\delimsize\|\;#2%
 }
 \newcommand{\DKL}{D_{\mathrm{KL}}\infdivx}
-\newcommand{\Eq}{\mathbb{E}_{(\mathbf{u}, \mathbf{r}) \sim \approximation}}
 \newcommand{\V}{V_{\mathbf{r}}}
 \newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}}
 \newcommand{\vbound}{\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma}}
@@ -37,6 +37,7 @@
 
 \newcommand{\pfull}{p(\mathcal{D}, \mathbf{u}, \mathbf{r})}
 \newcommand{\approximation}{q(\mathbf{u}, \mathbf{r})}
+\newcommand{\posterior}{p(\mathbf{u}, \mathbf{r} \mid \mathcal{D})}
 
 \newcommand{\dm}{\frac{\partial}{\partial\bm\mu}}
 \newcommand{\dB}{\frac{\partial}{\partial\mathbf{B}}}
@@ -56,10 +57,195 @@
 \begin{abstract}
 \end{abstract}
 
+% TODO: add info from slides/handout
 \section{Introduction}
 % problem description/statement
 
-\section{Background}
+% TODO: will need to rewrite this to avoid plagiarism
+Inverse reinforcement learning (IRL)---a problem proposed by Russell in
+1998 \cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a
+Markov decision process (MDP) that best explains a set of given demonstrations.
+IRL is important because reward functions can be hard to define manually
+\cite{DBLP:conf/icml/PieterN04,DBLP:journals/corr/abs-1806-06877}, and rewards
+are not entirely specific to a given environment, allowing one to reuse the same
+reward structure in previously unseen environments
+\cite{DBLP:journals/corr/abs-1806-06877,DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}.
+Moreover, IRL has seen a wide array of applications in autonomous vehicle
+control \cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16} and
+learning to predict another agent's behaviour
+\cite{DBLP:journals/ai/BogertD18,DBLP:conf/aaai/VogelRGR12,ziebart2008maximum,DBLP:conf/huc/ZiebartMDB08,DBLP:conf/iros/ZiebartRGMPBHDS09}.
+Most approaches in the literature (see Section \ref{sec:background}) make a
+convenient yet unjustified assumption that the reward function can be expressed
+as a linear combination of features. One proven way to abandon this assumption
+is by representing the reward function as a Gaussian process (GP)
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11,DBLP:journals/corr/abs-1208-2112}.
+The original approach used maximum likelihood estimation
+\cite{DBLP:conf/nips/LevinePK11}, while the goal of this project is to use
+variational inference (VI) instead, which learns approximate posterior
+probability distributions instead of point estimates. This approach can prove
+useful in three major ways:
+\begin{enumerate}
+\item Modelling full posterior distributions for various parameters can result
+  in more precise reward predictions, as the model simply holds more
+  information.
+\item Having variance estimates for rewards can direct our choice in what data
+  should be collected next.
+\item An approximate Bayesian treatment of many parameters in the model guards
+  against overfitting \cite{DBLP:conf/uai/JinDAS17}.
+\end{enumerate}
+
+\subsection{Statement of the Problem}
+
+\begin{definition}[MDP]
+  A \emph{Markov decision process} is a set $\mathcal{M} = \{ \mathcal{S},
+  \mathcal{A}, \mathcal{T}, \gamma, r \}$, where $\mathcal{S}$ and
+  $\mathcal{A}$ are sets of states and actions, respectively; $\mathcal{T} :
+  \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to [0, 1]$ is a function
+  defined so that $\mathcal{T}(s, a, s')$ is the probability of moving to state $s'$
+  after taking action $a$ in state $s$; $\gamma \in [0, 1)$ is the discount
+  factor (with higher $\gamma$ values, it makes little difference whether a
+  reward is received now or later, while with lower $\gamma$ values the future
+  becomes gradually less and less important); and $r : \mathcal{S} \to
+  \mathbb{R}$ is the reward function.
+\end{definition}
+
+In \emph{inverse reinforcement learning}, one is presented with an MDP without a
+reward function $\mathcal{M} \setminus \{ r \}$ and a set of expert
+demonstrations $\mathcal{D} = \{ \zeta_i \}_{i=1}^N$, where each demonstration
+$\zeta_i = \{ (s_{i,0}, a_{i,0}), \dots, (s_{i,T}, a_{i,T}) \}$ is a multiset of
+state-action pairs representing the actions taken by the expert during a
+particular recorded session. Each state is also characterised by a number of
+features. The goal of IRL is then to find $r$ such that the optimal policy under
+$r$
+\[ \pi^* = \argmax_\pi \mathbb{E}\left[ \left. \sum_{t=0}^\infty \gamma^t r(s_t)
+    \right| \pi \right] \]
+matches the actions in $\mathcal{D}$.
+
+Following previous work on GP IRL
+\cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}, we use a maximum
+entropy IRL model \cite{ziebart2008maximum}, under which we have that
+\[ P(a | s) \propto \exp(Q_{\mathbf{r}}(s, a)), \]
+where
+\[
+  Q_{\mathbf{r}}(s, a) = r(s) + \gamma\sum_{s' \in \mathcal{S}}
+  \mathcal{T}(s, a, s')\V(s'),
+\]
+and $\V : \mathcal{S} \to \mathbb{R}$ is an MDP \emph{value function}, which
+can be obtained by repeatedly applying the 'soft' version of the Bellman backup
+operator until convergence:
+\cite{DBLP:conf/nips/LevinePK11,supplementary_material}
+\begin{equation} \label{eq:update_rule}
+  \V(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s'
+      \in \mathcal{S}} \mathcal{T}(s, a, s')\V(s') \right).
+\end{equation}
+The likelihood of the data can then be expressed as
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
+\begin{equation} \label{pDr}
+  \begin{split}
+    p(\mathcal{D} | r) &= \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) \\
+    &= \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_{\mathbf{r}}(s_{i,t}, a_{i,t}) - \V(s_{i,t}) \right).
+  \end{split}
+\end{equation}
+However, a reward function learned by maximising this likelihood is not
+transferable to new situations
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}. One needs to model the
+reward structure in a way that would allow reward predictions for previously
+unseen states.
+
+One way to model rewards without assumptions of linearity is with a
+\emph{Gaussian process} (GP). A GP is a collection of random variables, any
+finite combination of which has a joint Gaussian distribution
+\cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0,
+k)$ to say that $r$ is a GP with mean $0$ and covariance function
+$k$, which uses a vector of hyperparameters $\bm\lambda$.
+Covariance functions take two state feature vectors as input and quantify how
+similar the two states are, in a sense that we would expect them to have similar
+rewards.
+
+As training a GP with $n$ data points has a time complexity of
+$\mathcal{O}(n^3)$ \cite{DBLP:books/lib/RasmussenW06}, numerous approximation
+methods have been suggested, many of which select a subset of data called
+\emph{inducing points} and focus most of the training effort on them
+\cite{DBLP:journals/corr/abs-1807-01065}. Let $\mathbf{X_u}$ be the matrix of
+features at inducing states, $\mathbf{u}$ the rewards at those states, and
+$\mathbf{r}$ a vector with $r(\mathcal{S})$ as elements. Then the full joint
+probability distribution can be factorised as
+\[
+  \pfull = p(\mathbf{u}) \times p(\mathbf{r} | \mathbf{u}) \times p(\mathcal{D} | r),
+\]
+where
+\begin{align*}
+  p(\mathbf{u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \\
+                &= \frac{1}{(2\pi)^{m/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} \right) \\
+                &= \exp\left(-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right)
+\end{align*}
+is the GP prior \cite{DBLP:books/lib/RasmussenW06}, where $m \in \mathbb{N}$ is
+the number of inducing points. The GP posterior is a
+multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11}
+\begin{equation} \label{eq:r}
+  p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) =
+  \mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal\Kuu^{-1}\Kru),
+\end{equation}
+and $p(\mathcal{D} | r)$ is as in Equation \ref{pDr}. The matrices such as
+$\Kru$ are called \emph{covariance matrices} and are defined as
+$[\Kru]_{i,j} = k(\mathbf{x}_{\mathbf{r},i},
+\mathbf{x}_{\mathbf{u},j})$, where $\mathbf{x}_{\mathbf{r},i}$ and
+$\mathbf{x}_{\mathbf{u},j}$ denote feature vectors for the $i$th state in
+$\mathcal{S}$ and the $j$th state in $\mathbf{X_u}$, respectively
+\cite{DBLP:conf/uai/JinDAS17}.
+
+Given this model, data $\mathcal{D}$, and inducing feature matrix
+$\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
+$\bm\lambda$, inducing rewards $\mathbf{u}$, and the rewards for all relevant
+states $\mathbf{r}$. While the previous paper to consider this IRL model
+computed maximum likelihood (ML) estimates for $\bm\lambda$ and $\mathbf{u}$,
+and made an assumption that $\mathbf{r}$ in Equation \ref{eq:r} has zero variance
+\cite{DBLP:conf/nips/LevinePK11}, we aim to avoid this assumption and use
+VI to approximate the full posterior distribution $\posterior$.
+\emph{Variational inference} is an approximation technique for probability
+densities \cite{blei2017variational}. Let $\approximation$ be our approximating
+family of probability distributions for $\posterior$ with its own hyperparameter
+vector $\bm\nu$. Then the job of VI algorithms is to optimise $\bm\nu$ in order
+to minimise the \emph{Kullback-Leibler} (KL) divergence between the original
+probability distribution and our approximation.  KL divergence (asymmetrically)
+measures how different the two distributions are, and in this case can be
+defined as \cite{blei2017variational}
+\begin{align*}
+  \DKL{\approximation}{\posterior} &= \mathbb{E}[\log\approximation - \log\posterior ] \\
+                                   &= \mathbb{E}[\log\approximation - \log\pfull] \\
+                                   &+ \mathbb{E}[\log p(\mathcal{D}, \mathbf{X_u})].
+\end{align*}
+The last term is both hard to compute and constant w.r.t. $\approximation$
+\cite{blei2017variational}, so we can remove it from our optimisation objective.
+The negation of what remains is often called the \emph{evidence lower bound}
+(ELBO) and is defined as\footnote{Throughout the proposal, all integrals should
+  be interpreted as definite integrals over the entire sample space.}
+\cite{DBLP:books/lib/Bishop07,blei2017variational}
+\begin{equation} \label{eq:elbo}
+  \begin{split}
+    \mathcal{L} &= \mathbb{E}\left[ \log \frac{\pfull}{\approximation} \right] \\
+    &= \iiint \log \frac{\pfull}{\approximation} \approximation\dx.
+  \end{split}
+\end{equation}
+
+By considering full probability distributions instead of point estimates---as
+long as the approximations are able to capture important features of the
+posterior---our predictions are likely to be more accurate and rely on fewer
+assumptions. Moreover, we hope to make use of various recent advancements in VI
+for both time complexity and approximation distribution fit (see Section
+\ref{sec:background}), making the resulting algorithm competitive both in terms of
+running time and model fit.
+
+The project is primarily concerned with investigating how a VI formulation of
+the GP IRL model compares against the original ML approach. Most importantly, we
+aim to compare how the two algorithms converge both over time and as the number
+of demonstrations increases. It would also be interesting to see how close the
+approximation of the posterior distribution is to the real thing. Finally, it is
+reasonable to conjecture that VI can outperform point estimates when dealing
+with more uncertainty, e.g., when experts make mistakes. We can easily
+investigate this by adapting how the evaluation data is generated.
+
+\section{Background} \label{sec:background}
 % motivation, relevance (whatever that means)
 % comprehensive literature survey
 
@@ -100,6 +286,7 @@
   \]
 \end{lemma}
 
+% TODO: how do we name this?
 \section{The WizWoz System}
 % solution
 % TODO: express all lambdas as exponentials (update the derivatives or sth)
@@ -152,7 +339,7 @@ if $i = 0$, and
 \[
   \begin{split}
     \left[ \frac{\partial \Kuu}{\partial \lambda_i} \right]_{j,k} =
-    k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+    k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
     \left( \vphantom{\frac{1}{2}} \right. &-\frac{1}{2}(x_{\mathbf{u},j,i} -
     x_{\mathbf{u},k,i})^2 \\
     &- \mathbbm{1}[j \ne k]\sigma^2 \left. \vphantom{\frac{1}{2}} \right)
@@ -191,108 +378,99 @@ otherwise.
     \]
   \end{enumerate}
 \end{lemma}
-\begin{proof}
-  \leavevmode
-  \begin{enumerate}
-  \item
-    \[
-      \begin{split}
-        \frac{\partial q(\mathbf{u})}{\partial m} &=
-        q(\mathbf{u})\dm\left[-\frac{Q}{2}\right]
-        \\
-        &= -\frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
-        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)\dm[\mathbf{u} -
-        \bm\mu] \\
-        &= \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
-        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu).
-      \end{split}
-    \]
-  \item
-    \begin{align}
-      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\exp \left( -\frac{Q}{2} \right)\right] \nonumber \\
-                                                         &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\right]\exp \left( -\frac{Q}{2} \right) \nonumber \\
-                                                         &+ \frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\dB\left[\exp\left( -\frac{Q}{2} \right)\right] \nonumber \\
-                                                         &= -\frac{1}{2} q(\mathbf{u}) \left( |\bm\Sigma|^{-3/2} \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} + \frac{\partial Q}{\partial \mathbf{B}} \right). \label{eq:2_before}
-    \end{align}
-    For derivatives with respect to $\bm\Sigma$, we can refer to Petersen and
-    Pedersen \cite{petersen2008matrix}:
-    \begin{equation} \label{eq:partial_derivatives1}
-      \frac{\partial |\bm\Sigma|}{\partial \bm\Sigma} = |\bm\Sigma|\bm\Sigma^{-\intercal}, \quad \frac{\partial Q}{\partial \mathbf{B}} = -\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal},
-    \end{equation}
-    while we can use an online tool by Laue et
-    al.\footnote{\url{http://www.matrixcalculus.org/}}
-    \cite{DBLP:conf/nips/LaueMG18} for the remaining ones:
-    \begin{equation} \label{eq:partial_derivatives2}
-      \begin{gathered}
-        \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} =
-        (\adj(\mathbf{T}) + \adj(\bm\Sigma))\mathbf{B}, \\
-        \dB[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
-        \bm\mu)] = -(\mathbf{TUT} +
-        \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1})\mathbf{B}.
-      \end{gathered}
-    \end{equation}
-    Substituting results from \eqref{eq:partial_derivatives1} and
-    \eqref{eq:partial_derivatives2} back into \eqref{eq:2_before} gives:
-    \begin{alignat*}{3}
-      \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} &=
-      \frac{1}{2}q(\mathbf{u})(&&\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
-      - \bm\Sigma^{-\intercal}), \\
-      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &=
-      \frac{1}{2}q(\mathbf{u}) \{&&|\bm\Sigma|^{-3/2}(\adj(\mathbf{T}) +
-      \adj(\bm\Sigma)) \\
-      & &&+ \mathbf{TUT} + \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}.
-    \end{alignat*}
-  \item Using a result by Rasmussen and Williams % TODO: update the proof
-                                % according to the new result
-    \cite{DBLP:books/lib/RasmussenW06},
-    \[
-      \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
-      q(\mathbf{r} \mid \mathbf{u}) \dl
-      \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
-        \frac{1}{2}\log|\Kuu| \right] = \frac{1}{2}q(\mathbf{r} \mid \mathbf{u})\tr
-      \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} -
-        \Kuu^{-1}) \frac{\partial \Kuu}{\partial \lambda_i} \right).
-    \]
-    The remaining derivative is
-    \[
-      \frac{\partial \Kuu}{\partial \lambda_i} =
-      \begin{cases}
-        \frac{1}{\lambda_i}\Kuu & \text{if } i = 0, \\
-        \Luu & \text{otherwise,}
-      \end{cases}
-    \]
-    where
-    \[
-      \begin{split}
-        [\Luu]_{j,k} &= \dl k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j},
-        \mathbf{x}_{\mathbf{u},k}) \\
-        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-        \dl \left[-\frac{1}{2}(\mathbf{x}_{\mathbf{u},j} -
-          \mathbf{x}_{\mathbf{u},k})^\intercal \bm\Lambda
-          (\mathbf{x}_{\mathbf{u},j} - \mathbf{x}_{\mathbf{u},k}) -
-          \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \right] \\
-        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-        \dl \left[-\frac{1}{2}\sum_{l=1}^d \lambda_l
-          (x_{\mathbf{u},j,l} - x_{\mathbf{u},k,l})^2 -
-          \mathbbm{1}[j \ne k]\sigma^2\sum_{l=1}^d \lambda_l \right] \\
-        &= k_{\bm\lambda}(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-        \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
-        x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
-      \end{split}
-    \]
-  \end{enumerate}
-\end{proof}
+%\begin{proof}
+%  \leavevmode
+%  \begin{enumerate}
+%  \item
+%    \[
+%      \begin{split}
+%        \frac{\partial q(\mathbf{u})}{\partial m} &=
+%        q(\mathbf{u})\dm\left[-\frac{Q}{2}\right]
+%        \\
+%        &= -\frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
+%        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)\dm[\mathbf{u} -
+%        \bm\mu] \\
+%        &= \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
+%        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu).
+%      \end{split}
+%    \]
+%  \item
+%    \begin{align}
+%      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\exp \left( -\frac{Q}{2} \right)\right] \nonumber \\
+%                                                         &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\right]\exp \left( -\frac{Q}{2} \right) \nonumber \\
+%                                                         &+ \frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\dB\left[\exp\left( -\frac{Q}{2} \right)\right] \nonumber \\
+%                                                         &= -\frac{1}{2} q(\mathbf{u}) \left( |\bm\Sigma|^{-3/2} \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} + \frac{\partial Q}{\partial \mathbf{B}} \right). \label{eq:2_before}
+%    \end{align}
+%    For derivatives with respect to $\bm\Sigma$, we can refer to Petersen and
+%    Pedersen \cite{petersen2008matrix}:
+%    \begin{equation} \label{eq:partial_derivatives1}
+%      \frac{\partial |\bm\Sigma|}{\partial \bm\Sigma} = |\bm\Sigma|\bm\Sigma^{-\intercal}, \quad \frac{\partial Q}{\partial \mathbf{B}} = -\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal},
+%    \end{equation}
+%    while we can use an online tool by Laue et
+%    al.\footnote{\url{http://www.matrixcalculus.org/}}
+%    \cite{DBLP:conf/nips/LaueMG18} for the remaining ones:
+%    \begin{equation} \label{eq:partial_derivatives2}
+%      \begin{gathered}
+%        \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} =
+%        (\adj(\mathbf{T}) + \adj(\bm\Sigma))\mathbf{B}, \\
+%        \dB[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
+%        \bm\mu)] = -(\mathbf{TUT} +
+%        \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1})\mathbf{B}.
+%      \end{gathered}
+%    \end{equation}
+%    Substituting results from Equations \ref{eq:partial_derivatives1} and
+%    \ref{eq:partial_derivatives2} back into Equation \ref{eq:2_before} gives:
+%    \begin{alignat*}{3}
+%      \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} &=
+%      \frac{1}{2}q(\mathbf{u})(&&\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
+%      - \bm\Sigma^{-\intercal}), \\
+%      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &=
+%      \frac{1}{2}q(\mathbf{u}) \{&&|\bm\Sigma|^{-3/2}(\adj(\mathbf{T}) +
+%      \adj(\bm\Sigma)) \\
+%      & &&+ \mathbf{TUT} + \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}.
+%    \end{alignat*}
+%  \item Using a result by Rasmussen and Williams % TODO: update the proof
+%                                % according to the new result
+%    \cite{DBLP:books/lib/RasmussenW06},
+%    \[
+%      \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
+%      q(\mathbf{r} \mid \mathbf{u}) \dl
+%      \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
+%        \frac{1}{2}\log|\Kuu| \right] = \frac{1}{2}q(\mathbf{r} \mid \mathbf{u})\tr
+%      \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} -
+%        \Kuu^{-1}) \frac{\partial \Kuu}{\partial \lambda_i} \right).
+%    \]
+%    The remaining derivative is
+%    \[
+%      \frac{\partial \Kuu}{\partial \lambda_i} =
+%      \begin{cases}
+%        \frac{1}{\lambda_i}\Kuu & \text{if } i = 0, \\
+%        \Luu & \text{otherwise,}
+%      \end{cases}
+%    \]
+%    where
+%    \[
+%      \begin{split}
+%        [\Luu]_{j,k} &= \dl k(\mathbf{x}_{\mathbf{u},j},
+%        \mathbf{x}_{\mathbf{u},k}) \\
+%        &= k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+%        \dl \left[-\frac{1}{2}(\mathbf{x}_{\mathbf{u},j} -
+%          \mathbf{x}_{\mathbf{u},k})^\intercal \bm\Lambda
+%          (\mathbf{x}_{\mathbf{u},j} - \mathbf{x}_{\mathbf{u},k}) -
+%          \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \right] \\
+%        &= k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+%        \dl \left[-\frac{1}{2}\sum_{l=1}^d \lambda_l
+%          (x_{\mathbf{u},j,l} - x_{\mathbf{u},k,l})^2 -
+%          \mathbbm{1}[j \ne k]\sigma^2\sum_{l=1}^d \lambda_l \right] \\
+%        &= k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
+%        \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
+%        x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
+%      \end{split}
+%    \]
+%  \end{enumerate}
+%\end{proof}
 
 \subsection{Evidence Lower Bound}
-
-\begin{equation} \label{eq:elbo}
-  \begin{split}
-    \mathcal{L} &= \Eq \left[ \log \frac{\pfull}{\approximation}
-    \right] \\
-    &= \iint \approximation \log
-    \frac{\pfull}{\approximation}\dx.
-  \end{split}
-\end{equation}
 
 \begin{equation} \label{eq:full}
   \pfull = p(\mathbf{u}) \times p(\mathbf{r} \mid \mathbf{u}) \times p(\mathcal{D} \mid \mathbf{r}).
@@ -303,79 +481,55 @@ otherwise.
 \end{equation}
 
 In this section we derive and simplify the ELBO for this (now fully specified)
-model. In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
+model. In order to derive the ELBO, let us go back to Equation \ref{eq:elbo} and
 write\footnote{At this point, we will drop the subscript denoting which
   variables the expectation is taken over. Also note that throughout the
   derivation equality is taken to mean `equality up to an additive constant'.}
+% TODO: move this to the front and say that the expectations are always w.r.t.
+% the full VI approximation unless specified otherwise
 \[
   \mathcal{L} = \mathbb{E}[\log\pfull] - \mathbb{E}[\log\approximation].
 \]
-By substituting in \eqref{eq:full} and \eqref{eq:approximation}, we get
-\[
-  \begin{split}
-    \mathcal{L} &= \mathbb{E}[\log p(\mathbf{u}) + \log p(\mathbf{r} \mid
-    \mathbf{u}) + \log p(\mathcal{D} \mid \mathbf{r})] \\
-    &- \mathbb{E}[\log q(\mathbf{u}) + \log q(\mathbf{r} \mid \mathbf{u})].
-  \end{split}
-\]
+By substituting in Equations \ref{eq:full} and \ref{eq:approximation}, we get
+\begin{align*}
+  \mathcal{L} &= \mathbb{E}[\log p(\mathbf{u}) + \log p(\mathbf{r} \mid \mathbf{u}) + \log p(\mathcal{D} \mid \mathbf{r})] \\
+              &- \mathbb{E}[\log q(\mathbf{u}) + \log q(\mathbf{r} \mid \mathbf{u})].
+\end{align*}
 Since $q(\mathbf{r} \mid \mathbf{u}) = p(\mathbf{r} \mid \mathbf{u})$, they
 cancel each other out. Also notice that
-\[
-  \begin{split}
-    \mathbb{E}[\log p(\mathbf{u}) - \log q(\mathbf{u})] &=
-    -\DKL{q(\mathbf{u})}{p(\mathbf{u})} \\
-    &= -\frac{1}{2} (\tr (\Kuu^{-1}\bm\Sigma) +
-      \bm\mu^\intercal\Kuu^{-1}\bm\mu - m \\
-      &+ \log |\Kuu| - \log |\bm\Sigma|),
-  \end{split}
-\]
+\begin{align*}
+  \mathbb{E}[\log p(\mathbf{u}) - \log q(\mathbf{u})] &= -\DKL{q(\mathbf{u})}{p(\mathbf{u})} \\
+                                                      &= -\frac{1}{2} (\tr (\Kuu^{-1}\bm\Sigma) + \bm\mu^\intercal\Kuu^{-1}\bm\mu - m \\
+                                                      &+ \log |\Kuu| - \log |\bm\Sigma|),
+\end{align*}
 by the definition of KL divergence between two multivariate normal distributions
 \cite{kl}. Hence,
-\[
-  \begin{split}
-    \mathcal{L} &= \mathbb{E}\left[ \sum_{i=1}^N \sum_{t=1}^T
-      Q_{\mathbf{r}}(s_{i,t}, a_{i,t}) - \V(s_{i,t}) \right] \\
-    &- \frac{1}{2} \left(\tr \left( \Kuu^{-1}\bm\Sigma \right) +
-      \bm\mu^\intercal\Kuu^{-1}\bm\mu + \log |\Kuu| - \log |\bm\Sigma| \right).
-  \end{split}
-\]
+\begin{align*}
+  \mathcal{L} &= \mathbb{E}\left[ \sum_{i=1}^N \sum_{t=1}^T Q_{\mathbf{r}}(s_{i,t}, a_{i,t}) - \V(s_{i,t}) \right] \\
+              &- \frac{1}{2} \left(\tr \left( \Kuu^{-1}\bm\Sigma \right) + \bm\mu^\intercal\Kuu^{-1}\bm\mu + \log |\Kuu| - \log |\bm\Sigma| \right).
+\end{align*}
 Using the expressions for $Q_{\mathbf{r}}$ we get
-\[
-  \begin{split}
-  \mathcal{L} &= \mathbb{E}\left[\sum_{i=1}^N \sum_{t=1}^T r(s_{i,t}) -
-    \V(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t},
-    s')\V(s') \right] \\
-  &- \frac{1}{2} \left(\tr \left( \Kuu^{-1}\bm\Sigma \right) +
-    \bm\mu^\intercal\Kuu^{-1}\bm\mu + \log |\Kuu| - \log |\bm\Sigma| \right).
-  \end{split}
-\]
+\begin{align*}
+  \mathcal{L} &= \mathbb{E}\left[\sum_{i=1}^N \sum_{t=1}^T r(s_{i,t}) - \V(s_{i,t}) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s') \right] \\
+              &- \frac{1}{2} \left(\tr \left( \Kuu^{-1}\bm\Sigma \right) + \bm\mu^\intercal\Kuu^{-1}\bm\mu + \log |\Kuu| - \log |\bm\Sigma| \right).
+\end{align*}
 We can simplify $\sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t})$ by defining a new vector
 $\mathbf{t} = (t_1, \dots, t_{|\mathcal{S}|})^\intercal$, where $t_i$ is the
 number of times the state associated with the reward $r_i$ has been visited
 across all demonstrations. Then
-\[
-  \begin{split}
-  \mathbb{E} \left[ \sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t}) \right] &=
-  \mathbb{E}[\mathbf{t}^\intercal\mathbf{r}] =
-  \mathbf{t}^\intercal\mathbb{E}[\mathbf{r}] \\
-  &=
-  \mathbf{t}^\intercal\mathbb{E}\left[\Kru^\intercal\Kuu^{-1}\mathbf{u}\right] =
-  \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu.
-  \end{split}
-\]
+\begin{align*}
+  \mathbb{E} \left[ \sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t}) \right] &= \mathbb{E}[\mathbf{t}^\intercal\mathbf{r}] = \mathbf{t}^\intercal\mathbb{E}[\mathbf{r}] \\
+                                                               &= \mathbf{t}^\intercal\mathbb{E}\left[\Kru^\intercal\Kuu^{-1}\mathbf{u}\right] = \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu.
+\end{align*}
 This allows us to simplify $\mathcal{L}$ to
-\[
-  \begin{split}
-  \mathcal{L} &= \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu -
-  \mathbb{E}[v] \\
-  &- \frac{1}{2} \left(\tr \left( \Kuu^{-1}\bm\Sigma \right) +
-    \bm\mu^\intercal\Kuu^{-1}\bm\mu + \log |\Kuu| - \log |\bm\Sigma| \right),
-  \end{split}
-\]
+\begin{align*}
+  \mathcal{L} &= \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu - \mathbb{E}[v] \\
+              &- \frac{1}{2} \left(\tr \left( \Kuu^{-1}\bm\Sigma \right) + \bm\mu^\intercal\Kuu^{-1}\bm\mu + \log |\Kuu| - \log |\bm\Sigma| \right),
+\end{align*}
 where
 \[
-v = \sum_{i=1}^N \sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in
-  \mathcal{S}} \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
+  v = \sum_{i=1}^N \sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in \mathcal{S}}
+  \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
 \]
 
 \subsection{Theoretical Justification}
@@ -407,12 +561,12 @@ all states and returns the value of state $s$.
   any $\alpha \in \mathbb{R}$, the set
   \[
     \left\{ \mathbf{r} \in \mathbb{R}^{|\mathcal{S}|} \; \middle|
-    \begin{split}
+    \begin{aligned}
       \;&\V(s_0) \in (-\infty, \alpha); \\
       \;&\V(s) \in \mathbb{R} \text{ for all } s \in \mathcal{S} \setminus \{ s_0 \}; \\
       \;&\text{ Equation \ref{eq:linear_mdp} is satisfied by all } s \in
       \mathcal{S}
-    \end{split}
+    \end{aligned}
     \right\}
   \]
   is measurable. Since this set can be constructed in Zermelo-Fraenkel set
@@ -429,49 +583,31 @@ all states and returns the value of state $s$.
   \end{equation}
 \end{proposition}
 \begin{proof}
-  We begin by considering \eqref{eq:bound} without taking the absolute value of
+  We begin by considering Equation \ref{eq:bound} without taking the absolute value of
   $\V(s)$, i.e.,
   \begin{equation} \label{eq:positive_bound}
     \V(s) \le \vbound,
   \end{equation}
   and assuming that the initial values of $\{ \V(s) \mid s \in
-  \mathcal{S} \}$ already satisfy \eqref{eq:positive_bound}. For each $s \in
-  \mathcal{S}$, the value of $\V(s)$ is updated via this rule:
-  \[
-    \V(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp\left( r(s) +
-      \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')\V(s')
-    \right).
-  \]
-  Note that both $\log$ and $\exp$ are increasing functions, $\gamma > 0$, and
-  the $\mathcal{T}$ function gives a probability (a non-negative number).
-  Thus
-  \[
-    \begin{split}
-      \V(s) &\le \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s'
-          \in \mathcal{S}} \mathcal{T}(s, a, s')\frac{\rinf +
-          \log|\mathcal{A}|}{1 - \gamma} \right) \\
-      &= \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \frac{\gamma (\rinf +
-          \log|\mathcal{A}|)}{1 - \gamma}\sum_{s' \in \mathcal{S}}
-        \mathcal{T}(s, a, s') \right) \\
-      &= \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \frac{\gamma (\rinf +
-          \log|\mathcal{A}|)}{1 - \gamma} \right)
-    \end{split}
-  \]
+  \mathcal{S} \}$ already satisfy Equation \ref{eq:positive_bound}. Recall that for
+  each $s \in \mathcal{S}$, the value of $\V(s)$ is updated by applying Equation
+  \ref{eq:update_rule}. Note that both $\log$ and $\exp$ are increasing
+  functions, $\gamma > 0$, and the $\mathcal{T}$ function gives a probability (a
+  non-negative number). Thus
+  \begin{align*}
+    \V(s) &\le \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma} \right) \\
+          &= \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma}\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s') \right) \\
+          &= \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \right)
+  \end{align*}
   by the definition of $\mathcal{T}$. Then
-  \[
-    \begin{split}
-      \V(s) &\le \log \left( |\mathcal{A}| \exp\left( r(s) + \frac{\gamma
-            (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \right) \right) \\
-      &= \log \left( \exp\left( \log|\mathcal{A}| + r(s) + \frac{\gamma
-            (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \right) \right) \\
-      &= \log|\mathcal{A}| + r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \\
-      &= \frac{\gamma (\rinf + \log|\mathcal{A}|) + (1 -
-        \gamma)(\log|\mathcal{A}| + r(s))}{1 - \gamma} \\
-      &\le \frac{\gamma (\rinf + \log|\mathcal{A}|) + (1 -
-        \gamma)(\log|\mathcal{A}| + \rinf)}{1 - \gamma} \\
-      &= \vbound
-    \end{split}
-  \]
+  \begin{align*}
+    \V(s) &\le \log \left( |\mathcal{A}| \exp\left( r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \right) \right) \\
+          &= \log \left( \exp\left( \log|\mathcal{A}| + r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \right) \right) \\
+          &= \log|\mathcal{A}| + r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma} \\
+          &= \frac{\gamma (\rinf + \log|\mathcal{A}|) + (1 - \gamma)(\log|\mathcal{A}| + r(s))}{1 - \gamma} \\
+          &\le \frac{\gamma (\rinf + \log|\mathcal{A}|) + (1 - \gamma)(\log|\mathcal{A}| + \rinf)}{1 - \gamma} \\
+          &= \vbound
+  \end{align*}
   by the definition of $\rinf$.
 
   The proof for
@@ -479,18 +615,14 @@ all states and returns the value of state $s$.
     \V(s) \ge \frac{\rinf + \log|\mathcal{A}|}{\gamma - 1}
   \end{equation}
   follows the same argument until we get to
-  \[
-    \begin{split}
-      \V(s) &\ge \frac{\gamma(\rinf + \log|\mathcal{A}|) + (\gamma -
-        1)(\log|\mathcal{A}| + r(s))}{\gamma - 1} \\
-      &\ge \frac{\gamma(\rinf + \log|\mathcal{A}|) + (\gamma -
-        1)(-\log|\mathcal{A}| -\rinf)}{\gamma - 1} \\
-      &= \frac{\rinf + \log|\mathcal{A}|}{\gamma - 1},
-    \end{split}
-  \]
+  \begin{align*}
+    \V(s) &\ge \frac{\gamma(\rinf + \log|\mathcal{A}|) + (\gamma - 1)(\log|\mathcal{A}| + r(s))}{\gamma - 1} \\
+          &\ge \frac{\gamma(\rinf + \log|\mathcal{A}|) + (\gamma - 1)(-\log|\mathcal{A}| -\rinf)}{\gamma - 1} \\
+          &= \frac{\rinf + \log|\mathcal{A}|}{\gamma - 1},
+  \end{align*}
   where we use the fact that $r(s) \ge -\rinf - 2\log|\mathcal{A}|$. Combining
-  \eqref{eq:positive_bound} and \eqref{eq:negative_bound} gives
-  \eqref{eq:bound}.
+  Equations \ref{eq:positive_bound} and \ref{eq:negative_bound} gives
+  Equation \ref{eq:bound}.
 \end{proof}
 
 \begin{theorem}[Dominated Convergence Theorem
@@ -552,12 +684,12 @@ all states and returns the value of state $s$.
   for any bounds.
 
   If $i > 0$, then each element of $\frac{\partial \Kuu}{\partial
-    \lambda_i}$ is a constant multiple of $k_{\bm\lambda}(\mathbf{x}_j,
+    \lambda_i}$ is a constant multiple of $k(\mathbf{x}_j,
   \mathbf{x}_k)$, for some $\mathbf{x}_j$ and $\mathbf{x}_k$. Since
-  $k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
+  $k(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
   $\lambda_i$, and $c(\mathbf{r}, \mathbf{u}) > a$,
   \begin{alignat*}{3}
-    k_{\bm\lambda}(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = c(\mathbf{r},
+    k(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = c(\mathbf{r},
       \mathbf{u})} &= \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. &&
     -\frac{1}{2} c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2 \\
     & && - \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{r}, \mathbf{u}) - S \left.
@@ -707,10 +839,10 @@ all states and returns the value of state $s$.
 \end{proof}
 
 \begin{lemma} \label{lemma:integral_of_r}
-  \begin{equation} \label{eq:r-inequality}
+  \[
     \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r} \mid \mathbf{u})\,d\mathbf{r} \le a +
     \lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1,
-  \end{equation}
+  \]
   where $a$ is a constant independent of $\mathbf{u}$.
 \end{lemma}
 \begin{proof}
@@ -741,7 +873,7 @@ all states and returns the value of state $s$.
     \mathbf{u} \rVert_1, \]
   we can set
   \[ a = \sum_{i=1}^{|\mathcal{S}|} \sigma_i \sqrt{\frac{2}{\pi}} \]
-  to get \eqref{eq:r-inequality}.
+  to get the desired result.
 \end{proof}
 
 Our main theorem is a specialised version of an integral differentiation result
@@ -783,7 +915,7 @@ by Chen \cite{lecture_notes}.
   \[
     \lim_{n \to \infty} \fn = \df,
   \]
-  \eqref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
+  Equation \ref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
   that both $f$ and $f_n$ are measurable and find a non-negative integrable
   function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$,
   \[
@@ -842,15 +974,15 @@ by Chen \cite{lecture_notes}.
   where $a$ is a constant. The integral
   \[
     \int \max \left\{
-      \begin{split}
+      \begin{aligned}
         &|p_1(\mathbf{u})|, \\
         &|p_2(\mathbf{u})|
-      \end{split}
+      \end{aligned}
     \right\} q(\mathbf{u})\,d\mathbf{u} = \int \max \left\{
-      \begin{split}
+      \begin{aligned}
         &|p_1(\mathbf{u})q(\mathbf{u})|, \\
         &|p_2(\mathbf{u})q(\mathbf{u})|
-      \end{split}
+      \end{aligned}
     \right\}\,d\mathbf{u}
   \]
   exists because $p_1(\mathbf{u})q(\mathbf{u})$ and
@@ -858,7 +990,7 @@ by Chen \cite{lecture_notes}.
   values are integrable, and the maximum of two integrable functions is also
   integrable. Since $\lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1 \in
   \mathbb{R}_1[\mathbf{u}]$, a similar argument can be applied to the rest of
-  \eqref{eq:remaining_integral} as well.
+  Equation \ref{eq:remaining_integral} as well.
 \end{proof}
 
 \subsection{Derivatives}
@@ -993,9 +1125,10 @@ where the remaining derivatives can be found in Lemma \ref{lemma:derivatives}.
 
 \section{Evaluation} % showing deep understanding
 
+
 \begin{figure*}
   \centering
-  \includegraphics[width=\textwidth]{elbo_over_mu}
+  \includegraphics[width=\textwidth]{elbo_contour_plots}
 \end{figure*}
 
 \section{Conclusions}
