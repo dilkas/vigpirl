@@ -450,6 +450,12 @@ positive semi-definite matrix $\bm\Sigma$ is the covariance matrix
 This gives us our variational parameters $\bm\nu = (\bm\mu, \mathbf{B},
 \bm\lambda)^\intercal$. TODO: reference the figure
 
+% TODO: mention in text
+%While the ELBO can now be computed without approximations, we ended up imposing
+%two zero-variance restrictions, resulting in a less informative model. Moreover,
+%we had to abandon the Bayesian treatment of $\bm\lambda$, making the model more
+%vulnerable to overfitting.
+
 \subsection{Evidence Lower Bound} \label{sec:elbo}
 
 In this section we derive and simplify the ELBO for this (now fully specified)
@@ -504,40 +510,8 @@ where
   \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
 \]
 
-\subsection{Variational Inference} \label{vi_algs}
-
-The typical way to optimise a quantity (the ELBO, in this case) involves
-computing its gradient \cite{blei2017variational}. Unfortunately, some of the
-terms in $\mathcal{L}$ are still left as expected values. \emph{Black box
-  variational inference} (BBVI) \cite{DBLP:conf/aistats/RanganathGB14} suggests
-a way to express the gradient as an expectation without having to take the
-gradient of the posterior:
-\[ \nabla_{\bm\nu} \mathcal{L} = \mathbb{E}[\nabla_{\bm\nu} \log \approximation
-  (\log \pfull - \log \approximation)]. \]
-The gradient of the ELBO then has a unbiased estimate
-\[
-  \nabla_{\bm\nu} \mathcal{L} \approx \frac{1}{S} \sum_{s=1}^S \nabla_{\bm\nu} \log \approximationS (\log \pfullS - \log \approximationS),
-\]
-computed by drawing $S$ Monte Carlo samples $(\mathbf{u}_s, \mathbf{r}_s) \sim
-\approximation$.
-
-The main theorem behind the BBVI trick is the Lebesgue's dominated convergence
-theorem \cite{royden1988real}, which---under some conditions---allows one to
-claim that:
-\[ \lim_{n \to \infty} \int_E f_n\,d\mu = \int_E \lim_{n \to \infty}
-  f_n\,d\mu. \]
-We can use the same idea on parts of $\mathcal{L}$, derivatives of which cannot
-be taken otherwise. In our case, we want a gradient instead of a limit, and the
-integral represents an expected value.
-
-%While the ELBO can now be computed without approximations, we ended up imposing
-%two zero-variance restrictions, resulting in a less informative model. Moreover,
-%we had to abandon the Bayesian treatment of $\bm\lambda$, making the model more
-%vulnerable to overfitting.
-
 \subsection{Theoretical Justification}
 
-% TODO: reference in text
 \begin{figure}
   \centering
   \begin{tikzpicture}
@@ -567,16 +541,45 @@ integral represents an expected value.
   \caption{A graphical representation of dependencies between our theoretical
     results. An arrow from $A$ to $B$ means that $A$ was used to prove $B$.
     Results from the literature are in gray.}
+  \label{fig:theorems}
 \end{figure}
 
-MDP values are characterised by both a state and a reward function/vector. In
-order to prove the next theorem, we think of the value function as $V :
-\mathcal{S} \to \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$, i.e., $V$ takes a
-state $s \in \mathcal{S}$ and returns a function $V(s) :
-\mathbb{R}^{\mathcal{S}} \to \mathbb{R}$ that takes a reward vector $\mathbf{r}
-\in \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state $s$,
-$\V(s) \in \mathbb{R}$. The function $V(s)$ computes the values of
-all states and returns the value of state $s$.
+The typical way to optimise a quantity (the ELBO, in this case) involves
+computing its gradient. Unfortunately, some of the terms in $\mathcal{L}$ are
+still left as expected values. The goal of this section is to show how Theorem
+\ref{thm:lebesgue} can be applied to our model in order to derive the gradient
+anyway\footnote{This technique is inspired by black box variational inference
+  \cite{DBLP:conf/aistats/RanganathGB14}, but takes a more detailed look at the
+  problem and requires significantly more work to prove correctness.}. After
+showing that the theorem applies to our situation, given any term expressed as
+an expected value $\mathbb{E}[f(\mathbf{u}, \mathbf{r})]$, we can estimate its
+gradient as
+\[
+  \nabla\mathbb{E}[f(\mathbf{u}, \mathbf{r})] = \mathbb{E}[\nabla f(\mathbf{u},
+  \mathbf{r})] \approx \frac{1}{S} \sum_{s=1}^S \nabla f(\mathbf{u}_s,
+  \mathbf{r}_s),
+\]
+which can be computed by drawing $S$ Monte Carlo samples $(\mathbf{u}_s,
+\mathbf{r}_s) \sim \approximation$.
+
+Our main goal is Theorem \ref{thm:main}, which allows us to move differentiation
+inside the integral. In order to prove it, we use a number of intermediate
+results. We start by providing a sketch proof of the measurability of MDP value
+functions, which is non-obvious due to their non-trivial definition. We then
+prove that the value functions are bounded, and establish four helpful lemmas,
+three of which provide well-behaved bounds on derivatives of PDFs. See Figure
+\ref{fig:theorems} for an overview of how the results fit together.
+
+\begin{remark}
+  MDP values are characterised by both a state and a reward function/vector. In
+  this section, we think of the value function as $V : \mathcal{S} \to
+  \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$, i.e., $V$ takes a state $s \in
+  \mathcal{S}$ and returns a function $V(s) : \mathbb{R}^{|\mathcal{S}|} \to
+  \mathbb{R}$ that takes a reward vector $\mathbf{r} \in
+  \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state $s$, $\V(s) \in
+  \mathbb{R}$. Given a reward vector, the function $V(s)$ computes the values of
+  all states and returns the value of state $s$.
+\end{remark}
 
 \begin{proposition}[Measurability] \label{thm:measurability}
   MDP value functions $V(s) : \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ (for $s
@@ -671,21 +674,21 @@ all states and returns the value of state $s$.
   has upper and lower bounds of the form $q(\mathbf{r} \mid \mathbf{u})d(\mathbf{u})$, where
   $d(\mathbf{u}) \in \mathbb{R}_2[\mathbf{u}]$.
 \end{lemma}
-% TODO: Lemma 1.1 is wrong about the % derivative. Fix (my handwritten notes
-% have the correct idea)
 \begin{proof}
   Remember that
   \begin{align*}
     \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} &= \frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) (|\bm\Gamma|^{-1} \tr(\mathbf{R} \adj(\bm\Gamma)) \\
                                                                       &- (\mathbf{r} - \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su})).
   \end{align*}
-  by Lemma \ref{lemma:derivatives}. We begin by producing constant upper and
-  lower bounds for the elements of
-  \[
-    \left. \frac{\partial \mathbf{K}}{\partial \lambda_i} \right|_{\lambda_i =
-      c(\mathbf{r}, \mathbf{u})},
-  \]
-  where $\mathbf{K}$ is any covariance matrix.
+  by Lemma \ref{lemma:derivatives}.
+
+  %We begin by producing constant upper and
+  %lower bounds for the elements of
+  %\[
+  %  \left. \frac{\partial \mathbf{K}}{\partial \lambda_i} \right|_{\lambda_i =
+  %    c(\mathbf{r}, \mathbf{u})},
+  %\]
+  %where $\mathbf{K}$ is any covariance matrix.
 
   If $i = 0$, then each element of $\frac{\partial \mathbf{K}}{\partial
     \lambda_0}$ is of the form
@@ -731,6 +734,8 @@ all states and returns the value of state $s$.
   \]
   A similar line of reasoning establishes lower bounds as well.
 
+  % TODO: Lemma 1.1 is wrong about the % derivative. Fix (my handwritten notes
+  % have the correct idea)
   Combining the bounds with the observation that
   every element of
   $\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal}$ is in
@@ -738,12 +743,11 @@ all states and returns the value of state $s$.
 \end{proof}
 
 \begin{remark}
-  In order to find $\frac{\partial q(\mathbf{u})}{\partial t}$,
-  where $t$ is the $i$th element of the vector $\bm\mu$, we can
-  find $\frac{\partial q(\mathbf{u})}{\partial \bm\mu}$ and simply take the
-  $i$th element. A similar line of reasoning applies to matrices as well. Thus,
-  we only need to consider derivatives with respect to $\bm\mu$ and
-  $\bm\Sigma$.
+  In order to find a derivative such as $\frac{\partial q(\mathbf{u})}{\partial
+    \mu_i}$, we can find $\frac{\partial q(\mathbf{u})}{\partial \bm\mu}$ and
+  simply take the $i$th element. A similar line of reasoning applies to matrices
+  as well. Thus, we only need to consider derivatives with respect to $\bm\mu$
+  and $\bm\Sigma$.
 \end{remark}
 
 \begin{lemma} \label{lemma:bound2}
