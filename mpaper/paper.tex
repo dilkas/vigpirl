@@ -2,8 +2,13 @@
 \usepackage{bm}
 \usepackage{bbm}
 \usepackage{mathtools}
+\usepackage{thmtools, thm-restate}
 \usepackage[UKenglish]{babel}
 \usepackage[UKenglish]{isodate}
+\usepackage{tikz}
+
+\usetikzlibrary{shapes,bayesnet,arrows.meta}
+\tikzstyle{arrow} = [-{Latex[length=2mm,width=2mm]}]
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{proposition}[theorem]{Proposition}
@@ -24,6 +29,9 @@
 \newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}}
 \newcommand{\vbound}{\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma}}
 \newcommand{\rinf}{\lVert \mathbf{r} \rVert_\infty}
+
+\newcommand{\approximationS}{q(\mathbf{u}_s, \mathbf{r}_s)}
+\newcommand{\pfullS}{p(\mathcal{D}, \mathbf{u}_s, \mathbf{r}_s)}
 
 \newcommand{\f}{f(\mathbf{r}, \mathbf{u}, t)}
 \newcommand{\fn}{f_n(\mathbf{r}, \mathbf{u})}
@@ -57,11 +65,9 @@
 \begin{abstract}
 \end{abstract}
 
-% TODO: add info from slides/handout
 \section{Introduction}
 % problem description/statement
 
-% TODO: will need to rewrite this to avoid plagiarism
 Inverse reinforcement learning (IRL)---a problem proposed by Russell in
 1998 \cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a
 Markov decision process (MDP) that best explains a set of given demonstrations.
@@ -98,54 +104,66 @@ useful in three major ways:
 
 \begin{definition}[MDP]
   A \emph{Markov decision process} is a set $\mathcal{M} = \{ \mathcal{S},
-  \mathcal{A}, \mathcal{T}, \gamma, r \}$, where $\mathcal{S}$ and
+  \mathcal{A}, \mathcal{T}, \gamma, \mathbf{r} \}$, where $\mathcal{S}$ and
   $\mathcal{A}$ are sets of states and actions, respectively; $\mathcal{T} :
   \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to [0, 1]$ is a function
   defined so that $\mathcal{T}(s, a, s')$ is the probability of moving to state $s'$
   after taking action $a$ in state $s$; $\gamma \in [0, 1)$ is the discount
-  factor (with higher $\gamma$ values, it makes little difference whether a
-  reward is received now or later, while with lower $\gamma$ values the future
-  becomes gradually less and less important); and $r : \mathcal{S} \to
-  \mathbb{R}$ is the reward function.
+  factor; and $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ is the reward
+  vector\footnote{Depending on the situation, we will sometimes represent
+    rewards as a function $r : \mathcal{S} \to \mathbb{R}$.}.
 \end{definition}
 
-In \emph{inverse reinforcement learning}, one is presented with an MDP without a
-reward function $\mathcal{M} \setminus \{ r \}$ and a set of expert
-demonstrations $\mathcal{D} = \{ \zeta_i \}_{i=1}^N$, where each demonstration
-$\zeta_i = \{ (s_{i,0}, a_{i,0}), \dots, (s_{i,T}, a_{i,T}) \}$ is a multiset of
-state-action pairs representing the actions taken by the expert during a
-particular recorded session. Each state is also characterised by a number of
-features. The goal of IRL is then to find $r$ such that the optimal policy under
-$r$
-\[ \pi^* = \argmax_\pi \mathbb{E}\left[ \left. \sum_{t=0}^\infty \gamma^t r(s_t)
-    \right| \pi \right] \]
-matches the actions in $\mathcal{D}$.
+\begin{definition}[IRL]
+  Given an MDP without rewards $\mathcal{M} \setminus \{ \mathbf{r} \}$, an
+  $|\mathcal{S}| \times d$ feature matrix $\mathbf{X}$ (where $d$ is the number
+  of features), and a set of expert demonstrations $\mathcal{D} = \{\zeta_i
+  \}_{i=1}^N$, where each demonstration $\zeta_i = \{ (s_{i,t}, a_{i,t})
+  \}_{t=1}^T$ is a multiset of state-action pairs representing optimal actions
+  executed by an expert, find the reward function that maximises the probability
+  of observing the demonstrations, i.e.,
+  \[
+    \argmax_{\mathbf{r}} p(\mathcal{D} \mid \mathbf{r}).
+  \]
+\end{definition}
 
-Following previous work on GP IRL
-\cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}, we use a maximum
-entropy IRL model \cite{ziebart2008maximum}, under which we have that
-\[ P(a | s) \propto \exp(Q_{\mathbf{r}}(s, a)), \]
-where
+The optimal \emph{policy} $\pi : \mathcal{S} \to \mathcal{A}$ (i.e., a choice of
+actions for each state that maximises reward over time) is usually constructed
+by defining a \emph{value (utility) function} $\V : \mathcal{S} \to \mathbb{R}$
+that measures how good a state is based on the reward $\mathbf{r}$ as well as
+the structure of the MDP. One can then find $\V$ by applying the Bellman backup
+operator until convergence to every $s \in \mathcal{S}$ (the technique is known
+as \emph{value iteration}) \cite{DBLP:books/daglib/0023820}:
 \[
-  Q_{\mathbf{r}}(s, a) = r(s) + \gamma\sum_{s' \in \mathcal{S}}
-  \mathcal{T}(s, a, s')\V(s'),
+  V_{\mathbf{r}}(s) \coloneqq r(s) + \gamma \max_{a \in \mathcal{A}} \sum_{s' \in
+    \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s').
 \]
-and $\V : \mathcal{S} \to \mathbb{R}$ is an MDP \emph{value function}, which
-can be obtained by repeatedly applying the 'soft' version of the Bellman backup
-operator until convergence:
-\cite{DBLP:conf/nips/LevinePK11,supplementary_material}
+
+However, we follow previous work on GP IRL
+\cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}, and use a
+\emph{linearly solvable} (or \emph{maximum causal entropy}) MDP with stochastic
+policy that define probability distributions over actions (instead of
+suggesting a single action for each state) \cite{ziebart2008maximum}. This type
+of MDP can be solved by applying the 'soft' version of the operator
+\cite{DBLP:conf/nips/LevinePK11,supplementary_material}:
 \begin{equation} \label{eq:update_rule}
   \V(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s'
       \in \mathcal{S}} \mathcal{T}(s, a, s')\V(s') \right).
 \end{equation}
-The likelihood of the data can then be expressed as
+With this model, we can express the likelihood as
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
 \begin{equation} \label{pDr}
   \begin{split}
-    p(\mathcal{D} | r) &= \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} | s_{i,t}) \\
-    &= \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_{\mathbf{r}}(s_{i,t}, a_{i,t}) - \V(s_{i,t}) \right).
+    p(\mathcal{D} \mid \mathbf{r}) &= \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} \mid s_{i,t}) \\
+    &= \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_{\mathbf{r}}(s_{i,t}, a_{i,t}) - \V(s_{i,t}) \right),
   \end{split}
 \end{equation}
+where
+\[
+  Q_{\mathbf{r}}(s, a) = r(s) + \gamma\sum_{s' \in \mathcal{S}}
+  \mathcal{T}(s, a, s')\V(s').
+\]
+
 However, a reward function learned by maximising this likelihood is not
 transferable to new situations
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}. One needs to model the
@@ -157,36 +175,35 @@ One way to model rewards without assumptions of linearity is with a
 finite combination of which has a joint Gaussian distribution
 \cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0,
 k)$ to say that $r$ is a GP with mean $0$ and covariance function
-$k$, which uses a vector of hyperparameters $\bm\lambda$.
-Covariance functions take two state feature vectors as input and quantify how
-similar the two states are, in a sense that we would expect them to have similar
-rewards.
+$k$. Covariance functions take two state feature vectors as input and quantify
+how similar the two states are, in a sense that we would expect them to have
+similar rewards.
 
 As training a GP with $n$ data points has a time complexity of
 $\mathcal{O}(n^3)$ \cite{DBLP:books/lib/RasmussenW06}, numerous approximation
 methods have been suggested, many of which select a subset of data called
 \emph{inducing points} and focus most of the training effort on them
 \cite{DBLP:journals/corr/abs-1807-01065}. Let $\mathbf{X_u}$ be the matrix of
-features at inducing states, $\mathbf{u}$ the rewards at those states, and
-$\mathbf{r}$ a vector with $r(\mathcal{S})$ as elements. Then the full joint
-probability distribution can be factorised as
-\[
-  \pfull = p(\mathbf{u}) \times p(\mathbf{r} | \mathbf{u}) \times p(\mathcal{D} | r),
-\]
+features at inducing states, $\mathbf{u}$ the rewards at those states. Then the
+full joint probability distribution can be factorised as
+\begin{equation} \label{eq:full}
+  \pfull = p(\mathbf{u}) \times p(\mathbf{r} \mid \mathbf{u}) \times
+  p(\mathcal{D} \mid \mathbf{r}),
+\end{equation}
 where
 \begin{align*}
   p(\mathbf{u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \\
                 &= \frac{1}{(2\pi)^{m/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} \right) \\
                 &= \exp\left(-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right)
 \end{align*}
-is the GP prior \cite{DBLP:books/lib/RasmussenW06}, where $m \in \mathbb{N}$ is
-the number of inducing points. The GP posterior is a
-multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11}
+is the GP prior \cite{DBLP:books/lib/RasmussenW06}, and $m \in \mathbb{N}$ is
+the number of inducing points. The GP posterior is then a multivariate Gaussian
+\cite{DBLP:conf/nips/LevinePK11}
 \begin{equation} \label{eq:r}
-  p(\mathbf{r} | \bm\lambda, \mathbf{X_u}, \mathbf{u}) =
+  p(\mathbf{r} \mid \mathbf{u}) =
   \mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal\Kuu^{-1}\Kru),
 \end{equation}
-and $p(\mathcal{D} | r)$ is as in Equation \ref{pDr}. The matrices such as
+and $p(\mathcal{D} \mid \mathbf{r})$ is as in Equation \ref{pDr}. The matrices such as
 $\Kru$ are called \emph{covariance matrices} and are defined as
 $[\Kru]_{i,j} = k(\mathbf{x}_{\mathbf{r},i},
 \mathbf{x}_{\mathbf{u},j})$, where $\mathbf{x}_{\mathbf{r},i}$ and
@@ -195,7 +212,7 @@ $\mathcal{S}$ and the $j$th state in $\mathbf{X_u}$, respectively
 \cite{DBLP:conf/uai/JinDAS17}.
 
 Given this model, data $\mathcal{D}$, and inducing feature matrix
-$\mathbf{X_u}$, our goal is then to find optimal values of hyperparameters
+$\mathbf{X_u}$, our goal is then to find optimal values of parameters
 $\bm\lambda$, inducing rewards $\mathbf{u}$, and the rewards for all relevant
 states $\mathbf{r}$. While the previous paper to consider this IRL model
 computed maximum likelihood (ML) estimates for $\bm\lambda$ and $\mathbf{u}$,
@@ -204,16 +221,16 @@ and made an assumption that $\mathbf{r}$ in Equation \ref{eq:r} has zero varianc
 VI to approximate the full posterior distribution $\posterior$.
 \emph{Variational inference} is an approximation technique for probability
 densities \cite{blei2017variational}. Let $\approximation$ be our approximating
-family of probability distributions for $\posterior$ with its own hyperparameter
-vector $\bm\nu$. Then the job of VI algorithms is to optimise $\bm\nu$ in order
-to minimise the \emph{Kullback-Leibler} (KL) divergence between the original
-probability distribution and our approximation.  KL divergence (asymmetrically)
-measures how different the two distributions are, and in this case can be
-defined as \cite{blei2017variational}
+family of probability distributions for $\posterior$. Then the job of VI is to
+optimise the parameters of the approximating distribution in order to minimise
+the \emph{Kullback-Leibler} (KL) divergence between the original probability
+distribution and our approximation.  KL divergence (asymmetrically) measures how
+different the two distributions are, and can be defined as
+\cite{blei2017variational}
 \begin{align*}
   \DKL{\approximation}{\posterior} &= \mathbb{E}[\log\approximation - \log\posterior ] \\
                                    &= \mathbb{E}[\log\approximation - \log\pfull] \\
-                                   &+ \mathbb{E}[\log p(\mathcal{D}, \mathbf{X_u})].
+                                   &+ \mathbb{E}[\log p(\mathcal{D})].
 \end{align*}
 The last term is both hard to compute and constant w.r.t. $\approximation$
 \cite{blei2017variational}, so we can remove it from our optimisation objective.
@@ -249,7 +266,7 @@ investigate this by adapting how the evaluation data is generated.
 % motivation, relevance (whatever that means)
 % comprehensive literature survey
 
-\subsection{Linear Algebra and Numerical Analysis}
+\subsection{Linear Algebra and Analysis}
 
 \begin{definition}[Norms]
   For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
@@ -286,25 +303,33 @@ investigate this by adapting how the evaluation data is generated.
   \]
 \end{lemma}
 
-% TODO: how do we name this?
-\section{The WizWoz System}
-% solution
+\begin{theorem}[Dominated Convergence Theorem
+  \cite{royden2010real}] \label{thm:lebesgue}
+  Let $(X, \mathcal{M}, \mu)$ be a measure space and $\{ f_n \}$ a sequence of
+  measurable functions on $X$ for which $\{ f_n \} \to f$ pointwise a.e. on $X$
+  and the function $f$ is measurable. Assume there is a non-negative function
+  $g$ that is integrable over $X$ and dominates the sequence $\{ f_n \}$ on $X$
+  in the sense that
+  \[
+    |f_n| \le g \text{ a.e. on $X$ for all $n$.}
+  \]
+  Then $f$ is integrable over $X$ and
+  \[
+    \lim_{n \to \infty} \int_X f_n\,d\mu = \int_X f\,d\mu.
+  \]
+\end{theorem}
+
+\section{Solution}
 % TODO: express all lambdas as exponentials (update the derivatives or sth)
 
 \subsection{Notation}
 
-For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
-$[\mathbf{A}]_{i,j}$ to denote the element of $\mathbf{A}$ in row $i$ and column
-$j$. Moreover, we use $\tr(\mathbf{A})$ to denote its \emph{trace} and
+We use $\tr(\mathbf{A})$ to denote its \emph{trace} and
 $\adj(\mathbf{A})$ for its \emph{adjugate} (or \emph{classical adjoint}).
 
 For any vector $\mathbf{x}$, we write $\mathbb{R}_d[\mathbf{x}]$ to denote a
 vector space of polynomials with degree at most $d$, where variables are
 elements of $\mathbf{x}$, and coefficients are in $\mathbb{R}$.
-
-We primarily think of rewards as a vector $\mathbf{r} \in
-\mathbb{R}^{|\mathcal{S}|}$, but sometimes we use a function notation $r(s)$ to
-denote the reward of a particular state $s \in \mathcal{S}$.
 
 \subsection{Preliminaries}
 
@@ -328,27 +353,8 @@ expressions for the derivatives:
   Q &= (\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} - \bm\mu).
 \end{align*}
 
-Derivatives such as $\frac{\partial \Kuu}{\partial \lambda_i}$ can be expressed
-as
-\[
-  \frac{\partial \Kuu}{\partial \lambda_i} = \frac{1}{\lambda_i}\Kuu
-\]
-
-if $i = 0$, and
-
-\[
-  \begin{split}
-    \left[ \frac{\partial \Kuu}{\partial \lambda_i} \right]_{j,k} =
-    k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-    \left( \vphantom{\frac{1}{2}} \right. &-\frac{1}{2}(x_{\mathbf{u},j,i} -
-    x_{\mathbf{u},k,i})^2 \\
-    &- \mathbbm{1}[j \ne k]\sigma^2 \left. \vphantom{\frac{1}{2}} \right)
-  \end{split}
-\]
-otherwise.
-
 % TODO: define PDF before this point
-\begin{lemma}[Derivatives of PDFs] \label{lemma:derivatives}
+\begin{restatable}[Derivatives of PDFs]{lemma}{derivatives} \label{lemma:derivatives}
   \leavevmode
   \begin{enumerate}
   \item $\frac{\partial q(\mathbf{u})}{\partial \bm\mu} =
@@ -366,119 +372,85 @@ otherwise.
       |\bm\Sigma|^{-1}\adj(\bm\Sigma))\mathbf{B}$.
     \end{enumerate}
   \item For $i = 0, \dots, d$,
-    \[
-      \begin{split}
-        \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} &=
-        \frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) (|\bm\Gamma|^{-1}
-          \tr(\mathbf{R} \adj(\bm\Gamma)) \\
-          &- (\mathbf{r} -
-          \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r}
-          - \mathbf{Su})),
-      \end{split}
-    \]
+    \begin{enumerate}
+    \item
+      \begin{align*}
+        \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} &= \frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) (|\bm\Gamma|^{-1} \tr(\mathbf{R} \adj(\bm\Gamma)) \\
+                                                                          &- (\mathbf{r} - \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su})).
+      \end{align*}
+    \item For any covariance matrix $\mathbf{K}$,
+      \[
+        \frac{\partial \mathbf{K}}{\partial \lambda_i} =
+        \begin{cases}
+          \frac{1}{\lambda_i}\mathbf{K} & \text{if } i = 0, \\
+          \mathbf{L} & \text{otherwise,}
+        \end{cases}
+      \]
+      where
+      \[
+        L_{j,k} = k(\mathbf{x}_j, \mathbf{x}_k) \left( -\frac{1}{2}(x_{j,i} -
+          x_{k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
+      \]
+    \end{enumerate}
   \end{enumerate}
-\end{lemma}
-%\begin{proof}
-%  \leavevmode
-%  \begin{enumerate}
-%  \item
-%    \[
-%      \begin{split}
-%        \frac{\partial q(\mathbf{u})}{\partial m} &=
-%        q(\mathbf{u})\dm\left[-\frac{Q}{2}\right]
-%        \\
-%        &= -\frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
-%        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)\dm[\mathbf{u} -
-%        \bm\mu] \\
-%        &= \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
-%        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu).
-%      \end{split}
-%    \]
-%  \item
-%    \begin{align}
-%      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\exp \left( -\frac{Q}{2} \right)\right] \nonumber \\
-%                                                         &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\right]\exp \left( -\frac{Q}{2} \right) \nonumber \\
-%                                                         &+ \frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\dB\left[\exp\left( -\frac{Q}{2} \right)\right] \nonumber \\
-%                                                         &= -\frac{1}{2} q(\mathbf{u}) \left( |\bm\Sigma|^{-3/2} \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} + \frac{\partial Q}{\partial \mathbf{B}} \right). \label{eq:2_before}
-%    \end{align}
-%    For derivatives with respect to $\bm\Sigma$, we can refer to Petersen and
-%    Pedersen \cite{petersen2008matrix}:
-%    \begin{equation} \label{eq:partial_derivatives1}
-%      \frac{\partial |\bm\Sigma|}{\partial \bm\Sigma} = |\bm\Sigma|\bm\Sigma^{-\intercal}, \quad \frac{\partial Q}{\partial \mathbf{B}} = -\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal},
-%    \end{equation}
-%    while we can use an online tool by Laue et
-%    al.\footnote{\url{http://www.matrixcalculus.org/}}
-%    \cite{DBLP:conf/nips/LaueMG18} for the remaining ones:
-%    \begin{equation} \label{eq:partial_derivatives2}
-%      \begin{gathered}
-%        \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} =
-%        (\adj(\mathbf{T}) + \adj(\bm\Sigma))\mathbf{B}, \\
-%        \dB[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
-%        \bm\mu)] = -(\mathbf{TUT} +
-%        \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1})\mathbf{B}.
-%      \end{gathered}
-%    \end{equation}
-%    Substituting results from Equations \ref{eq:partial_derivatives1} and
-%    \ref{eq:partial_derivatives2} back into Equation \ref{eq:2_before} gives:
-%    \begin{alignat*}{3}
-%      \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} &=
-%      \frac{1}{2}q(\mathbf{u})(&&\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
-%      - \bm\Sigma^{-\intercal}), \\
-%      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &=
-%      \frac{1}{2}q(\mathbf{u}) \{&&|\bm\Sigma|^{-3/2}(\adj(\mathbf{T}) +
-%      \adj(\bm\Sigma)) \\
-%      & &&+ \mathbf{TUT} + \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}.
-%    \end{alignat*}
-%  \item Using a result by Rasmussen and Williams % TODO: update the proof
-%                                % according to the new result
-%    \cite{DBLP:books/lib/RasmussenW06},
-%    \[
-%      \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
-%      q(\mathbf{r} \mid \mathbf{u}) \dl
-%      \left[-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} -
-%        \frac{1}{2}\log|\Kuu| \right] = \frac{1}{2}q(\mathbf{r} \mid \mathbf{u})\tr
-%      \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} -
-%        \Kuu^{-1}) \frac{\partial \Kuu}{\partial \lambda_i} \right).
-%    \]
-%    The remaining derivative is
-%    \[
-%      \frac{\partial \Kuu}{\partial \lambda_i} =
-%      \begin{cases}
-%        \frac{1}{\lambda_i}\Kuu & \text{if } i = 0, \\
-%        \Luu & \text{otherwise,}
-%      \end{cases}
-%    \]
-%    where
-%    \[
-%      \begin{split}
-%        [\Luu]_{j,k} &= \dl k(\mathbf{x}_{\mathbf{u},j},
-%        \mathbf{x}_{\mathbf{u},k}) \\
-%        &= k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-%        \dl \left[-\frac{1}{2}(\mathbf{x}_{\mathbf{u},j} -
-%          \mathbf{x}_{\mathbf{u},k})^\intercal \bm\Lambda
-%          (\mathbf{x}_{\mathbf{u},j} - \mathbf{x}_{\mathbf{u},k}) -
-%          \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \right] \\
-%        &= k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-%        \dl \left[-\frac{1}{2}\sum_{l=1}^d \lambda_l
-%          (x_{\mathbf{u},j,l} - x_{\mathbf{u},k,l})^2 -
-%          \mathbbm{1}[j \ne k]\sigma^2\sum_{l=1}^d \lambda_l \right] \\
-%        &= k(\mathbf{x}_{\mathbf{u},j}, \mathbf{x}_{\mathbf{u},k})
-%        \left( -\frac{1}{2}(x_{\mathbf{u},j,i} -
-%        x_{\mathbf{u},k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
-%      \end{split}
-%    \]
-%  \end{enumerate}
-%\end{proof}
+\end{restatable}
 
-\subsection{Evidence Lower Bound}
+\subsection{Details of the Model} \label{sec:details}
 
-\begin{equation} \label{eq:full}
-  \pfull = p(\mathbf{u}) \times p(\mathbf{r} \mid \mathbf{u}) \times p(\mathcal{D} \mid \mathbf{r}).
-\end{equation}
+In order to properly investigate the difference between variational inference
+and ML estimation, we keep other parts of the model the same.
+Namely, we set the covariance function to a version of the automatic relevance
+detection kernel \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
+\begin{align*}
+  k(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left( \vphantom{\frac{1}{2}} \right. &-\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i - \mathbf{x}_j) \\
+                                                     &- \mathbbm{1}[i \ne j]\sigma^2\tr(\bm\Lambda) \left. \vphantom{\frac{1}{2}} \right),
+\end{align*}
+where $\lambda_0$ is the overall `scale' factor for how similar or distant the
+states are, $\bm\Lambda = \diag(\lambda_1, \dots, \lambda_d)$ is a diagonal
+matrix that determines the relevance of each feature (where $d$ denotes the
+number of features), $\mathbbm{1}$ is defined as
+\[ \mathbbm{1}[b] = \begin{cases}
+    1 & \mbox{if $b$ is true} \\
+    0 & \mbox{otherwise},
+  \end{cases} \]
+and $\sigma^2$ is set to $10^{-2}/2$ (as the original paper noted that
+the value makes little difference to the performance of the algorithm
+\cite{DBLP:conf/nips/LevinePK11}). Our vector of parameters for the
+covariance function is then $\bm\lambda = (\lambda_0, \dots,
+\lambda_d)^\intercal$. % TODO: write about lambda having to be variational
 
+TODO: introductory sentence for the following assumption:
 \begin{equation} \label{eq:approximation}
-  \approximation = q(\mathbf{u}) \times q(\mathbf{r} \mid \mathbf{u}).
+  \approximation = q(\mathbf{u}) \times q(\mathbf{r} \mid \mathbf{u}),
 \end{equation}
+where
+\begin{equation}
+  q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{m}, \mathbf{S}),
+\end{equation}
+where $\bm\mu \in \mathbb{R}^{m}$ is the mean vector and the $m \times m$
+positive semi-definite matrix $\bm\Sigma$ is the covariance matrix
+\cite{DBLP:conf/nips/ChengB17,DBLP:journals/jmlr/HensmanDS17,DBLP:conf/aaai/HoangHL17}.
+
+  \begin{figure}
+    \centering
+    \begin{tikzpicture}
+      \node[latent] (u) {$\mathbf{u}$};
+      \node[latent, right=of u] (r) {$\mathbf{r}$};
+      \node[obs, right=of r] (D) {$\mathcal{D}$};
+      \node[const, below=of r] (lambda) {$\bm\lambda$};
+      \node[const, below=of u] (mu) {$\bm\mu$};
+      \node[const, left=of mu] (Sigma) {$\bm\Sigma$};
+      \edge {mu, Sigma} {u};
+      \edge {lambda, u} {r};
+      \edge {r} {D};
+    \end{tikzpicture}
+    \label{fig:graphical_model}
+  \end{figure}
+
+This gives us our variational parameters $\bm\nu = (\bm\mu, \mathbf{B},
+\bm\lambda)^\intercal$. TODO: reference the figure
+
+\subsection{Evidence Lower Bound} \label{sec:elbo}
 
 In this section we derive and simplify the ELBO for this (now fully specified)
 model. In order to derive the ELBO, let us go back to Equation \ref{eq:elbo} and
@@ -532,7 +504,70 @@ where
   \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
 \]
 
+\subsection{Variational Inference} \label{vi_algs}
+
+The typical way to optimise a quantity (the ELBO, in this case) involves
+computing its gradient \cite{blei2017variational}. Unfortunately, some of the
+terms in $\mathcal{L}$ are still left as expected values. \emph{Black box
+  variational inference} (BBVI) \cite{DBLP:conf/aistats/RanganathGB14} suggests
+a way to express the gradient as an expectation without having to take the
+gradient of the posterior:
+\[ \nabla_{\bm\nu} \mathcal{L} = \mathbb{E}[\nabla_{\bm\nu} \log \approximation
+  (\log \pfull - \log \approximation)]. \]
+The gradient of the ELBO then has a unbiased estimate
+\[
+  \nabla_{\bm\nu} \mathcal{L} \approx \frac{1}{S} \sum_{s=1}^S \nabla_{\bm\nu} \log \approximationS (\log \pfullS - \log \approximationS),
+\]
+computed by drawing $S$ Monte Carlo samples $(\mathbf{u}_s, \mathbf{r}_s) \sim
+\approximation$.
+
+The main theorem behind the BBVI trick is the Lebesgue's dominated convergence
+theorem \cite{royden1988real}, which---under some conditions---allows one to
+claim that:
+\[ \lim_{n \to \infty} \int_E f_n\,d\mu = \int_E \lim_{n \to \infty}
+  f_n\,d\mu. \]
+We can use the same idea on parts of $\mathcal{L}$, derivatives of which cannot
+be taken otherwise. In our case, we want a gradient instead of a limit, and the
+integral represents an expected value.
+
+%While the ELBO can now be computed without approximations, we ended up imposing
+%two zero-variance restrictions, resulting in a less informative model. Moreover,
+%we had to abandon the Bayesian treatment of $\bm\lambda$, making the model more
+%vulnerable to overfitting.
+
 \subsection{Theoretical Justification}
+
+% TODO: reference in text
+\begin{figure}
+  \centering
+  \begin{tikzpicture}
+    \node [rectangle, draw, fill=lightgray] (perturbation) at (2, 0) {\textsc{Perturbation Lemma}};
+    \node [rectangle, draw, fill=lightgray] (lebesgue) at (-1, -3) {\textsc{Dominated Convergence Theorem}};
+    \node [rectangle, draw] (derivatives) at (-2, 0) {\textsc{Derivatives of PDFs}};
+    \node [rectangle, draw] (measurability) at (-3, -2) {\textsc{Measurability}};
+    \node [rectangle, draw] (boundedness) at (3, -2) {\textsc{Boundedness}};
+    \node [rectangle, draw] (lemma1) at (-2, -1) {\textsc{Lemma \ref{lemma:bound1}}};
+    \node [rectangle, draw] (lemma2) at (0, -1) {\textsc{Lemma \ref{lemma:bound2}}};
+    \node [rectangle, draw] (lemma3) at (2, -1) {\textsc{Lemma \ref{lemma:bound3}}};
+    \node [rectangle, draw] (lemma4) at (3, -3) {\textsc{Lemma \ref{lemma:integral_of_r}}};
+    \node [rectangle, draw] (theorem) at (0, -2) {\textsc{Theorem \ref{thm:main}}};
+
+    \draw [arrow] (perturbation) edge (lemma3);
+    \draw [arrow] (lebesgue) edge (theorem);
+    \draw [arrow] (derivatives) edge (lemma1);
+    \draw [arrow] (derivatives) edge (lemma2);
+    \draw [arrow] (derivatives) edge (lemma3);
+    \draw [arrow] (measurability) edge (theorem);
+    \draw [arrow] (boundedness) edge (theorem);
+    \draw [arrow] (lemma1) edge (theorem);
+    \draw [arrow] (lemma2) edge (theorem);
+    \draw [arrow] (lemma3) edge (theorem);
+    \draw [arrow] (lemma4) edge (theorem);
+  \end{tikzpicture}
+  \caption{A graphical representation of dependencies between our theoretical
+    results. An arrow from $A$ to $B$ means that $A$ was used to prove $B$.
+    Results from the literature are in gray.}
+\end{figure}
 
 MDP values are characterised by both a state and a reward function/vector. In
 order to prove the next theorem, we think of the value function as $V :
@@ -543,7 +578,7 @@ state $s \in \mathcal{S}$ and returns a function $V(s) :
 $\V(s) \in \mathbb{R}$. The function $V(s)$ computes the values of
 all states and returns the value of state $s$.
 
-\begin{proposition} \label{thm:measurability}
+\begin{proposition}[Measurability] \label{thm:measurability}
   MDP value functions $V(s) : \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ (for $s
   \in \mathcal{S}$) are Lebesgue measurable.
 \end{proposition}
@@ -575,7 +610,7 @@ all states and returns the value of state $s$.
   for any $s \in \mathcal{S}$.
 \end{proof}
 
-\begin{proposition} \label{thm:bound}
+\begin{proposition}[Boundedness] \label{thm:bound}
   If the initial values of the MDP value function satisfy the following
   bound, then the bound remains satisfied throughout value iteration:
   \begin{equation} \label{eq:bound}
@@ -625,24 +660,7 @@ all states and returns the value of state $s$.
   Equation \ref{eq:bound}.
 \end{proof}
 
-\begin{theorem}[Dominated Convergence Theorem
-  \cite{royden2010real}] \label{thm:lebesgue}
-  Let $(X, \mathcal{M}, \mu)$ be a measure space and $\{ f_n \}$ a sequence of
-  measurable functions on $X$ for which $\{ f_n \} \to f$ pointwise a.e. on $X$
-  and the function $f$ is measurable. Assume there is a non-negative function
-  $g$ that is integrable over $X$ and dominates the sequence $\{ f_n \}$ on $X$
-  in the sense that
-  \[
-    |f_n| \le g \text{ a.e. on $X$ for all $n$.}
-  \]
-  Then $f$ is integrable over $X$ and
-  \[
-    \lim_{n \to \infty} \int_X f_n\,d\mu = \int_X f\,d\mu.
-  \]
-\end{theorem}
-
-\begin{lemma} \label{lemma:bound1} % TODO: Lemma 1.1 is wrong about the
-                                % derivative. Fix
+\begin{lemma} \label{lemma:bound1}
   Let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (a, b) \subset
   \mathbb{R}$ be an arbitrary bounded function. Then, for $i = 0,
   \dots, d$,
@@ -653,23 +671,24 @@ all states and returns the value of state $s$.
   has upper and lower bounds of the form $q(\mathbf{r} \mid \mathbf{u})d(\mathbf{u})$, where
   $d(\mathbf{u}) \in \mathbb{R}_2[\mathbf{u}]$.
 \end{lemma}
+% TODO: Lemma 1.1 is wrong about the % derivative. Fix (my handwritten notes
+% have the correct idea)
 \begin{proof}
   Remember that
-  \[
-    \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
-    \frac{1}{2}q(\mathbf{r} \mid \mathbf{u})\tr
-    \left((\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal} - \Kuu^{-1})
-      \frac{\partial \Kuu}{\partial \lambda_i}
-    \right)
-  \]
+  \begin{align*}
+    \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} &= \frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) (|\bm\Gamma|^{-1} \tr(\mathbf{R} \adj(\bm\Gamma)) \\
+                                                                      &- (\mathbf{r} - \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su})).
+  \end{align*}
   by Lemma \ref{lemma:derivatives}. We begin by producing constant upper and
   lower bounds for the elements of
   \[
-    \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
-      c(\mathbf{r}, \mathbf{u})}.
+    \left. \frac{\partial \mathbf{K}}{\partial \lambda_i} \right|_{\lambda_i =
+      c(\mathbf{r}, \mathbf{u})},
   \]
-  If $i = 0$, then each element of $\frac{\partial
-    \Kuu}{\partial \lambda_0}$ is of the form
+  where $\mathbf{K}$ is any covariance matrix.
+
+  If $i = 0$, then each element of $\frac{\partial \mathbf{K}}{\partial
+    \lambda_0}$ is of the form
   \[
     \exp \left( -\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal
       \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) - \mathbbm{1}[j \ne
@@ -677,13 +696,14 @@ all states and returns the value of state $s$.
   \]
   i.e., without $\lambda_0$, so
   \[
-    \left. \frac{\partial \Kuu}{\partial \lambda_0} \right|_{\lambda_0 =
-      c(\mathbf{r}, \mathbf{u})} = \frac{\partial \Kuu}{\partial \lambda_0}
+    \left. \frac{\partial \mathbf{K}}{\partial \lambda_0} \right|_{\lambda_0 =
+      c(\mathbf{r}, \mathbf{u})} = \frac{\partial \mathbf{K}}{\partial
+      \lambda_0}
   \]
   is already independent of $\mathbf{r}$ and $\mathbf{u}$---there is no need
   for any bounds.
 
-  If $i > 0$, then each element of $\frac{\partial \Kuu}{\partial
+  If $i > 0$, then each element of $\frac{\partial \mathbf{K}}{\partial
     \lambda_i}$ is a constant multiple of $k(\mathbf{x}_j,
   \mathbf{x}_k)$, for some $\mathbf{x}_j$ and $\mathbf{x}_k$. Since
   $k(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
@@ -701,12 +721,12 @@ all states and returns the value of state $s$.
   \end{alignat*}
   where
   \[
-    S = \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{1}{2}
-    \lambda_n(x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne k]\sigma^2 \lambda_n,
+    S = \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{\lambda_n}{2}
+    (x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne k]\sigma^2 \lambda_n,
   \]
   which gives an upper bound on each element of
   \[
-    \left. \frac{\partial \Kuu}{\partial \lambda_i} \right|_{\lambda_i =
+    \left. \frac{\partial \mathbf{K}}{\partial \lambda_i} \right|_{\lambda_i =
       c(\mathbf{r}, \mathbf{u})}.
   \]
   A similar line of reasoning establishes lower bounds as well.
@@ -993,9 +1013,129 @@ by Chen \cite{lecture_notes}.
   Equation \ref{eq:remaining_integral} as well.
 \end{proof}
 
-\subsection{Derivatives}
+\section{Evaluation} % showing deep understanding
 
-\subsubsection{\texorpdfstring{$\partial/\partial\bm\mu$}{Derivative w.r.t. mu}}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth]{elbo_contour_plots}
+\end{figure*}
+
+\section{Conclusions}
+
+\subsection{Future Work}
+
+%\vskip8pt \noindent
+%{\bf Acknowledgments.}
+%This is optional; it is a location for you to thank people
+\bibliographystyle{abbrv}
+\bibliography{paper}
+
+\appendix
+\section{Proofs}
+
+\derivatives*
+\begin{proof}
+  \leavevmode
+  \begin{enumerate}
+  \item
+    \[
+      \begin{split}
+        \frac{\partial q(\mathbf{u})}{\partial m} &=
+        q(\mathbf{u})\dm\left[-\frac{Q}{2}\right]
+        \\
+        &= -\frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
+        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)\dm[\mathbf{u} -
+        \bm\mu] \\
+        &= \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
+        \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu).
+      \end{split}
+    \]
+  \item
+    \begin{align}
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\exp \left( -\frac{Q}{2} \right)\right] \nonumber \\
+                                                         &= \dB\left[\frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\right]\exp \left( -\frac{Q}{2} \right) \nonumber \\
+                                                         &+ \frac{1}{(2\pi)^{m/2}|\bm\Sigma|^{1/2}}\dB\left[\exp\left( -\frac{Q}{2} \right)\right] \nonumber \\
+                                                         &= -\frac{1}{2} q(\mathbf{u}) \left( |\bm\Sigma|^{-3/2} \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} + \frac{\partial Q}{\partial \mathbf{B}} \right). \label{eq:2_before}
+    \end{align}
+    For derivatives with respect to $\bm\Sigma$, we can refer to Petersen and
+    Pedersen \cite{petersen2008matrix}:
+    \begin{equation} \label{eq:partial_derivatives1}
+      \frac{\partial |\bm\Sigma|}{\partial \bm\Sigma} = |\bm\Sigma|\bm\Sigma^{-\intercal}, \quad \frac{\partial Q}{\partial \mathbf{B}} = -\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal},
+    \end{equation}
+    while we can use an online tool by Laue et
+    al.\footnote{\url{http://www.matrixcalculus.org/}}
+    \cite{DBLP:conf/nips/LaueMG18} for the remaining ones:
+    \begin{equation} \label{eq:partial_derivatives2}
+      \begin{gathered}
+        \frac{\partial |\bm\Sigma|}{\partial \mathbf{B}} =
+        (\adj(\mathbf{T}) + \adj(\bm\Sigma))\mathbf{B}, \\
+        \dB[(\mathbf{u} - \bm\mu)^\intercal\bm\Sigma^{-1}(\mathbf{u} -
+        \bm\mu)] = -(\mathbf{TUT} +
+        \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1})\mathbf{B}.
+      \end{gathered}
+    \end{equation}
+    Substituting results from Equations \ref{eq:partial_derivatives1} and
+    \ref{eq:partial_derivatives2} back into Equation \ref{eq:2_before} gives:
+    \begin{alignat*}{3}
+      \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} &=
+      \frac{1}{2}q(\mathbf{u})(&&\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
+      - \bm\Sigma^{-\intercal}), \\
+      \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} &=
+      \frac{1}{2}q(\mathbf{u}) \{&&|\bm\Sigma|^{-3/2}(\adj(\mathbf{T}) +
+      \adj(\bm\Sigma)) \\
+      & &&+ \mathbf{TUT} + \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} \} \mathbf{B}.
+    \end{alignat*}
+  \item
+    \begin{enumerate}
+    \item Since
+    \begin{align*}
+      q(\mathbf{r} \mid \mathbf{u}) &= \mathcal{N}(\mathbf{r};
+      \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal \Kuu^{-1}\Kru) \\
+      &= \mathcal{N}(\mathbf{r}; \mathbf{Su}, \bm\Gamma),
+    \end{align*}
+    we have
+    \[
+      \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
+      -\frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) \dl[(\mathbf{r} -
+      \mathbf{Su})^\intercal\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su}) +
+      \log|\bm\Gamma|].
+    \]
+    The same online tool can be used to show that
+    \[
+      \dl \log|\bm\Gamma| = -|\bm\Gamma|^{-1}\tr(\mathbf{R}\adj(\bm\Gamma)),
+    \]
+    and
+    \[
+      \dl \bm\Gamma^{-1} = \bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}.
+    \]
+  \item
+    If $i=0$, then
+    \[
+      \frac{\partial \mathbf{K}}{\partial \lambda_i} =
+      \frac{1}{\lambda_i}\mathbf{K}
+    \]
+    by the structure of each element of $\mathbf{K}$. If $i \ne 0$, then each
+    element of $\frac{\partial \mathbf{K}}{\partial \lambda_i}$ is
+    \begin{align*}
+      L_{j,k} &= \frac{\partial k(\mathbf{x}_j, \mathbf{x}_k)}{\partial \lambda_i} \\
+      &\begin{aligned}
+        = k(\mathbf{x}_j, \mathbf{x}_k) \dl \left[ \vphantom{\frac{1}{2}} \right. &-\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) \\
+        &- \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \left. \vphantom{\frac{1}{2}} \right]
+      \end{aligned} \\
+      &\begin{aligned}
+        = k(\mathbf{x}_j, \mathbf{x}_k) \dl \left[ \vphantom{\sum_{k=1}^d} \right. &-\frac{1}{2} \sum_{l=1}^d \lambda_l (x_{j,l} - x_{k,l})^2 \\
+        &- \mathbbm{1}[j \ne k]\sigma^2\sum_{l=1}^d \lambda_l \left. \vphantom{\sum_{l=1}^d} \right]
+      \end{aligned} \\
+      &= k(\mathbf{x}_j, \mathbf{x}_k) \left( -\frac{1}{2}(x_{j,i} - x_{k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2 \right).
+    \end{align*}
+    \end{enumerate}
+  \end{enumerate}
+\end{proof}
+
+\section{Derivatives}
+
+\subsection{\texorpdfstring{$\partial/\partial\bm\mu$}{Derivative w.r.t. mu}}
 
 We begin by removing terms independent of $\bm\mu$:
 \[
@@ -1007,8 +1147,8 @@ Here
 \[
   \dm \left[ \bm\mu^\intercal \Kuu^{-1} \bm\mu \right] = (\Kuu^{-1} +
   \Kuu^{-\intercal}) \bm\mu
-\] % TODO: by the cookbook
-and
+\]
+by Petersen and Pedersen \cite{petersen2008matrix}, and
 \[
   \begin{split}
     \dm\mathbb{E}[\V(s)] &= \dm\iint \V(s) q(\mathbf{r} \mid \mathbf{u})
@@ -1030,7 +1170,7 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Hence,
   \end{split}
 \]
 
-\subsubsection{\texorpdfstring{$\partial/\partial\mathbf{B}$}{Derivative w.r.t. B}}
+\subsection{\texorpdfstring{$\partial/\partial\mathbf{B}$}{Derivative w.r.t. B}}
 
 \[
   \frac{\partial\mathcal{L}}{\partial\mathbf{B}} =
@@ -1063,7 +1203,7 @@ Therefore,
   |\bm\Sigma|^{-1}\adj(\bm\Sigma))\mathbf{B}v].
 \end{gather*}
 
-\subsubsection{\texorpdfstring{$\partial/\partial \lambda_j$}{Derivative w.r.t.
+\subsection{\texorpdfstring{$\partial/\partial \lambda_j$}{Derivative w.r.t.
     Lambda}}
 
 For $j = 0, \dots, d$,
@@ -1100,44 +1240,24 @@ by Petersen and Pedersen \cite{petersen2008matrix}, and
   \end{split}
 \]
 by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
-\[
-  \begin{split}
-    \frac{\partial \mathcal{L}}{\partial \lambda_j} &=
-    \mathbf{t}^\intercal \left( \frac{\partial \Kru^\intercal}{\partial
-        \lambda_j} - \Kru^\intercal\Kuu^{-1}\frac{\partial
-        \Kuu}{\partial \lambda_j} \right) \Kuu^{-1} \bm\mu \\
-    &+ \frac{1}{2} \left[ \begin{split}
-      &\tr \left( \Kuu^{-1} \frac{\partial \Kuu}{\partial
-          \lambda_j} \Kuu^{-1} \bm\Sigma \right) + \bm\mu^\intercal \Kuu^{-1}
-      \frac{\partial \Kuu}{\partial \lambda_j} \Kuu^{-1} \bm\mu \\
-      &- \tr \left(\Kuu^{-1} \frac{\partial \Kuu}{\partial \lambda_j} \right)
-      \end{split} \right]
-    \\
-    &- \frac{1}{2} \mathbb{E} \left[ \left( \begin{split}
-        &|\bm\Gamma|^{-1} \tr(\mathbf{R} \adj(\bm\Gamma)) \\
-          &- (\mathbf{r} -
-          \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r}
-          - \mathbf{Su})
-    \end{split} \right) v \right],
-  \end{split}
-\]
+\begin{align*}
+  \frac{\partial \mathcal{L}}{\partial \lambda_j} &=
+  \mathbf{t}^\intercal \left( \frac{\partial \Kru^\intercal}{\partial
+      \lambda_j} - \Kru^\intercal\Kuu^{-1}\frac{\partial
+      \Kuu}{\partial \lambda_j} \right) \Kuu^{-1} \bm\mu \\
+  &\begin{aligned}
+    + \frac{1}{2} \left[ \vphantom{\frac{\partial \Kuu}{\partial \lambda_j}}
+    \right. &\tr \left( \Kuu^{-1} \frac{\partial \Kuu}{\partial \lambda_j}
+      \Kuu^{-1} \bm\Sigma \right) + \bm\mu^\intercal \Kuu^{-1} \frac{\partial
+      \Kuu}{\partial \lambda_j} \Kuu^{-1} \bm\mu \\
+    &- \tr \left. \left(\Kuu^{-1} \frac{\partial \Kuu}{\partial \lambda_j}
+      \right) \right]
+  \end{aligned} \\
+  &\begin{aligned}
+    - \frac{1}{2} \mathbb{E} [ (&|\bm\Gamma|^{-1} \tr(\mathbf{R} \adj(\bm\Gamma)) \\
+    &- (\mathbf{r} - \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su})) v],
+  \end{aligned} 
+\end{align*}
 where the remaining derivatives can be found in Lemma \ref{lemma:derivatives}.
 
-\section{Evaluation} % showing deep understanding
-
-
-\begin{figure*}
-  \centering
-  \includegraphics[width=\textwidth]{elbo_contour_plots}
-\end{figure*}
-
-\section{Conclusions}
-
-\subsection{Future Work}
-
-%\vskip8pt \noindent
-%{\bf Acknowledgments.}
-%This is optional; it is a location for you to thank people
-\bibliographystyle{abbrv}
-\bibliography{paper}
 \end{document}
