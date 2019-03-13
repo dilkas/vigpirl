@@ -69,9 +69,6 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
     diag(not_estimated_B), not_estimated_mu, get_lower_triangle(not_estimated_B));
   changes = not_estimated - 0.5 * estimated_grad;
 
-  disp(not_estimated_elbo);
-  disp(estimated_grad(1));
-
   % TESTING
   %fprintf('Not estimated: %f, estimated: %f, total: %f\n', not_estimated(2), estimated_grad(2), changes(2));
   p_derivative = -0.5 * estimated_grad(2) + counts' * (matrices.Kru_grad(:, :, 1)' -...
@@ -87,6 +84,15 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
   elbo = changes(1);
   grad = transform_gradient(changes(2:end), vigpirlpackparam(gp), size(gp.lambda), size(gp.mu));
+
+  % If our rewards go too far towards negative infinity, and probability of a
+  % state-action pair is over 1, freeze the reward of current state
+  elbo_data_part = counts' * S * gp.mu - 0.5 * estimated_grad(1);
+  fprintf('Should be negative: %f\n', elbo_data_part);
+  if (elbo_data_part > 0)
+    elbo = elbo - elbo_data_part;
+    grad(d+m+2+)
+  end
 
   %fprintf('Not estimated grad:');
   %disp(not_estimated(2));

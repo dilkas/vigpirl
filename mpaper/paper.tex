@@ -1066,28 +1066,7 @@ by Chen \cite{lecture_notes}.
 \end{proof}
 
 \section{Evaluation} % showing deep understanding
-% Could measure how algorithms scale with the size of the map (number of states)
 % Mention all the constants I've used.
-% How well does the variance prediction work?
-
-%\begin{figure} % this is more confusing than helpful
-%  \centering
-%  \begin{tikzpicture}
-%    \node [ellipse,draw] (s1) at (-1, -1) {$s_1$};
-%    \node [ellipse,draw] (s2) at (0, 0) {$s_2$};
-%    \node [ellipse,draw] (s3) at (1, -1) {$s_3$};
-%    \draw [->,-to,bend left] (s1) edge (s2);
-%    \draw [->,-latex,dashed] (s1) edge (s3);
-%    \draw [->,-to] (s2) edge (s1);
-%    \draw [->,-latex,bend left,dashed] (s2) edge (s3);
-%    \draw [->,-to,bend left,dashed] (s3) edge (s1);
-%    \draw [->,-latex] (s3) edge (s2);
-%  \end{tikzpicture}
-%\end{figure}
-
-%\printinunitsof{cm}\prntlen{\textwidth}
-%\printinunitsof{cm}\prntlen{\textheight}
-%\printinunitsof{cm}\prntlen{\columnwidth}
 
 In order to fully understand the model's behaviour, we focus on a three-state
 MDP where the agent can deterministically move from any state to any other
@@ -1109,6 +1088,7 @@ and create two demonstrations: $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
 $s_2$. Therefore, we would expect the reward (and value) of $s_2$ to be the
 highest.
 
+ % TODO: need to redo this to get better labels, more precision, wider range of values
 \begin{figure*}
   \centering
   \includegraphics[width=\textwidth]{elbo_contour_plots}
@@ -1122,6 +1102,14 @@ highest.
     plots a different value of $\gamma$, ranging from $0$ in dark blue to $0.9$
     in dark red.}
 \end{figure}
+
+% How does policy depend on rewards? Choose state and action, generate an array
+% of contour plots showing the probability of taking that action in an optimal policy
+Observation from a plot not worth including here. The policy behaves as
+expected: if we fix $r(s_1)$, $\pi(s_1, a_1)$ increases with higher $r(s_2)$ as
+well as lower $r(s_3)$ values.
+
+% How well does the variance prediction work?
 
 \section{Conclusions}
 
@@ -1140,30 +1128,17 @@ exploitation similarly to many RL agents, but the information about rewards
 would come from observing (presumably near-optimal) behaviour exhibited by other
 agents rather than directly from the environment.
 
-%Our work also poses a new challenge to the usual methods of determining an
-%optimal strategy in a given MDP:
-%\begin{problem}
-%  Let $\mathcal{M} = \{ \mathcal{S}, \mathcal{A}, \mathcal{T}, \gamma,
-%  r \}$ be an MDP where the reward $r : \mathcal{S} \to
-%  \textsf{Prob}(\mathbb{R})$ is expressed as a function from the set of states
-%  to the set of probability distributions with support over $\mathbb{R}$. Find
-%  the optimal policy $\pi^*$ in $\mathcal{M}$, i.e., % TODO: argmax expression
-%\end{problem}
-%Of course, in many situations,... % TOOD: gaussians, pdf's, something simpler
-
+It is also worth noting the approach presented in this paper requires solving
+$S$ MDPs for every iteration of optimising the parameters (where $S$ is the
+number of samples drawn from $\approximation$). There are at least two ways to
+reduce or eliminate this performance bottleneck:
 \begin{itemize}
-\item MDP solver that works with distributions of rewards.
-\item Stress how solving MDPs is the performance bottleneck: numSamples MDPs
-  have to be solved for each iteration.
-  \begin{itemize}
-  \item Integration with MDP solvers that approximate the value function
-    sufficiently well for training.
-  \item Or perhaps there is a way to ``modify'' a solution to one MDP in order
-    to get a solution for a similar MDP (there was a FATA talk about that, but
-    for a different problem of course).
-  \item Perhaps value iteration converges faster if the values are initialised
-    to the optimal values of the previous iteration.
-  \end{itemize}
+\item The MDP value function could be approximated, allowing for some minor
+  mistakes in the resulting policy.
+\item Perhaps there is a good way to use information about previously computed
+  value functions for similar rewards to hasten the current computation. One
+  simple way to do this would be by initialising the current values to the
+  optimal values of the previous MDP value function computation.
 \end{itemize}
 
 %\vskip8pt \noindent

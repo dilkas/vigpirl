@@ -32,7 +32,7 @@ addpaths;
 %example_samples = {[1, 1]};
 
 % Three states -- doesn't work
-mdp_data = struct('discount', 0.7, 'states', 3, 'actions', 2);
+mdp_data = struct('discount', 0.5, 'states', 3, 'actions', 2);
 mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
 mdp_data.sa_p(1:3, 1:2, 1) = 1;
 feature_data = struct('splittable', [1; 2; 3]);

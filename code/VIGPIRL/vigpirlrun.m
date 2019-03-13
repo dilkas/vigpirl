@@ -68,10 +68,45 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
   parameter_vector = vigpirlpackparam(gp);
 
+  % ELBO as a function of mu over 10 plots
+  mu1_log = [];
+  mu2_log = [];
+  mu3_log = [];
+  multiplier = 10;
+  for mu1 = 1:10
+    real_mu1 = multiplier * (mu1 - 5);
+    parameter_vector(d+m+2) = real_mu1;
+    for mu2 = 1:10
+      real_mu2 = multiplier * (mu2 - 5);
+      parameter_vector(d+m+3) = real_mu2;
+      for mu3 = 1:10
+        real_mu3 = multiplier * (mu3 - 5)
+        parameter_vector(d+m+4) = real_mu3;
+        wrapper(parameter_vector);
+        mu1_log = [mu1_log real_mu1];
+        mu2_log = [mu2_log real_mu2];
+        mu3_log = [mu3_log real_mu3];
+      end
+    end
+  end
+  for mu1 = 1:10
+    indices = 100*(mu1-1)+1:100*mu1;
+    other_mu = multiplier * ((1:10) - 5);
+    subplot(5, 2, mu1);
+    contourf(other_mu, other_mu, reshape(elbo_list(indices), [10, 10]), 30);
+    xlabel('$\mu_2$', 'Interpreter', 'latex');
+    ylabel('$\mu_3$', 'Interpreter', 'latex');
+    t = ['$\mu_1 = ', num2str(multiplier * (mu1 - 5)), '$'];
+    title(t, 'Interpreter', 'latex');
+  end
+  return;
+
+  % Policy as a function of rewards over 10 plots
   %mu1_log = [];
   %mu2_log = [];
   %mu3_log = [];
   %multiplier = 10;
+  %policy_log = [];
   %for mu1 = 1:10
   %  real_mu1 = multiplier * (mu1 - 5);
   %  parameter_vector(d+m+2) = real_mu1;
@@ -81,75 +116,55 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %    for mu3 = 1:10
   %      real_mu3 = multiplier * (mu3 - 5)
   %      parameter_vector(d+m+4) = real_mu3;
-  %      wrapper(parameter_vector);
+  %      solution = feval([mdp_model 'solve'], mdp_data, [mu1; mu2; mu3]);
+  %      policy = solution.p(1, 1); % state 1, action 1
+  %      policy_log = [policy_log policy];
   %      mu1_log = [mu1_log real_mu1];
   %      mu2_log = [mu2_log real_mu2];
   %      mu3_log = [mu3_log real_mu3];
   %    end
   %  end
   %end
-
-  % ELBO as a function of mu for various values of gamma
-  mu_from = -100;
-  mu_to = 50;
-  gamma_from = 0;
-  gamma_to = 9;
-  colours = colormap('jet');
-  indices = round(linspace(1, length(colours), gamma_to - gamma_from + 1));
-  set(groot, 'defaultAxesColorOrder', colours(indices, :));
-  figure('Units', 'centimeters', 'Position', [0 0 15 10],...
-         'PaperPositionMode', 'auto');
-  for gamma = gamma_from:gamma_to
-    mdp_data.discount = gamma / 10.0;
-    mu_log = [];
-    for mu = mu_from:mu_to
-      parameter_vector(d+m+2:d+m+4) = mu;
-      wrapper(parameter_vector);
-      mu_log = [mu_log mu];
-    end
-    plot(mu_log, elbo_list((length(elbo_list)-(mu_to - mu_from)):end));
-    if (gamma == 0)
-      hold on;
-    end
-  end
-  %legend('$\gamma = ' + string((gamma_from:gamma_to) / 10.0) + '$', 'Interpreter', 'latex');
-  xlabel('$\mu_1 = \mu_2 = \mu_3$', 'Interpreter', 'latex');
-  ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
-  hold off;
-  print('../mpaper/elbo_over_gamma', '-depsc2');
-
-  %max_negative = min(elbo_list);
-  %if (max_negative >= 0)
-  %  return;
-  %end
-  %max_positive = max(elbo_list);
-  %if (max_positive <= 0)
-  %  return;
-  %end
-  %[red, green, blue] = arrayfun(@(x) choose_color(x, max_negative, max_positive), elbo_list);
-
-  % 2D plots
   %for mu1 = 1:10
   %  indices = 100*(mu1-1)+1:100*mu1;
   %  other_mu = multiplier * ((1:10) - 5);
   %  subplot(5, 2, mu1);
-  %  contourf(other_mu, other_mu, reshape(elbo_list(indices), [10, 10]), 30);
-  %  xlabel('$\mu_2$', 'Interpreter', 'latex');
-  %  ylabel('$\mu_3$', 'Interpreter', 'latex');
-  %  t = ['$\mu_1 = ', num2str(multiplier * (mu1 - 5)), '$'];
+  %  contourf(other_mu, other_mu, reshape(policy_log(indices), [10, 10]), 30);
+  %  xlabel('$r(s_2)$', 'Interpreter', 'latex');
+  %  ylabel('$r(s_3)$', 'Interpreter', 'latex');
+  %  t = ['$r(s_1) = ', num2str(multiplier * (mu1 - 5)), '$'];
   %  title(t, 'Interpreter', 'latex');
   %end
-
-  % 3D Plots
-  %scatter3(mu1_log, mu2_log, mu3_log, 100, elbo_list, 'filled');
-  %colorbar();
-  %q = quiver3(mu1_log, mu2_log, mu3_log, grad_history(d+m+2, :), grad_history(d+m+3, :), grad_history(d+m+4, :));
-  %q.LineWidth = 2;
-  %quiver(mu2_log, mu3_log, grad_history(d+m+3, :), grad_history(d+m+4, :));
-  %xlabel('$\mu_1$', 'Interpreter', 'latex');
-  %ylabel('$\mu_2$', 'Interpreter', 'latex');
-  %zlabel('$\mu_3$', 'Interpreter', 'latex');
   %return;
+
+  % ELBO as a function of mu for various values of gamma
+  %mu_from = -100;
+  %mu_to = 50;
+  %gamma_from = 0;
+  %gamma_to = 9;
+  %colours = colormap('jet');
+  %indices = round(linspace(1, length(colours), gamma_to - gamma_from + 1));
+  %set(groot, 'defaultAxesColorOrder', colours(indices, :));
+  %figure('Units', 'centimeters', 'Position', [0 0 15 10],...
+  %       'PaperPositionMode', 'auto');
+  %for gamma = gamma_from:gamma_to
+  %  mdp_data.discount = gamma / 10.0;
+  %  mu_log = [];
+  %  for mu = mu_from:mu_to
+  %    parameter_vector(d+m+2:d+m+4) = mu;
+  %    wrapper(parameter_vector);
+  %    mu_log = [mu_log mu];
+  %  end
+  %  plot(mu_log, elbo_list((length(elbo_list)-(mu_to - mu_from)):end));
+  %  if (gamma == 0)
+  %    hold on;
+  %  end
+  %end
+  %legend('$\gamma = ' + string((gamma_from:gamma_to) / 10.0) + '$', 'Interpreter', 'latex');
+  %xlabel('$\mu_1 = \mu_2 = \mu_3$', 'Interpreter', 'latex');
+  %ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
+  %hold off;
+  %print('../mpaper/elbo_over_gamma', '-depsc2');
 
   % Checking if the gradients are correct
   %options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true);
@@ -172,7 +187,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
   %                    'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
   %                    'model_p_itr', {{p}}, 'time', 0, 'score', 0);
-  return;
+  %return;
 
   % for AdaGrad
   G = zeros(m + d + 1 + m*(m+1)/2, 1);
@@ -194,13 +209,13 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
     old_hyperparameters = vigpirlpackparam(gp);
 
-    grad(1) = 0; % lambda0
-    grad(2:d+1) = 0; % lambda (except first)
+    %grad(1) = 0; % lambda0
+    %grad(2:d+1) = 0; % lambda (except first)
     %grad(d+m+2:d+2*m+1) = 0; % mu
-    grad(d+m+3) = 0; % mu (second)
-    grad(d+m+4) = 0; % mu (third)
-    grad(d+2:d+m+1) = 0; % B diagonal
-    grad(d+2*m+2:end) = 0; % rest of B
+    %grad(d+m+3) = 0; % mu (second)
+    %grad(d+m+4) = 0; % mu (third)
+    %grad(d+2:d+m+1) = 0; % B diagonal
+    %grad(d+2*m+2:end) = 0; % rest of B
 
     %fprintf('Hyperparameters:\n');
     %disp(old_hyperparameters);
@@ -228,8 +243,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %hyperparameters = old_hyperparameters + rho .* grad;
     gp = vigpirlunpackparam(gp, hyperparameters);
 
-    disp(elbo);
-    fprintf('----------\n');
+    fprintf('ELBO: %f\n', elbo);
+    %fprintf('----------\n');
     elbo_list = horzcat(elbo_list, elbo);
     grad_history = horzcat(grad_history, grad);
 
@@ -253,9 +268,13 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   v = solution.v;
   q = solution.q;
   p = solution.p;
+  fprintf('Parameters:\n');
   disp(hyperparameters);
+  fprintf('Rewards:\n');
   disp(r);
+  fprintf('values:\n');
   disp(v);
+  fprintf('Policy:\n');
   disp(p);
   irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
                       'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
