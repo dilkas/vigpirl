@@ -6,15 +6,17 @@
 \usepackage[UKenglish]{babel}
 \usepackage[UKenglish]{isodate}
 \usepackage{tikz}
+\usepackage{layouts}
 
-\usetikzlibrary{shapes,bayesnet,arrows.meta}
-\tikzstyle{arrow} = [-{Latex[length=2mm,width=2mm]}]
+\usetikzlibrary{shapes,bayesnet,arrows.meta,arrows}
+%\tikzstyle{myarrow} = [-{Latex[length=2mm,width=2mm]}]
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{remark}[theorem]{Remark}
+\newtheorem{problem}[theorem]{Open Problem}
 
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\adj}{adj}
@@ -86,10 +88,9 @@ as a linear combination of features. One proven way to abandon this assumption
 is by representing the reward function as a Gaussian process (GP)
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11,DBLP:journals/corr/abs-1208-2112}.
 The original approach used maximum likelihood estimation
-\cite{DBLP:conf/nips/LevinePK11}, while the goal of this project is to use
-variational inference (VI) instead, which learns approximate posterior
-probability distributions instead of point estimates. This approach can prove
-useful in three major ways:
+\cite{DBLP:conf/nips/LevinePK11}, whereas we use variational inference (VI)
+instead, which learns approximate posterior probability distributions instead of
+point estimates. This approach can prove useful in three major ways:
 \begin{enumerate}
 \item Modelling full posterior distributions for various parameters can result
   in more precise reward predictions, as the model simply holds more
@@ -175,9 +176,9 @@ One way to model rewards without assumptions of linearity is with a
 finite combination of which has a joint Gaussian distribution
 \cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0,
 k)$ to say that $r$ is a GP with mean $0$ and covariance function
-$k$. Covariance functions take two state feature vectors as input and quantify
-how similar the two states are, in a sense that we would expect them to have
-similar rewards.
+$k$. \emph{Covariance functions} (also known as \emph{kernels}) take two state
+feature vectors as input and quantify how similar the two states are, in a sense
+that we would expect them to have similar rewards.
 
 As training a GP with $n$ data points has a time complexity of
 $\mathcal{O}(n^3)$ \cite{DBLP:books/lib/RasmussenW06}, numerous approximation
@@ -203,7 +204,7 @@ the number of inducing points. The GP posterior is then a multivariate Gaussian
   p(\mathbf{r} \mid \mathbf{u}) =
   \mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal\Kuu^{-1}\Kru),
 \end{equation}
-and $p(\mathcal{D} \mid \mathbf{r})$ is as in Equation \ref{pDr}. The matrices such as
+and $p(\mathcal{D} \mid \mathbf{r})$ is as in \eqref{pDr}. The matrices such as
 $\Kru$ are called \emph{covariance matrices} and are defined as
 $[\Kru]_{i,j} = k(\mathbf{x}_{\mathbf{r},i},
 \mathbf{x}_{\mathbf{u},j})$, where $\mathbf{x}_{\mathbf{r},i}$ and
@@ -216,7 +217,7 @@ $\mathbf{X_u}$, our goal is then to find optimal values of parameters
 $\bm\lambda$, inducing rewards $\mathbf{u}$, and the rewards for all relevant
 states $\mathbf{r}$. While the previous paper to consider this IRL model
 computed maximum likelihood (ML) estimates for $\bm\lambda$ and $\mathbf{u}$,
-and made an assumption that $\mathbf{r}$ in Equation \ref{eq:r} has zero variance
+and made an assumption that $\mathbf{r}$ in \eqref{eq:r} has zero variance
 \cite{DBLP:conf/nips/LevinePK11}, we aim to avoid this assumption and use
 VI to approximate the full posterior distribution $\posterior$.
 \emph{Variational inference} is an approximation technique for probability
@@ -252,15 +253,6 @@ assumptions. Moreover, we hope to make use of various recent advancements in VI
 for both time complexity and approximation distribution fit (see Section
 \ref{sec:background}), making the resulting algorithm competitive both in terms of
 running time and model fit.
-
-The project is primarily concerned with investigating how a VI formulation of
-the GP IRL model compares against the original ML approach. Most importantly, we
-aim to compare how the two algorithms converge both over time and as the number
-of demonstrations increases. It would also be interesting to see how close the
-approximation of the posterior distribution is to the real thing. Finally, it is
-reasonable to conjecture that VI can outperform point estimates when dealing
-with more uncertainty, e.g., when experts make mistakes. We can easily
-investigate this by adapting how the evaluation data is generated.
 
 \section{Background} \label{sec:background}
 % motivation, relevance (whatever that means)
@@ -325,7 +317,6 @@ dominated convergence theorem in order to justify the validity of our approach.
 \end{theorem}
 
 \section{Solution}
-% TODO: express all lambdas as exponentials (update the derivatives or sth)
 % TODO: give an overview of this section. Also, consider renaming it or
 % splitting it into multiple sections
 
@@ -343,15 +334,14 @@ the Lebesgue definition of integration.
 
 \subsection{Details of the Model}
 
-In order to properly investigate the difference between VI
-and ML estimation, we keep other parts of the model the same.
-Namely, we set the covariance function to a version of the automatic relevance
-detection kernel \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}
+We keep the covariance function the same as in the work by Levine et al.
+\cite{DBLP:conf/nips/LevinePK11}, which is a version of the automatic relevance
+detection kernel \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}:
 \begin{align*}
   k(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left( \vphantom{\frac{1}{2}} \right. &-\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i - \mathbf{x}_j) \\
-                                                                                     &- \mathbbm{1}[i \ne j]\sigma^2\tr(\bm\Lambda) \left. \vphantom{\frac{1}{2}} \right),
+                                                                                     &- \mathbbm{1}[i \ne j]\sigma^2\tr(\bm\Lambda) \left. \vphantom{\frac{1}{2}} \right).
 \end{align*}
-where $\lambda_0$ is the overall `scale' factor for how similar or distant the
+Here, $\lambda_0$ is the overall `scale' factor for how similar or distant the
 states are, $\bm\Lambda = \diag(\lambda_1, \dots, \lambda_d)$ is a diagonal
 matrix that determines the relevance of each feature (where $d$ denotes the
 number of features), $\mathbbm{1}$ is defined as
@@ -367,21 +357,33 @@ the value makes little difference to the performance of the algorithm
 \dots, \lambda_d)^\intercal$ to refer to both $\lambda_0$ and $\bm\Lambda$ at
 the same time.
 
-% TODO: write about lambda having to be variational
-% TODO: mention the open problem of finding the expected value of the inverse of
-% a matrix, where each element is a non-trivial function (w.r.t. a parameter of
-% the function)
-%TODO: introductory sentence for the following assumption:
+Ideally, we would like to model $\bm\lambda$ with an approximating distribution.
+However, due to how $p(\mathbf{u})$ has $\Kuu^{-1}$ in its expression, and the
+ELBO is defined as an expectation, we are unable to show that the ELBO is
+well-defined. More generally, we pose the following problem, which is open to
+the best of our knowledge:
+\begin{problem}
+  Let $\mathbf{A}$ be a $n \times n$ matrix of coefficients, $X$ be a random
+  variable, and $\mathbf{M}$ be an $n \times n$ matrix such that $M_{i,j} = f(X,
+  A_{i,j})$, where $f$ is an arbitrary function. Under what circumstances does
+  $\mathbb{E}[\mathbf{M}^{-1}]$ exist?
+\end{problem}
+While there are some obvious examples of when the required expected value
+exists (e.g., $f(X, A_{i,j}) = A_{i,j}X$ for an invertible $\mathbf{A}$ and many
+distributions of $X$), it would be particularly interesting to know whether the
+answer is `always'. A proof of such a result would allow us to model
+$\bm\lambda$ instead of treating it as a variational parameter, and would thus
+guard against overfitting. For now, $\bm\lambda$ will have to be treated as a
+variational parameter.
+
+It remains to decide on the model for $\mathbf{u}$ and $\mathbf{r}$. As is
+commonly done when applying VI to GPs, we set
 \begin{equation} \label{eq:approximation}
-  \approximation = q(\mathbf{u}) \times q(\mathbf{r} \mid \mathbf{u}),
+  \approximation = q(\mathbf{u}) q(\mathbf{r} \mid \mathbf{u}),
 \end{equation}
-where
-\begin{equation}
-  q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \bm\mu, \bm\Sigma),
-\end{equation}
-where $\bm\mu \in \mathbb{R}^{m}$ is the mean vector and the $m \times m$
-positive semi-definite matrix $\bm\Sigma$ is the covariance matrix
-\cite{DBLP:conf/nips/ChengB17,DBLP:journals/jmlr/HensmanDS17,DBLP:conf/aaai/HoangHL17}.
+where $q(\mathbf{r} \mid \mathbf{u}) = p(\mathbf{r} \mid \mathbf{u})$ and
+$q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \bm\mu, \bm\Sigma)$
+\cite{DBLP:conf/nips/ChengB17}.
 
 Ong et al. \cite{ong2018gaussian} have recently suggested that, in order to make
 variational approximation of a multivariate Gaussian more scalable, the
@@ -417,9 +419,36 @@ The resulting model is summarised in Figure \ref{fig:graphical_model}. We rely
 on $p(\mathcal{D} \mid \mathbf{r})$ as the only link between data and the model.
 Since the expression for $q(\mathbf{r} \mid \mathbf{u})$ has both $\mathbf{u}$
 and covariance matrices in it, $\mathbf{r}$ depends on both $\mathbf{u}$ and the
-parameters of the kernel, $\bm\lambda$. The two remaining dependencies are quite
-clear, given that the approximating distribution for $\mathbf{u}$ is
-$\mathcal{N}(\bm\lambda, \mathbf{BB}^\intercal)$. % TODO: concluding sentence
+parameters of the kernel, $\bm\lambda$. The two remaining dependencies stem from
+the fact that the approximating distribution for $\mathbf{u}$ is
+$\mathcal{N}(\bm\lambda, \mathbf{BB}^\intercal)$.
+
+As we want to restrict some parameters (namely, $\bm\lambda$ and the diagonal of
+$\mathbf{B}$) to positive values, we express them as exponentials and later
+adjust their derivatives accordingly. Specifically, we can set $\lambda_i =
+e^{\lambda'_i}$ and optimise $\lambda'_i$ using the chain rule:
+\[
+  \frac{\partial \mathcal{L}}{\partial \lambda'_i} = e^{\lambda'_i}
+  \frac{\partial \mathcal{L}}{\partial \lambda_i}.
+\]
+This way, we restrict $\lambda_i$ to positive values while allowing $\lambda'_i$
+to range over $\mathbb{R}$.
+
+Finally, the parameters are initialised as follows:
+\begin{alignat*}{3}
+  \mu_i &\sim \mathcal{U}(0, 1) \quad &&\text{for } i = 1, \dots, m, \\
+  \lambda_0 &\sim \chi^2_5, && \\
+  \lambda_i &\sim \chi^2_1 \quad &&\text{for } i = 1, \dots, d, \\
+  \diag(\mathbf{B}) &\sim \chi^2_4, && \\
+  \text{the rest of } \mathbf{B} &\sim \mathcal{N}(0, 1). &&
+\end{alignat*}
+The initialisation of $\bm\mu$ mirrors the initialisation of $\mathbf{r}$ in
+previous work by Levine et al. \cite{DBLP:conf/nips/LevinePK11}. While they have
+constant initial values for $\bm\lambda$, we sample from $\chi^2$ distributions
+centred around those values ($5$ for $\lambda_0$ and $1$ for any other
+$\lambda_i$). The distributions for initial values of $\mathbf{B}$ are simply
+set to provide a reasonable spread of positive values for the diagonal, and both
+positive and negative values for all other entries in the matrix.
 
 \subsection{Evidence Lower Bound} \label{sec:elbo}
 
@@ -429,12 +458,12 @@ terms in the expression of $\mathcal{L}$, i.e., equality is taken to mean
 `equality up to an additive constant'. Also note that all expected values are
 with respect to $(\mathbf{u}, \mathbf{r}) \sim q(\mathbf{u}, \mathbf{r})$.
 
-In order to derive the ELBO, let us go back to Equation \ref{eq:elbo} and
+In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
 write
 \[
   \mathcal{L} = \mathbb{E}[\log\pfull] - \mathbb{E}[\log\approximation].
 \]
-By substituting in Equations \ref{eq:full} and \ref{eq:approximation}, we get
+By substituting in \eqref{eq:full} and \eqref{eq:approximation}, we get
 \begin{align*}
   \mathcal{L} &= \mathbb{E}[\log p(\mathbf{u}) + \log p(\mathbf{r} \mid \mathbf{u}) + \log p(\mathcal{D} \mid \mathbf{r})] \\
               &- \mathbb{E}[\log q(\mathbf{u}) + \log q(\mathbf{r} \mid \mathbf{u})].
@@ -492,17 +521,17 @@ where
     \node [rectangle, draw] (lemma4) at (3, -3) {\textsc{Lemma \ref{lemma:integral_of_r}}};
     \node [rectangle, draw] (theorem) at (0, -2) {\textsc{Theorem \ref{thm:main}}};
 
-    \draw [arrow] (perturbation) edge (lemma3);
-    \draw [arrow] (lebesgue) edge (theorem);
-    \draw [arrow] (derivatives) edge (lemma1);
-    \draw [arrow] (derivatives) edge (lemma2);
-    \draw [arrow] (derivatives) edge (lemma3);
-    \draw [arrow] (measurability) edge (theorem);
-    \draw [arrow] (boundedness) edge (theorem);
-    \draw [arrow] (lemma1) edge (theorem);
-    \draw [arrow] (lemma2) edge (theorem);
-    \draw [arrow] (lemma3) edge (theorem);
-    \draw [arrow] (lemma4) edge (theorem);
+    \draw [->] (perturbation) edge (lemma3);
+    \draw [->] (lebesgue) edge (theorem);
+    \draw [->] (derivatives) edge (lemma1);
+    \draw [->] (derivatives) edge (lemma2);
+    \draw [->] (derivatives) edge (lemma3);
+    \draw [->] (measurability) edge (theorem);
+    \draw [->] (boundedness) edge (theorem);
+    \draw [->] (lemma1) edge (theorem);
+    \draw [->] (lemma2) edge (theorem);
+    \draw [->] (lemma3) edge (theorem);
+    \draw [->] (lemma4) edge (theorem);
   \end{tikzpicture}
   \caption{A graphical representation of dependencies between our theoretical
     results. An arrow from $A$ to $B$ means that $A$ was used to prove $B$.
@@ -820,7 +849,7 @@ expressions of derivatives:
     \begin{aligned}
       \;&\V(s_0) \in (-\infty, \alpha); \\
       \;&\V(s) \in \mathbb{R} \text{ for all } s \in \mathcal{S} \setminus \{ s_0 \}; \\
-      \;&\text{ Equation \ref{eq:linear_mdp} is satisfied by all } s \in
+      \;&\text{\eqref{eq:linear_mdp} is satisfied by all } s \in
       \mathcal{S}
     \end{aligned}
     \right\}
@@ -839,15 +868,15 @@ expressions of derivatives:
   \end{equation}
 \end{proposition}
 \begin{proof}
-  We begin by considering Equation \ref{eq:bound} without taking the absolute value of
+  We begin by considering \eqref{eq:bound} without taking the absolute value of
   $\V(s)$, i.e.,
   \begin{equation} \label{eq:positive_bound}
     \V(s) \le \vbound,
   \end{equation}
-  and assuming that the initial values of $\{ \V(s) \mid s \in
-  \mathcal{S} \}$ already satisfy Equation \ref{eq:positive_bound}. Recall that for
-  each $s \in \mathcal{S}$, the value of $\V(s)$ is updated by applying Equation
-  \ref{eq:update_rule}. Note that both $\log$ and $\exp$ are increasing
+  and assuming that the initial values of $\{ \V(s) \mid s \in \mathcal{S} \}$
+  already satisfy \eqref{eq:positive_bound}. Recall that for each $s \in
+  \mathcal{S}$, the value of $\V(s)$ is updated by applying
+  \eqref{eq:update_rule}. Note that both $\log$ and $\exp$ are increasing
   functions, $\gamma > 0$, and the $\mathcal{T}$ function gives a probability (a
   non-negative number). Thus
   \begin{align*}
@@ -877,8 +906,8 @@ expressions of derivatives:
           &= \frac{\rinf + \log|\mathcal{A}|}{\gamma - 1},
   \end{align*}
   where we use the fact that $r(s) \ge -\rinf - 2\log|\mathcal{A}|$. Combining
-  Equations \ref{eq:positive_bound} and \ref{eq:negative_bound} gives
-  Equation \ref{eq:bound}.
+  \eqref{eq:positive_bound} and \eqref{eq:negative_bound} gives
+  \eqref{eq:bound}.
 \end{proof}
 
 \begin{lemma} \label{lemma:integral_of_r}
@@ -958,7 +987,7 @@ by Chen \cite{lecture_notes}.
   \[
     \lim_{n \to \infty} \fn = \df,
   \]
-  Equation \ref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
+  \eqref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
   that both $f$ and $f_n$ are measurable and find a non-negative integrable
   function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$,
   \[
@@ -1033,20 +1062,66 @@ by Chen \cite{lecture_notes}.
   values are integrable, and the maximum of two integrable functions is also
   integrable. Since $\lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1 \in
   \mathbb{R}_1[\mathbf{u}]$, a similar argument can be applied to the rest of
-  Equation \ref{eq:remaining_integral} as well.
+  \eqref{eq:remaining_integral} as well.
 \end{proof}
 
 \section{Evaluation} % showing deep understanding
 % Could measure how algorithms scale with the size of the map (number of states)
-% Could add plots that show how the ELBO changes with different parameter values
-% (the inverse parabolas)
-% And plot you get if you start with mu = 0 and move to negative infinity (hint:
-% it increases)
+% Mention all the constants I've used.
+% How well does the variance prediction work?
+
+%\begin{figure} % this is more confusing than helpful
+%  \centering
+%  \begin{tikzpicture}
+%    \node [ellipse,draw] (s1) at (-1, -1) {$s_1$};
+%    \node [ellipse,draw] (s2) at (0, 0) {$s_2$};
+%    \node [ellipse,draw] (s3) at (1, -1) {$s_3$};
+%    \draw [->,-to,bend left] (s1) edge (s2);
+%    \draw [->,-latex,dashed] (s1) edge (s3);
+%    \draw [->,-to] (s2) edge (s1);
+%    \draw [->,-latex,bend left,dashed] (s2) edge (s3);
+%    \draw [->,-to,bend left,dashed] (s3) edge (s1);
+%    \draw [->,-latex] (s3) edge (s2);
+%  \end{tikzpicture}
+%\end{figure}
+
+%\printinunitsof{cm}\prntlen{\textwidth}
+%\printinunitsof{cm}\prntlen{\textheight}
+%\printinunitsof{cm}\prntlen{\columnwidth}
+
+In order to fully understand the model's behaviour, we focus on a three-state
+MDP where the agent can deterministically move from any state to any other
+state. More formally, we set $\mathcal{S} = \{ s_1, s_2, s_3 \}$, $\mathcal{A} =
+\{ a_1, a_2 \}$,
+\begin{align*}
+  &\mathcal{T}(s_1, a_1, s_2) = 1, \quad \mathcal{T}(s_1, a_2, s_3) = 1, \\
+  &\mathcal{T}(s_2, a_1, s_1) = 1, \quad \mathcal{T}(s_1, a_2, s_3) = 1, \\
+  &\mathcal{T}(s_3, a_1, s_1) = 1, \quad \mathcal{T}(s_1, a_2, s_2) = 1,
+\end{align*}
+all other values of $\mathcal{T}$ to zero, and vary the value of $\gamma$. We
+also set the inducing points to be equal to the three states in $\mathcal{S}$,
+add a single feature $f : \mathcal{S} \to \mathbb{R}$ such that
+\[
+  f(s_1) = 1, \quad f(s_2) = 2, \quad f(s_3) = 3,
+\]
+and create two demonstrations: $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
+(s_3, a_2) \}$. In other words, the demonstrations move from $s_1$ and $s_3$ to
+$s_2$. Therefore, we would expect the reward (and value) of $s_2$ to be the
+highest.
 
 \begin{figure*}
   \centering
   \includegraphics[width=\textwidth]{elbo_contour_plots}
 \end{figure*}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\columnwidth]{elbo_over_gamma}
+  \caption{Changes in $\mathcal{L}$ as a function of $\bm\mu$, where $\mu_1 =
+    \mu_2 = \mu_3$, and $\gamma = 0, 0.1, \dots, 0.9$. Each of the ten curves
+    plots a different value of $\gamma$, ranging from $0$ in dark blue to $0.9$
+    in dark red.}
+\end{figure}
 
 \section{Conclusions}
 
@@ -1056,11 +1131,29 @@ We show how to avoid the deterministic training conditional assumption.
 
 \subsection{Future Work}
 
+An interesting extension to our work would be to consider IRL in the context
+of a reinforcement learning (RL) agent. Suppose we have an agent whose purpose
+is to learn optimal behaviour from observing other agents using IRL. It could
+then take reward variance estimates into account when choosing what states to
+visit next. It would have to handle the balance between exploration and
+exploitation similarly to many RL agents, but the information about rewards
+would come from observing (presumably near-optimal) behaviour exhibited by other
+agents rather than directly from the environment.
+
+%Our work also poses a new challenge to the usual methods of determining an
+%optimal strategy in a given MDP:
+%\begin{problem}
+%  Let $\mathcal{M} = \{ \mathcal{S}, \mathcal{A}, \mathcal{T}, \gamma,
+%  r \}$ be an MDP where the reward $r : \mathcal{S} \to
+%  \textsf{Prob}(\mathbb{R})$ is expressed as a function from the set of states
+%  to the set of probability distributions with support over $\mathbb{R}$. Find
+%  the optimal policy $\pi^*$ in $\mathcal{M}$, i.e., % TODO: argmax expression
+%\end{problem}
+%Of course, in many situations,... % TOOD: gaussians, pdf's, something simpler
+
 \begin{itemize}
-\item Let the agent take uncertainty (variation estimates) into account when
-  choosing what to do next (i.e., choosing what to learn).
 \item MDP solver that works with distributions of rewards.
-\item Stress how solving MDPs is the performance bottleneck: num_samples MDPs
+\item Stress how solving MDPs is the performance bottleneck: numSamples MDPs
   have to be solved for each iteration.
   \begin{itemize}
   \item Integration with MDP solvers that approximate the value function
@@ -1123,8 +1216,8 @@ We show how to avoid the deterministic training conditional assumption.
         \bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1})\mathbf{B}.
       \end{gathered}
     \end{equation}
-    Substituting results from Equations \ref{eq:partial_derivatives1} and
-    \ref{eq:partial_derivatives2} back into Equation \ref{eq:2_before} gives:
+    Substituting results from \eqref{eq:partial_derivatives1} and
+    \eqref{eq:partial_derivatives2} back into \eqref{eq:2_before} gives:
     \begin{alignat*}{3}
       \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} &=
       \frac{1}{2}q(\mathbf{u})(&&\bm\Sigma^{-\intercal}\mathbf{U}\bm\Sigma^{-\intercal}
@@ -1181,7 +1274,7 @@ We show how to avoid the deterministic training conditional assumption.
   \end{enumerate}
 \end{proof}
 
-\section{Derivatives}
+\section{Derivatives of the ELBO}
 
 \subsection{\texorpdfstring{$\partial/\partial\bm\mu$}{Derivative w.r.t. mu}}
 

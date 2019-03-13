@@ -69,6 +69,9 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
     diag(not_estimated_B), not_estimated_mu, get_lower_triangle(not_estimated_B));
   changes = not_estimated - 0.5 * estimated_grad;
 
+  disp(not_estimated_elbo);
+  disp(estimated_grad(1));
+
   % TESTING
   %fprintf('Not estimated: %f, estimated: %f, total: %f\n', not_estimated(2), estimated_grad(2), changes(2));
   p_derivative = -0.5 * estimated_grad(2) + counts' * (matrices.Kru_grad(:, :, 1)' -...
