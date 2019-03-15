@@ -20,6 +20,7 @@
 
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\adj}{adj}
+%\DeclareMathOperator{\dett}{det}
 \DeclareMathOperator{\tr}{tr}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
@@ -618,16 +619,22 @@ expressions of derivatives:
   \end{enumerate}
 \end{restatable}
 
+% TODO: add this lemma to the graph
+\begin{lemma} \label{lemma:matrix_inverse}
+  TODO: constant bounds on the inverse
+\end{lemma}
+
 \begin{lemma} \label{lemma:bound1}
-  Let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (a, b) \subset
-  \mathbb{R}$ be an arbitrary bounded function. Then, for $i = 0,
-  \dots, d$,
+  Let $i \in \{ 0, \dots, d \}$ and $\epsilon > 0$ be arbitrary. Furthermore,
+  let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\lambda_i -
+  \epsilon, \lambda_i + \epsilon) \subset \mathbb{R}$ be a function with a
+  codomain arbitrarily close to $\lambda_i$. Then
   \[
-    \left. \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} \right|_{\lambda_i
-      = c(\mathbf{r}, \mathbf{u})}
+    \left. \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i}
+    \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
   \]
-  has upper and lower bounds of the form $q(\mathbf{r} \mid \mathbf{u})d(\mathbf{u})$, where
-  $d(\mathbf{u}) \in \mathbb{R}_2[\mathbf{u}]$.
+  has upper and lower bounds of the form $q(\mathbf{r} \mid
+  \mathbf{u})d(\mathbf{u})$, where $d(\mathbf{u}) \in \mathbb{R}_2[\mathbf{u}]$.
 \end{lemma}
 \begin{proof}
   Remember that
@@ -637,21 +644,56 @@ expressions of derivatives:
   \end{align*}
   by Lemma \ref{lemma:derivatives}.
 
-  Given any covariance matrix $\mathbf{K}$ and $i = 0, \dots, d$, we can easily
-  establish constant upper and lower bounds on $\mathbf{K}|_{\lambda_i =
-    c(\mathbf{r}, \mathbf{u})}$ by the boundedness of $c$ and continuity of the
-  covariance function. Similar reasoning combined with the expressions for
-  derivatives of covariance matrices in Lemma \ref{lemma:derivatives} gives
-  constant upper and lower bounds on the elements of $\left.
-    \frac{\mathbf{\partial K}}{\partial \lambda_i} \right|_{\lambda_i =
-    c(\mathbf{r}, \mathbf{u})}$ as well. We can also use Lemma ?? to show
-  constant upper and lower bounds on $\mathbf{K}^{-1}|_{\lambda_i =
-    c(\mathbf{r}, \mathbf{u})}$. This is enough to prove constant upper and
-  lower bounds on $\mathbf{S}$, $\bm\Gamma$, and $\mathbf{R}$, which means that
-  $(\mathbf{r} -
+  Given any covariance matrix $\mathbf{K}$, we can easily establish constant
+  upper and lower bounds on $\mathbf{K}|_{\lambda_i = c(\mathbf{r},
+    \mathbf{u})}$ by the boundedness of $c$ and continuity of the covariance
+  function. Similar reasoning combined with the expressions for derivatives of
+  covariance matrices in Lemma \ref{lemma:derivatives} gives constant upper and
+  lower bounds on the elements of
+  \[
+    \left. \frac{\mathbf{\partial K}}{\partial \lambda_i} \right|_{\lambda_i =
+      c(\mathbf{r}, \mathbf{u})}
+  \]
+  as well. We can also use Lemma \ref{lemma:matrix_inverse} to show constant
+  upper and lower bounds on $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
+    \mathbf{u})}$. This is enough to prove constant upper and lower bounds on
+  $\mathbf{S}$, $\bm\Gamma$, and $\mathbf{R}$ (all with $\lambda_i$ replaced
+  with $c(\mathbf{r}, \mathbf{u})$), which means that $(\mathbf{r} -
   \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} -
-  \mathbf{Su})$ has upper and lower bounds in $\mathbb{R}_2[\mathbf{u}]$.
-  % TODO: write the lemma
+  \mathbf{Su})|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ has upper and lower
+  bounds in $\mathbb{R}_2[\mathbf{u}]$.
+  
+  Since $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ is bounded, so is
+  $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$. Assuming that
+  $\bm\Gamma$ is invertible so that $q(\mathbf{r} \mid \mathbf{u})$ exists, we
+  can make $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ close enough to
+  $\bm\Gamma$ to ensure that
+  \[
+    \det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \ne 0.
+  \]
+  Moreover, boundedness of $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$
+  gives boundedness of $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r},
+    \mathbf{u})}$.
+
+  Combined with the fact that $ab > 0$ (i.e., both endpoints together are either
+  positive or negative), this gives boundedness of $\det(\bm\Gamma)|_{\lambda_i
+    = c(\mathbf{r}, \mathbf{u})}^{-1}$.
+
+  TODO: Show that $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ is
+  bounded.
+
+  Since we already know that $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r},
+    \mathbf{u})}$ and $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$
+  are bounded, so is $\adj(\bm\Gamma) =
+  \det(\bm\Gamma)\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$. Thus,
+  we have constant bounds on
+  $|\bm\Gamma|^{-1}\tr(\mathbf{R}\adj(\bm\Gamma))|_{\lambda_i = c(\mathbf{r},
+    \mathbf{u})}$, which means that
+  \[
+    \left. \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i}
+    \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
+  \]
+  has the required bounds.
 
   If $i = 0$, then each element of $\frac{\partial \mathbf{K}}{\partial
     \lambda_0}$ is of the form
