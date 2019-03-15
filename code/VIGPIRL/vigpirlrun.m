@@ -37,7 +37,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   % wrapper: vector of parameters -> scalar value * gradient vector
   function [elbo, grad] = wrapper(parameter_vector)
     gp = vigpirlunpackparam(gp, parameter_vector);
-    %gp.lambda0 = exp(parameter_vector);
 
     %disp(gp);
     %disp(gp.B * gp.B');
@@ -48,12 +47,11 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, zz, matrices);
 
     % Disable gradients that don't work
-    grad(1) = 0; % lambda0
-    grad(2:d+1) = 0; % lambda (except first)
+    %grad(1) = 0; % lambda0
+    %grad(2:d+1) = 0; % lambda (except first)
     %grad(d+m+2:d+2*m+1) = 0; % mu
-    grad(d+2:d+m+1) = 0; % B diagonal
-    grad(d+2*m+2:end) = 0; % rest of B
-    %disp(grad(1));
+    %grad(d+2:d+m+1) = 0; % B diagonal
+    %grad(d+2*m+2:end) = 0; % rest of B
 
     elbo_list = horzcat(elbo_list, elbo);
     hyperparameter_history = horzcat(hyperparameter_history, parameter_vector);
@@ -62,44 +60,42 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
     % We want to maximise the ELBO, while fmincon wants to minimize...
     grad = -grad;
-    %grad = -grad(1);
     elbo = -elbo;
   end
 
   parameter_vector = vigpirlpackparam(gp);
 
   % ELBO as a function of mu over 10 plots
-  mu1_log = [];
-  mu2_log = [];
-  mu3_log = [];
-  multiplier = 10;
-  for mu1 = 1:10
-    real_mu1 = multiplier * (mu1 - 5);
-    parameter_vector(d+m+2) = real_mu1;
-    for mu2 = 1:10
-      real_mu2 = multiplier * (mu2 - 5);
-      parameter_vector(d+m+3) = real_mu2;
-      for mu3 = 1:10
-        real_mu3 = multiplier * (mu3 - 5)
-        parameter_vector(d+m+4) = real_mu3;
-        wrapper(parameter_vector);
-        mu1_log = [mu1_log real_mu1];
-        mu2_log = [mu2_log real_mu2];
-        mu3_log = [mu3_log real_mu3];
-      end
-    end
-  end
-  for mu1 = 1:10
-    indices = 100*(mu1-1)+1:100*mu1;
-    other_mu = multiplier * ((1:10) - 5);
-    subplot(5, 2, mu1);
-    contourf(other_mu, other_mu, reshape(elbo_list(indices), [10, 10]), 30);
-    xlabel('$\mu_2$', 'Interpreter', 'latex');
-    ylabel('$\mu_3$', 'Interpreter', 'latex');
-    t = ['$\mu_1 = ', num2str(multiplier * (mu1 - 5)), '$'];
-    title(t, 'Interpreter', 'latex');
-  end
-  return;
+  %mu1_log = [];
+  %mu2_log = [];
+  %mu3_log = [];
+  %multiplier = 10;
+  %for mu1 = 1:10
+  %  real_mu1 = multiplier * (mu1 - 5);
+  %  parameter_vector(d+m+2) = real_mu1;
+  %  for mu2 = 1:10
+  %    real_mu2 = multiplier * (mu2 - 5);
+  %    parameter_vector(d+m+3) = real_mu2;
+  %    for mu3 = 1:10
+  %      real_mu3 = multiplier * (mu3 - 5)
+  %      parameter_vector(d+m+4) = real_mu3;
+  %      wrapper(parameter_vector);
+  %      mu1_log = [mu1_log real_mu1];
+  %      mu2_log = [mu2_log real_mu2];
+  %      mu3_log = [mu3_log real_mu3];
+  %    end
+  %  end
+  %end
+  %for mu1 = 1:10 indices = 100*(mu1-1)+1:100*mu1;
+  %     other_mu = multiplier * ((1:10) - 5);
+  %  subplot(5, 2, mu1);
+  %  contourf(other_mu, other_mu, reshape(elbo_list(indices), [10, 10]), 30);
+  %  xlabel('$\mu_2$', 'Interpreter', 'latex');
+  %  ylabel('$\mu_3$', 'Interpreter', 'latex');
+  %  t = ['$\mu_1 = ', num2str(multiplier * (mu1 - 5)), '$'];
+  %  title(t, 'Interpreter', 'latex');
+  %end
+  %return;
 
   % Policy as a function of rewards over 10 plots
   %mu1_log = [];
@@ -166,8 +162,51 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %hold off;
   %print('../mpaper/elbo_over_gamma', '-depsc2');
 
+  % ELBO and derivative over some element of B
+  % NOTE: this is the log of the actual value
+  % TODO: titles, fix values on the x-axis, add two axes and their names to the y-aixs
+  accuracy = 0.1;
+  mu_from = -3;
+  mu_to = 3;
+  for i = 1:3
+    mu_log = [];
+    index = d + 1 + i;
+    for mu = mu_from:accuracy:mu_to
+      parameter_vector(index) = mu;
+      wrapper(parameter_vector);
+      mu_log = [mu_log mu];
+    end
+    parameter_vector(index) = 0;
+    first_index = size(grad_history, 2) - length(mu_log) + 1;
+    subplot(2, 3, i);
+    plot(mu_log, elbo_list(first_index:end));
+    hold on;
+    plot(mu_log, grad_history(index, first_index:end));
+    hold off;
+  end
+
+  mu_from = -5;
+  mu_to = 5;
+  for i = 1:3
+    mu_log = [];
+    index = d + 2 * m + 1 + i;
+    for mu = mu_from:accuracy:mu_to
+      parameter_vector(index) = mu;
+      wrapper(parameter_vector);
+      mu_log = [mu_log mu];
+    end
+    parameter_vector(index) = 0;
+    first_index = size(grad_history, 2) - length(mu_log) + 1;
+    subplot(2, 3, i + 3);
+    plot(mu_log, elbo_list(first_index:end));
+    hold on;
+    plot(mu_log, grad_history(index,first_index:end));
+    hold off;
+  end
+  return;
+
   % Checking if the gradients are correct
-  %options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true);
+  %options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true, 'CheckGradients', true);
   %[optimal_lambda0, optimal_elbo, ~, output] = fminunc(@wrapper, parameter_vector, options);
   %disp(output);
 
@@ -209,11 +248,11 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
     old_hyperparameters = vigpirlpackparam(gp);
 
-    %grad(1) = 0; % lambda0
-    %grad(2:d+1) = 0; % lambda (except first)
-    %grad(d+m+2:d+2*m+1) = 0; % mu
-    %grad(d+m+3) = 0; % mu (second)
-    %grad(d+m+4) = 0; % mu (third)
+    grad(1) = 0; % lambda0
+    grad(2:d+1) = 0; % lambda (except first)
+    grad(d+m+2:d+2*m+1) = 0; % mu
+    grad(d+m+3) = 0; % mu (second)
+    grad(d+m+4) = 0; % mu (third)
     %grad(d+2:d+m+1) = 0; % B diagonal
     %grad(d+2*m+2:end) = 0; % rest of B
 

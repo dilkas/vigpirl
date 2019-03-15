@@ -22,7 +22,7 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
       next_states = extract(mdp_data.sa_s, state, action);
       next_probabilities = extract(mdp_data.sa_p, state, action);
       s = next_probabilities' * solution.v(next_states, 1);
-      elbo_part = solution.v(state, 1) + mdp_data.discount * s;
+      elbo_part = solution.v(state, 1) - mdp_data.discount * s;
     end
 
     U = (u - gp.mu) * (u - gp.mu)';
@@ -43,6 +43,8 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   end
 
   Sigma = gp.B * gp.B';
+  disp(gp.B);
+  disp(Sigma);
   Sigma_inv = inv(Sigma);
   Kuu_inv = inv(matrices.Kuu);
   S = matrices.Kru' * Kuu_inv;
@@ -88,10 +90,9 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   % If our rewards go too far towards negative infinity, and probability of a
   % state-action pair is over 1, freeze the reward of current state
   elbo_data_part = counts' * S * gp.mu - 0.5 * estimated_grad(1);
-  fprintf('Should be negative: %f\n', elbo_data_part);
   if (elbo_data_part > 0)
-    elbo = elbo - elbo_data_part;
-    grad(d+m+2+)
+    fprintf('Should be negative: %f\n', elbo_data_part);
+  %  elbo = elbo - elbo_data_part;
   end
 
   %fprintf('Not estimated grad:');

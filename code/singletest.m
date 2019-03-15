@@ -26,12 +26,12 @@ addpaths;
 %printresult(test_result);
 %visualize(test_result);
 
-% Two states -- works well
+% Two states
 %mdp_data = struct('sa_s', [2; 1], 'sa_p', [1; 1], 'discount', 0, 'states', 2, 'actions', 1);
 %feature_data = struct('splittable', [1; 2]);
 %example_samples = {[1, 1]};
 
-% Three states -- doesn't work
+% Three states
 mdp_data = struct('discount', 0.5, 'states', 3, 'actions', 2);
 mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
 mdp_data.sa_p(1:3, 1:2, 1) = 1;
