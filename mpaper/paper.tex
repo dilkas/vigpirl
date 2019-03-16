@@ -66,6 +66,10 @@
 \maketitle
 
 \begin{abstract}
+  We prove the validity of performing variational inference on the Gaussian
+  process-based inverse reinforcement learning model that preserves and
+  approximates the full joint probability distribution of rewards across states
+  of the Markov decision process.
 \end{abstract}
 
 \section{Introduction}
@@ -289,7 +293,7 @@ dominated convergence theorem in order to justify the validity of our approach.
 \end{definition}
 
 \begin{lemma}[Perturbation Lemma
-  \cite{layton2014numerical}] \label{prop:condition_number}
+  \cite{layton2014numerical}] \label{lemma:perturbation}
   Let $\lVert \cdot \rVert$ be any matrix norm, and let $\mathbf{A}$ and
   $\mathbf{E}$ be matrices such that $\mathbf{A}$ is invertible and $\lVert
   \mathbf{A}^{-1} \rVert \lVert \mathbf{E} \rVert < 1$, then $\mathbf{A} +
@@ -619,11 +623,6 @@ expressions of derivatives:
   \end{enumerate}
 \end{restatable}
 
-% TODO: add this lemma to the graph
-\begin{lemma} \label{lemma:matrix_inverse}
-  TODO: constant bounds on the inverse
-\end{lemma}
-
 \begin{lemma} \label{lemma:bound1}
   Let $i \in \{ 0, \dots, d \}$ and $\epsilon > 0$ be arbitrary. Furthermore,
   let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\lambda_i -
@@ -654,9 +653,71 @@ expressions of derivatives:
     \left. \frac{\mathbf{\partial K}}{\partial \lambda_i} \right|_{\lambda_i =
       c(\mathbf{r}, \mathbf{u})}
   \]
-  as well. We can also use Lemma \ref{lemma:matrix_inverse} to show constant
-  upper and lower bounds on $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
-    \mathbf{u})}$. This is enough to prove constant upper and lower bounds on
+  as well.
+
+  First, we will show that $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
+    \mathbf{u})}$ has constant bounds. If $i = 0$, then $\mathbf{K}|_{\lambda_i
+    = c(\mathbf{r}, \mathbf{u})} = c(\mathbf{r}, \mathbf{u})\mathbf{A}$, where
+  $\mathbf{A}$ is a constant matrix defined by
+  \[
+    \mathbf{A} = \frac{1}{\lambda_0}\mathbf{K},
+  \]
+  and, thus, is invertible.
+  Therefore,
+  \[
+    \mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
+    \frac{1}{c(\mathbf{r}, \mathbf{u})}\mathbf{A}^{-1}.
+  \]
+  Since $\lambda_0$ cannot be zero, we can make $\epsilon$ small enough so that
+  either $\lambda_0 - \epsilon > 0$ or $\lambda_0 + \epsilon < 0$, i.e., the
+  values of $c(\mathbf{r}, \mathbf{u})$ are either all positive or all negative.
+  Then, by continuity of $x \mapsto \frac{1}{x}$, $\mathbf{K}^{-1}|_{\lambda_i =
+    c(\mathbf{r}, \mathbf{u})}$ has constant bounds.
+
+  Let
+  \[
+    S = \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{\lambda_n}{2}
+    (x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne k]\sigma^2 \lambda_n
+  \]
+  and $\delta = c(\mathbf{r}, \mathbf{u}) - \lambda_i$ so that $c(\mathbf{r},
+  \mathbf{u}) = \lambda_i + \delta$. If $i > 0$, then
+  \begin{align*}
+    &k(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \!\begin{multlined}[t]
+      \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. -\frac{1}{2} c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2\\
+      - \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{r}, \mathbf{u}) - S \left. \vphantom{\frac{1}{2}} \right)
+    \end{multlined} \\
+    &= \!\begin{multlined}[t]
+      \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. -\frac{1}{2} (\lambda_i + \delta)(x_{j,i} - x_{k,i})^2 \\
+      - \mathbbm{1}[j \ne k]\sigma^2(\lambda_i + \delta) - S \left. \vphantom{\frac{1}{2}} \right)
+    \end{multlined} \\
+    &= \!\begin{multlined}[t]
+      \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. -\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) - \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \\
+      - \frac{\delta}{2}(x_{j,i} - x_{k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2\delta \left. \vphantom{\frac{1}{2}} \right)
+    \end{multlined} \\
+    &= k(\mathbf{x}_j, \mathbf{x}_k)\exp \left( \vphantom{\frac{1}{2}} \right. -\frac{\delta}{2}(x_{j,i} - x_{k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2\delta \left. \vphantom{\frac{1}{2}} \right) \\
+    &= \!\begin{multlined}[t]
+      k(\mathbf{x}_j, \mathbf{x}_k) + k(\mathbf{x}_j, \mathbf{x}_k) \left( \exp
+        \left( -\frac{\delta}{2}(x_{j,i} - x_{k,i})^2 \right. \right. \\
+      -\mathbbm{1}[j \ne k]\sigma^2\delta \left. \left. \vphantom{\frac{1}{2}} \right) - 1 \right)
+    \end{multlined}
+  \end{align*}
+  Hence, we can express $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ as
+  $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \mathbf{K} +
+  \mathbf{E}$, where
+  \[
+    E_{j,k} = k(\mathbf{x}_j, \mathbf{x}_k) \left( \exp \left(
+        -\frac{\delta}{2}(x_{j,i} - x_{k,i})^2 \right. \right. -\mathbbm{1}[j
+    \ne k]\sigma^2\delta \left. \left. \vphantom{\frac{1}{2}} \right) - 1
+    \right).
+  \]
+  Note that $E_{j,k} \to 0$ as $\delta \to 0$ and $\delta$ can be made
+  arbitrarily small via $\epsilon$. Then, since $\mathbf{K}$ is invertible, we
+  can make $\delta$ small enough so that $\lVert \mathbf{K}^{-1} \rVert_\infty
+  \lVert \mathbf{E} \rVert_\infty < 1$, and Lemma \ref{lemma:perturbation} shows
+  the existence of $\mathbf{K}^{-1}_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ and
+  gives upper and lower bounds on all of its elements.
+
+  This is enough to prove constant upper and lower bounds on
   $\mathbf{S}$, $\bm\Gamma$, and $\mathbf{R}$ (all with $\lambda_i$ replaced
   with $c(\mathbf{r}, \mathbf{u})$), which means that $(\mathbf{r} -
   \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} -
@@ -680,7 +741,8 @@ expressions of derivatives:
     = c(\mathbf{r}, \mathbf{u})}^{-1}$.
 
   TODO: Show that $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ is
-  bounded.
+  bounded. Might need something similar to the matrix bound lemma, since the
+  definition of $\bm\Gamma$ involves addition.
 
   Since we already know that $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r},
     \mathbf{u})}$ and $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$
@@ -694,57 +756,6 @@ expressions of derivatives:
     \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
   \]
   has the required bounds.
-
-  If $i = 0$, then each element of $\frac{\partial \mathbf{K}}{\partial
-    \lambda_0}$ is of the form
-  \[
-    \exp \left( -\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal
-      \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) - \mathbbm{1}[j \ne
-      k]\sigma^2\tr(\bm\Lambda) \right),
-  \]
-  i.e., without $\lambda_0$, so
-  \[
-    \left. \frac{\partial \mathbf{K}}{\partial \lambda_0} \right|_{\lambda_0 =
-      c(\mathbf{r}, \mathbf{u})} = \frac{\partial \mathbf{K}}{\partial
-      \lambda_0}
-  \]
-  is already independent of $\mathbf{r}$ and $\mathbf{u}$---there is no need
-  for any bounds.
-
-  If $i > 0$, then each element of $\frac{\partial \mathbf{K}}{\partial
-    \lambda_i}$ is a constant multiple of $k(\mathbf{x}_j,
-  \mathbf{x}_k)$, for some $\mathbf{x}_j$ and $\mathbf{x}_k$. Since
-  $k(\mathbf{x}_j, \mathbf{x}_k)$ is a decreasing function of
-  $\lambda_i$, and $c(\mathbf{r}, \mathbf{u}) > a$,
-  \begin{alignat*}{3}
-    k(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = c(\mathbf{r},
-      \mathbf{u})} &= \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. &&
-    -\frac{1}{2} c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2 \\
-    & && - \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{r}, \mathbf{u}) - S \left.
-      \vphantom{\frac{1}{2}} \right) \\
-    &< \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. && -\frac{1}{2}
-    a(x_{j,i} - x_{k,i})^2 \\
-    & && - \mathbbm{1}[j \ne k]\sigma^2a - S \left. \vphantom{\frac{1}{2}}
-    \right),
-  \end{alignat*}
-  where
-  \[
-    S = \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{\lambda_n}{2}
-    (x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne k]\sigma^2 \lambda_n,
-  \]
-  which gives an upper bound on each element of
-  \[
-    \left. \frac{\partial \mathbf{K}}{\partial \lambda_i} \right|_{\lambda_i =
-      c(\mathbf{r}, \mathbf{u})}.
-  \]
-  A similar line of reasoning establishes lower bounds as well.
-
-  % TODO: Lemma 1.1 is wrong about the derivative. Fix (my handwritten notes
-  % have the correct idea)
-  Combining the bounds with the observation that
-  every element of
-  $\Kuu^{-1}\mathbf{u}\mathbf{u}^\intercal\Kuu^{-\intercal}$ is in
-  $\mathbb{R}_2[\mathbf{u}]$ gives the required result.
 \end{proof}
 
 \begin{remark}
@@ -831,7 +842,7 @@ expressions of derivatives:
   We begin by establishing upper and lower bounds on $\mathbf{C}(\mathbf{r},
   \mathbf{u})^{-1}$. For this, we use the maximum norm $\lVert \cdot
   \rVert_\infty$ on both vectors and matrices. We can apply Lemma
-  \ref{prop:condition_number} to $\bm\Sigma$ and $\mathbf{E}(\mathbf{r},
+  \ref{lemma:perturbation} to $\bm\Sigma$ and $\mathbf{E}(\mathbf{r},
   \mathbf{u})$ since
   \[
     \lVert \mathbf{E}(\mathbf{r}, \mathbf{u}) \rVert_\infty = \max_k \sum_l
