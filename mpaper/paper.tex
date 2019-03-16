@@ -45,6 +45,9 @@
 \newcommand{\Krr}{\mathbf{K}_{\mathbf{r},\mathbf{r}}}
 \newcommand{\Kru}{\mathbf{K}_{\mathbf{r},\mathbf{u}}}
 \newcommand{\Luu}{\mathbf{L}_{\mathbf{u},\mathbf{u}}}
+\newcommand{\Euu}{\mathbf{E}_{\mathbf{u},\mathbf{u}}}
+\newcommand{\Err}{\mathbf{E}_{\mathbf{r},\mathbf{r}}}
+\newcommand{\Eru}{\mathbf{E}_{\mathbf{r},\mathbf{u}}}
 
 \newcommand{\pfull}{p(\mathcal{D}, \mathbf{u}, \mathbf{r})}
 \newcommand{\approximation}{q(\mathbf{u}, \mathbf{r})}
@@ -511,6 +514,7 @@ where
 \]
 
 \subsection{Theoretical Justification}
+% TODO: in this section, 'constant' means 'constant w.r.t. u and r'
 
 \begin{figure}
   \centering
@@ -740,9 +744,34 @@ expressions of derivatives:
   positive or negative), this gives boundedness of $\det(\bm\Gamma)|_{\lambda_i
     = c(\mathbf{r}, \mathbf{u})}^{-1}$.
 
-  TODO: Show that $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ is
-  bounded. Might need something similar to the matrix bound lemma, since the
-  definition of $\bm\Gamma$ involves addition.
+  % TODO: actually demonstrate this for the inverse
+  Recall that
+  \[
+    \bm\Gamma = \Krr - \mathbf{S}\Kru = \Krr - \Kru^\intercal\Kuu^{-1}\Kru.
+  \]
+  We have already demonstrated that for $\mathbf{K} \in \{ \Krr, \Kru, \Kuu^{-1}
+  \}$, $\lim_{\epsilon \to 0}\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
+  = \mathbf{K}$. We can use a general fact that if $\lim_{x \to 0} f(x) = f$,
+  then $f(x) = f + g(x)$ for some function $g$ such that $\lim_{x \to 0} g(x) =
+  0$ to define matrices $\Err$, $\Eru$, and $\Euu$ such that
+  \begin{alignat*}{3}
+    \Krr|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &= \Krr + \Err, &&\Err \to
+    \mathbf{O}_{|\mathcal{S}|}, \\
+    \Kru|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &= \Kru + \Eru, \quad
+    \text{and} \quad &&\Eru \to \mathbf{O}_{|\mathcal{S}|, m}, \\
+    \Kuu^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &= \Kuu^{-1} + \Euu,
+    &&\Euu \to \mathbf{O}_{m}.
+  \end{alignat*}
+  as $\epsilon \to 0$. Then, $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
+  = \bm\Gamma + \mathbf{E}$, where
+  \begin{align*}
+    \mathbf{E} &= \Err - \Kru^\intercal\Kuu^{-1}\Eru - \Kru^\intercal\Euu(\Kru + \Eru) \\
+               &- \Eru^\intercal(\Kuu^{-1} + \Euu)(\Kru + \Eru) \\
+               &\to \mathbf{O}_{|\mathcal{S}|}
+  \end{align*}
+  as $\epsilon \to 0$. Thus, Lemma \ref{lemma:perturbation} shows that
+  $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ exists and provides
+  constant bounds on its elements.
 
   Since we already know that $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r},
     \mathbf{u})}$ and $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$
@@ -757,6 +786,8 @@ expressions of derivatives:
   \]
   has the required bounds.
 \end{proof}
+% TOOD: epsilon should not be treated as a constant. Revise the whole theory
+% section.
 
 \begin{remark}
   In order to find a derivative such as $\frac{\partial q(\mathbf{u})}{\partial
