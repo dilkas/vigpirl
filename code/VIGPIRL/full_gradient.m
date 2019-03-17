@@ -1,6 +1,4 @@
 function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, matrices)
-% TODO: will need to make this return optimal r as a function of mu so that
-% vigpirlrun can construct an optimal solution (just like before)
 % NOTE: returns the gradient for parameters in vector form
 
   function answer = estimate_derivative(u)
@@ -35,7 +33,7 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
     unique_lambda_part = arrayfun(@lambda_derivative, 1:size(matrices.Kuu_grad, 3));
     unique_mu_part = (u' - gp.mu)' * (Sigma_inv + Sigma_inv');
-    unique_B_part = 2*(Sigma_inv*U*Sigma_inv - adjoint(Sigma)/det(Sigma)) * gp.B;
+    unique_B_part = 2 * (Sigma_inv * U * Sigma_inv - Sigma_inv) * gp.B;
 
     unique_part = vertcat(2, unique_lambda_part', diag(unique_B_part),...
       unique_mu_part', get_lower_triangle(unique_B_part));
@@ -43,8 +41,8 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   end
 
   Sigma = gp.B * gp.B';
-  disp(gp.B);
-  disp(Sigma);
+  %disp(gp.B);
+  %disp(Sigma);
   Sigma_inv = inv(Sigma);
   Kuu_inv = inv(matrices.Kuu);
   S = matrices.Kru' * Kuu_inv;
@@ -70,6 +68,7 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   not_estimated = vertcat(not_estimated_elbo, not_estimated_lambda',...
     diag(not_estimated_B), not_estimated_mu, get_lower_triangle(not_estimated_B));
   changes = not_estimated - 0.5 * estimated_grad;
+  %changes = -0.5 * estimated_grad;
 
   % TESTING
   %fprintf('Not estimated: %f, estimated: %f, total: %f\n', not_estimated(2), estimated_grad(2), changes(2));

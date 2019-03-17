@@ -179,12 +179,13 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     parameter_vector(index) = 0;
     first_index = size(grad_history, 2) - length(mu_log) + 1;
     subplot(2, 3, i);
+    yyaxis left;
     plot(mu_log, elbo_list(first_index:end));
     hold on;
+    yyaxis right;
     plot(mu_log, grad_history(index, first_index:end));
     hold off;
   end
-
   mu_from = -5;
   mu_to = 5;
   for i = 1:3
@@ -198,8 +199,10 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     parameter_vector(index) = 0;
     first_index = size(grad_history, 2) - length(mu_log) + 1;
     subplot(2, 3, i + 3);
+    yyaxis left;
     plot(mu_log, elbo_list(first_index:end));
     hold on;
+    yyaxis right;
     plot(mu_log, grad_history(index,first_index:end));
     hold off;
   end
@@ -248,11 +251,11 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
     old_hyperparameters = vigpirlpackparam(gp);
 
-    grad(1) = 0; % lambda0
-    grad(2:d+1) = 0; % lambda (except first)
-    grad(d+m+2:d+2*m+1) = 0; % mu
-    grad(d+m+3) = 0; % mu (second)
-    grad(d+m+4) = 0; % mu (third)
+    %grad(1) = 0; % lambda0
+    %grad(2:d+1) = 0; % lambda (except first)
+    %grad(d+m+2:d+2*m+1) = 0; % mu
+    %grad(d+m+3) = 0; % mu (second)
+    %grad(d+m+4) = 0; % mu (third)
     %grad(d+2:d+m+1) = 0; % B diagonal
     %grad(d+2*m+2:end) = 0; % rest of B
 

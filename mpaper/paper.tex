@@ -645,46 +645,57 @@ expressions of derivatives:
     \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} &= \frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) (|\bm\Gamma|^{-1} \tr(\mathbf{R} \adj(\bm\Gamma)) \\
                                                                       &- (\mathbf{r} - \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su})).
   \end{align*}
-  by Lemma \ref{lemma:derivatives}.
+  by Lemma \ref{lemma:derivatives}. Let $\mathbf{K}$ be any covariance
+  matrix and
+  \[
+    \mathbf{A} = \frac{1}{\lambda_0} \mathbf{K}.
+  \]
 
-  Given any covariance matrix $\mathbf{K}$, we can easily establish constant
-  upper and lower bounds on $\mathbf{K}|_{\lambda_i = c(\mathbf{r},
-    \mathbf{u})}$ by the boundedness of $c$ and continuity of the covariance
-  function. Similar reasoning combined with the expressions for derivatives of
-  covariance matrices in Lemma \ref{lemma:derivatives} gives constant upper and
-  lower bounds on the elements of
+  First, we will show that
+  \[
+    \mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to 0 \quad \text{and}
+    \quad \left. \frac{\mathbf{\partial K}}{\partial \lambda_i}
+    \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to 0
+  \]
+  as $\epsilon \to 0$.
+  We can easily establish constant upper and lower bounds on
+  $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ by the boundedness of
+  $c$ and continuity of the covariance function. Similar reasoning combined with
+  the expressions for derivatives of covariance matrices in Lemma
+  \ref{lemma:derivatives} gives constant upper and lower bounds on the elements
+  of
   \[
     \left. \frac{\mathbf{\partial K}}{\partial \lambda_i} \right|_{\lambda_i =
       c(\mathbf{r}, \mathbf{u})}
   \]
   as well.
 
-  First, we will show that $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
-    \mathbf{u})}$ has constant bounds. If $i = 0$, then $\mathbf{K}|_{\lambda_i
-    = c(\mathbf{r}, \mathbf{u})} = c(\mathbf{r}, \mathbf{u})\mathbf{A}$, where
-  $\mathbf{A}$ is a constant matrix defined by
+  % Inverse of a covariance matrix
+  Now, we will show that $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
+    \mathbf{u})}$ exists and
   \[
-    \mathbf{A} = \frac{1}{\lambda_0}\mathbf{K},
+    \lim_{\epsilon \to 0} \mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
+      \mathbf{u})} = \mathbf{K}.
   \]
-  and, thus, is invertible.
-  Therefore,
-  \[
-    \mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
-    \frac{1}{c(\mathbf{r}, \mathbf{u})}\mathbf{A}^{-1}.
-  \]
-  Since $\lambda_0$ cannot be zero, we can make $\epsilon$ small enough so that
-  either $\lambda_0 - \epsilon > 0$ or $\lambda_0 + \epsilon < 0$, i.e., the
-  values of $c(\mathbf{r}, \mathbf{u})$ are either all positive or all negative.
-  Then, by continuity of $x \mapsto \frac{1}{x}$, $\mathbf{K}^{-1}|_{\lambda_i =
-    c(\mathbf{r}, \mathbf{u})}$ has constant bounds.
+  If $i = 0$, then $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
+  c(\mathbf{r}, \mathbf{u})\mathbf{A}$. Therefore\footnote{Note that since
+    $\lambda_0 \ne 0$, $c(\mathbf{r}, \mathbf{u}) \ne 0$ for small enough
+    $\epsilon$.},
+  \begin{align*}
+    \mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &=
+                                                               \frac{1}{c(\mathbf{r}, \mathbf{u})}\mathbf{A}^{-1} \\
+                                                             &\to \frac{1}{\lambda_0}\mathbf{A}^{-1} = \frac{1}{\lambda_0} \left( \frac{1}{\lambda_0}\mathbf{K} \right)^{-1} = \mathbf{K}^{-1}
+  \end{align*}
+  as $\epsilon \to 0$.
 
-  Let
+  We will now show the same result for $\lambda_i > 0$. Let
   \[
     S = \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{\lambda_n}{2}
     (x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne k]\sigma^2 \lambda_n
   \]
   and $\delta = c(\mathbf{r}, \mathbf{u}) - \lambda_i$ so that $c(\mathbf{r},
-  \mathbf{u}) = \lambda_i + \delta$. If $i > 0$, then
+  \mathbf{u}) = \lambda_i + \delta$, and $\lim_{\epsilon \to 0} \delta = 0$.
+  Then,
   \begin{align*}
     &k(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \!\begin{multlined}[t]
       \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. -\frac{1}{2} c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2\\
@@ -707,17 +718,18 @@ expressions of derivatives:
   \end{align*}
   Hence, we can express $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ as
   $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \mathbf{K} +
-  \mathbf{E}$, where
+  \mathbf{E}$, where $\mathbf{E}$ is defined as
   \[
     E_{j,k} = k(\mathbf{x}_j, \mathbf{x}_k) \left( \exp \left(
         -\frac{\delta}{2}(x_{j,i} - x_{k,i})^2 \right. \right. -\mathbbm{1}[j
     \ne k]\sigma^2\delta \left. \left. \vphantom{\frac{1}{2}} \right) - 1
     \right).
   \]
-  Note that $E_{j,k} \to 0$ as $\delta \to 0$ and $\delta$ can be made
-  arbitrarily small via $\epsilon$. Then, since $\mathbf{K}$ is invertible, we
-  can make $\delta$ small enough so that $\lVert \mathbf{K}^{-1} \rVert_\infty
-  \lVert \mathbf{E} \rVert_\infty < 1$, and Lemma \ref{lemma:perturbation} shows
+  By this definition,
+  \[
+    \lim_{\epsilon \to 0} E_{j,k} = 0.
+  \]
+  Then, since $\mathbf{K}$ is invertible, Lemma \ref{lemma:perturbation} shows
   the existence of $\mathbf{K}^{-1}_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ and
   gives upper and lower bounds on all of its elements.
 
@@ -728,30 +740,35 @@ expressions of derivatives:
   \mathbf{Su})|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ has upper and lower
   bounds in $\mathbb{R}_2[\mathbf{u}]$.
   
-  Since $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ is bounded, so is
-  $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$. Assuming that
-  $\bm\Gamma$ is invertible so that $q(\mathbf{r} \mid \mathbf{u})$ exists, we
-  can make $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ close enough to
-  $\bm\Gamma$ to ensure that
+  Since
   \[
-    \det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \ne 0.
+    \lim_{\epsilon \to 0} \bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
+    \bm\Gamma,
   \]
-  Moreover, boundedness of $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$
-  gives boundedness of $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r},
-    \mathbf{u})}$.
+  we also have that
+  \[
+    \lim_{\epsilon \to 0} \det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
+    \det(\bm\Gamma).
+  \]
+  Assuming that
+  $\bm\Gamma$ is invertible so that $q(\mathbf{r} \mid \mathbf{u})$ exists,
+  \[
+    \det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \ne 0
+  \]
+  for small enough $\epsilon$, and, thus, $\det(\bm\Gamma)^{-1}|_{\lambda_i =
+    c(\mathbf{r}, \mathbf{u})}$ exists and has constant bounds.
 
-  Combined with the fact that $ab > 0$ (i.e., both endpoints together are either
-  positive or negative), this gives boundedness of $\det(\bm\Gamma)|_{\lambda_i
-    = c(\mathbf{r}, \mathbf{u})}^{-1}$.
-
-  % TODO: actually demonstrate this for the inverse
   Recall that
   \[
     \bm\Gamma = \Krr - \mathbf{S}\Kru = \Krr - \Kru^\intercal\Kuu^{-1}\Kru.
   \]
   We have already demonstrated that for $\mathbf{K} \in \{ \Krr, \Kru, \Kuu^{-1}
-  \}$, $\lim_{\epsilon \to 0}\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
-  = \mathbf{K}$. We can use a general fact that if $\lim_{x \to 0} f(x) = f$,
+  \}$,
+  \[
+    \lim_{\epsilon \to 0}\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
+    \mathbf{K}.
+  \]
+  We can use a general fact that if $\lim_{x \to 0} f(x) = f$,
   then $f(x) = f + g(x)$ for some function $g$ such that $\lim_{x \to 0} g(x) =
   0$ to define matrices $\Err$, $\Eru$, and $\Euu$ such that
   \begin{alignat*}{3}
@@ -1156,6 +1173,8 @@ by Chen \cite{lecture_notes}.
   \mathbb{R}_1[\mathbf{u}]$, a similar argument can be applied to the rest of
   \eqref{eq:remaining_integral} as well.
 \end{proof}
+
+% TODO: a section about the algorithm
 
 \section{Evaluation} % showing deep understanding
 % Mention all the constants I've used.
