@@ -17,17 +17,16 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   gp = vigpirlinit(algorithm_params, feature_data);
                                 % Choose inducing points.
   %gp = vigpirlgetinducingpoints(gp,mu_sa,algorithm_params);
-  gp.X_u = gp.X; % TEMP
+  gp.X_u = gp.X;
   m = size(gp.X_u, 1);
-  gp.mu = rand(1, m)';
-  %gp.mu = [-2; 3; 3]; % TEMP
-                 % B is a lower triangular matrix with positive diagonal entries
+  %gp.mu = rand(1, m)';
+  gp.mu = [-5; 0; 4]; % TEMP
+
+  % B is a lower triangular matrix with positive diagonal entries
   %gp.B = normrnd(0, 1, [m, m]);
   %gp.B(1:m+1:end) = random('Chisquare', 4, [m, 1]);
   %gp.B = tril(gp.B);
   gp.B = eye(m); % TEMP
-  %gp.D = diag(normrnd(0, 1));
-  gp.D = zeros(m, m); % TEMP
 
   d = size(feature_data.splittable, 2);
   elbo_list = [];
@@ -165,47 +164,94 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   % ELBO and derivative over some element of B
   % NOTE: this is the log of the actual value
   % TODO: titles, fix values on the x-axis, add two axes and their names to the y-aixs
-  accuracy = 0.1;
-  mu_from = -3;
-  mu_to = 3;
-  for i = 1:3
-    mu_log = [];
-    index = d + 1 + i;
-    for mu = mu_from:accuracy:mu_to
-      parameter_vector(index) = mu;
-      wrapper(parameter_vector);
-      mu_log = [mu_log mu];
-    end
-    parameter_vector(index) = 0;
-    first_index = size(grad_history, 2) - length(mu_log) + 1;
-    subplot(2, 3, i);
-    yyaxis left;
-    plot(mu_log, elbo_list(first_index:end));
-    hold on;
-    yyaxis right;
-    plot(mu_log, grad_history(index, first_index:end));
-    hold off;
+  %accuracy = 0.1;
+  %mu_from = -3;
+  %mu_to = 3;
+  %for i = 1:3
+  %  mu_log = [];
+  %  index = d + 1 + i;
+  %  for mu = mu_from:accuracy:mu_to
+  %    parameter_vector(index) = mu;
+  %    wrapper(parameter_vector);
+  %    mu_log = [mu_log mu];
+  %  end
+  %  parameter_vector(index) = 0;
+  %  first_index = size(grad_history, 2) - length(mu_log) + 1;
+  %  subplot(2, 3, i);
+  %  yyaxis left;
+  %  plot(mu_log, elbo_list(first_index:end));
+  %  hold on;
+  %  yyaxis right;
+  %  plot(mu_log, grad_history(index, first_index:end));
+  %  hold off;
+  %end
+  %mu_from = -5;
+  %mu_to = 5;
+  %for i = 1:3
+  %  mu_log = [];
+  %  index = d + 2 * m + 1 + i;
+  %  for mu = mu_from:accuracy:mu_to
+  %    parameter_vector(index) = mu;
+  %    wrapper(parameter_vector);
+  %    mu_log = [mu_log mu];
+  %  end
+  %  parameter_vector(index) = 0;
+  %  first_index = size(grad_history, 2) - length(mu_log) + 1;
+  %  subplot(2, 3, i + 3);
+  %  yyaxis left;
+  %  plot(mu_log, elbo_list(first_index:end));
+  %  hold on;
+  %  yyaxis right;
+  %  plot(mu_log, grad_history(index,first_index:end));
+  %  hold off;
+  %end
+  %return;
+
+  % ELBO and derivative over some element of B (more selective and polished version)
+  figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
+  subplot(2, 1, 1);
+  accuracy = 0.05;
+  B_from = 1;
+  B_to = 10;
+  B_log = [];
+  index = d + 2;
+  for B = B_from:accuracy:B_to
+    parameter_vector(index) = log(B);
+    wrapper(parameter_vector);
+    B_log = [B_log B];
   end
-  mu_from = -5;
-  mu_to = 5;
-  for i = 1:3
-    mu_log = [];
-    index = d + 2 * m + 1 + i;
-    for mu = mu_from:accuracy:mu_to
-      parameter_vector(index) = mu;
-      wrapper(parameter_vector);
-      mu_log = [mu_log mu];
-    end
-    parameter_vector(index) = 0;
-    first_index = size(grad_history, 2) - length(mu_log) + 1;
-    subplot(2, 3, i + 3);
-    yyaxis left;
-    plot(mu_log, elbo_list(first_index:end));
-    hold on;
-    yyaxis right;
-    plot(mu_log, grad_history(index,first_index:end));
-    hold off;
+  parameter_vector(index) = 0;
+  first_index = size(grad_history, 2) - length(B_log) + 1;
+  xlabel('$B_{1,1}$', 'Interpreter', 'latex');
+  yyaxis left;
+  plot(B_log, elbo_list(first_index:end));
+  ylabel('$E[v]$', 'Interpreter', 'latex');
+  yyaxis right;
+  plot(B_log, grad_history(index, first_index:end));
+  ylabel('$\partial E[v]/\partial B_{1,1}$', 'Interpreter', 'latex');
+
+  subplot(2, 1, 2);
+  B_from = -100;
+  B_to = 100;
+  accuracy = 1;
+  B_log = [];
+  index = d + 2 * m + 2;
+  for B = B_from:accuracy:B_to
+    parameter_vector(index) = B;
+    wrapper(parameter_vector);
+    B_log = [B_log B];
   end
+  parameter_vector(index) = 0;
+  first_index = size(grad_history, 2) - length(B_log) + 1;
+  xlabel('$B_{2,1}$', 'Interpreter', 'latex');
+  yyaxis left;
+  plot(B_log, elbo_list(first_index:end));
+  ylabel('$E[v]$', 'Interpreter', 'latex');
+  yyaxis right;
+  plot(B_log, grad_history(index, first_index:end));
+  ylabel('$\partial E[v]/\partial B_{2,1}$', 'Interpreter', 'latex');
+
+  print('../mpaper/elbo_over_B_short', '-depsc2');
   return;
 
   % Checking if the gradients are correct

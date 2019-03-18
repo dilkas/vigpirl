@@ -7,6 +7,7 @@
 \usepackage[UKenglish]{isodate}
 \usepackage{tikz}
 \usepackage{layouts}
+%\usepackage{subcaption}
 
 \usetikzlibrary{shapes,bayesnet,arrows.meta,arrows}
 %\tikzstyle{myarrow} = [-{Latex[length=2mm,width=2mm]}]
@@ -20,7 +21,6 @@
 
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\adj}{adj}
-%\DeclareMathOperator{\dett}{det}
 \DeclareMathOperator{\tr}{tr}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
@@ -1177,9 +1177,6 @@ by Chen \cite{lecture_notes}.
   \eqref{eq:remaining_integral} as well.
 \end{proof}
 
-% Maybe?
-%\subsection{Implementation}
-
 \section{Evaluation} % showing deep understanding
 % Mention all the constants I've used.
 
@@ -1203,49 +1200,33 @@ and create two demonstrations: $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
 $s_2$. Therefore, we would expect the reward (and value) of $s_2$ to be the
 highest.
 
- % TODO: need to redo this to get better labels, more precision, wider range of values
 \begin{figure*}
   \centering
-  \includegraphics[width=\textwidth]{elbo_contour_plots}
+  \begin{minipage}{.5\textwidth}
+    \centering
+    \includegraphics[width=\columnwidth]{sage1}
+    \includegraphics[width=\columnwidth]{sage2}
+  \end{minipage}%
+  \begin{minipage}{.5\textwidth}
+    \centering
+    \includegraphics[width=\columnwidth]{elbo_over_B_short}
+  \end{minipage}
+  \caption{How a well-defined problem with a correct solutions becomes a
+    well-defined problem with an incorrect solution. In each plot, the function
+    we are trying to optimise is in blue, and its derivative is in red. The
+    plots on the left are for $q(\mathbf{u})$ and its derivatives with respect
+    to $B_{1,1}$ (at the top) and $B_{2,1}$ (at the bottom), whereas the plots
+    on the right are for $\mathbb{E}[v]$ and its corresponding derivatives.}
 \end{figure*}
+% TODO: describe the figure
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{elbo_over_gamma}
-  \caption{Changes in $\mathcal{L}$ as a function of $\bm\mu$, where $\mu_1 =
-    \mu_2 = \mu_3$, and $\gamma = 0, 0.1, \dots, 0.9$. Each of the ten curves
-    plots a different value of $\gamma$, ranging from $0$ in dark blue to $0.9$
-    in dark red.}
-\end{figure}
-
-\begin{figure*}
-  \centering
-  \includegraphics[width=\textwidth]{ELBO_and_gradient_over_B}
-  \caption{ELBO in blue, derivative in red. The first row is for diagonal values
-  of B, the second row is for non-diagonal values.}
-\end{figure*}
-
-How well does the variance prediction work? It doesn't, but why?
-TODO: Sage should consider 3x3 matrices
-TODO: 4 plots---two my MATLAB, two my Sage; two for B[1, 1], two for B[2, 1].
-The MATLAB plots show E[v] and dE[v]/dB, the Sage plots show q(u) and
-dq(u)/dB. Function in blue, derivative in red, over a range of values.
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{sage1}
-\end{figure}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{sage2}
-\end{figure}
-
+% TODO: evaluate by setting dE[v]/dB to zero
 % How does policy depend on rewards? Choose state and action, generate an array
 % of contour plots showing the probability of taking that action in an optimal policy
-Observation from a plot not worth including here. The policy behaves as
-expected: if we fix $r(s_1)$, $\pi(s_1, a_1)$ increases with higher $r(s_2)$ as
-well as lower $r(s_3)$ values.
+
+% Observation from a plot not worth including here. The policy behaves as
+% expected: if we fix $r(s_1)$, $\pi(s_1, a_1)$ increases with higher $r(s_2)$ as
+% well as lower $r(s_3)$ values.
 
 \section{Conclusions}
 
