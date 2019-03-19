@@ -8,6 +8,7 @@
 \usepackage{tikz}
 \usepackage{layouts}
 \usepackage{xcolor}
+\usepackage{booktabs}
 
 \usetikzlibrary{shapes,bayesnet,arrows.meta,arrows}
 %\tikzstyle{myarrow} = [-{Latex[length=2mm,width=2mm]}]
@@ -75,7 +76,7 @@
   of the Markov decision process.
 \end{abstract}
 
-\section{Introduction}
+\section{Introduction} % first page
 % TODO: rewrite and make it good
 % 1. Problem (with examples, intuitive)
 % 2. Its importance/relevance/motivation
@@ -276,11 +277,11 @@ convergence theorem in order to justify the validity of our approach.
 
 \begin{definition}[Norms]
   For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
-  its \emph{maximum norm} is
+  its \emph{maximum norm} (\emph{$\ell_\infty$-norm}) is
   \[
     \lVert \mathbf{x} \rVert_\infty = \max_i |x_i|
   \]
-  whereas its \emph{taxicab} (or \emph{Manhattan}) \emph{norm} is
+  whereas its \emph{$\ell_1$-norm} is
   \[
     \lVert \mathbf{x} \rVert_1 = \sum_{i = 1}^n |x_i|.
   \]
@@ -325,10 +326,9 @@ convergence theorem in order to justify the validity of our approach.
   \]
 \end{theorem}
 
-\section{Solution}
-% TODO: give an overview of this section. Also, consider renaming it or
-% splitting it into multiple sections
+\section{The Model}
 
+% TODO: make this fit the narrative
 For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
 $[\mathbf{A}]_{i,j}$ to denote the element of $\mathbf{A}$ in row $i$ and column
 $j$. Moreover, we use $\tr(\mathbf{A})$ to denote its \emph{trace} and
@@ -340,8 +340,6 @@ $\mathbf{x}$, and coefficients are in $\mathbb{R}$.
 In this paper, all references to measurability are with respect to the Lebesgue
 measure. Similarly, whenever we consider the existence of an integral, we use
 the Lebesgue definition of integration.
-
-\subsection{Details of the Model}
 
 We keep the covariance function the same as in the work by Levine et al.
 \cite{DBLP:conf/nips/LevinePK11}, which is a version of the automatic relevance
@@ -514,7 +512,7 @@ where
   \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
 \]
 
-\subsection{Theoretical Justification}
+\section{Theoretical Justification}
 
 \begin{figure}
   \centering
@@ -1194,21 +1192,21 @@ add a single feature $f : \mathcal{S} \to \mathbb{R}$ such that
 \[
   f(s_1) = 1, \quad f(s_2) = 2, \quad f(s_3) = 3,
 \]
-and create two demonstrations: $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
-(s_3, a_2) \}$. In other words, the demonstrations move from $s_1$ and $s_3$ to
-$s_2$. Therefore, we would expect the reward (and value) of $s_2$ to be the
-highest.
+and create two demonstrations $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
+(s_3, a_2) \}$ that correspond to moving from $s_1$ and $s_3$ to $s_2$.
+Therefore, we would expect the reward of $s_2$ to be higher than the other two
+rewards in order to reflect this.
 
 \begin{figure*}
   \centering
   \begin{minipage}{.5\textwidth}
     \centering
-    \includegraphics[width=\columnwidth]{sage1}
-    \includegraphics[width=\columnwidth]{sage2}
+    \includegraphics[width=0.8\columnwidth]{sage1}
+    \includegraphics[width=0.8\columnwidth]{sage2}
   \end{minipage}%
   \begin{minipage}{.5\textwidth}
     \centering
-    \includegraphics[width=\columnwidth]{elbo_over_B_short}
+    \includegraphics[width=0.8\columnwidth]{elbo_over_B_short}
   \end{minipage}
   \caption{How a well-defined problem with a correct solutions becomes a
     well-defined problem with an incorrect solution. In each plot, the function
@@ -1216,19 +1214,18 @@ highest.
     plots on the left are for $q(\mathbf{u})$ and its derivatives with respect
     to $B_{1,1}$ (at the top) and $B_{2,1}$ (at the bottom), whereas the plots
     on the right are for $\mathbb{E}[v]$ and its corresponding derivatives.}
+  \label{fig:B_gradient}
 \end{figure*}
-
-TODO: describe the problem with B.
 
 \begin{figure*}
   \centering
   \begin{minipage}{.5\textwidth}
     \centering
-    \includegraphics[width=\columnwidth]{convergence1}
+    \includegraphics[width=0.8\columnwidth]{convergence1}
   \end{minipage}%
   \begin{minipage}{.5\textwidth}
     \centering
-    \includegraphics[width=\columnwidth]{convergence2}
+    \includegraphics[width=0.8\columnwidth]{convergence2}
   \end{minipage}
   \caption{The convergence of $\mathcal{L}$ (at the top) and several example
     policies (at the bottom) over a number of iterations for Scenario~1 on the
@@ -1250,8 +1247,17 @@ TODO: describe the problem with B.
   \label{fig:convergence2}
 \end{figure*}
 
-Because of this issue, we look at the convergence of our model using a constant
-step size in two different scenarios:
+Unfortunately, we are not able to use $\frac{\partial \mathcal{L}}{\partial
+  \mathbf{B}}$ in order to optimise $\mathbf{B}$. We illustrate the problem in
+Figure \ref{fig:B_gradient}. On the left side of the figure, we plot how
+$q(\mathbf{u})$ behaves as a function of a diagonal and a non-diagonal element
+of $\mathbf{B}$. Both functions have maximum values that can be attained by
+following the corresponding derivatives. However, when these derivatives are
+used to estimate $\frac{\partial \mathbb{E}[v]}{\partial \mathbf{B}}$, the
+resulting derivatives no longer match their corresponding functions, although
+the functions themselves still have optimal values: at or below $1$ for
+$B_{1,1}$ and at $0$ for $B_{2,1}$. This leads us to consider two restrictions
+of the model in order to investigate its convergence behaviour:
 \begin{itemize}
 \item In \textbf{Scenario 1}, we remove $\frac{\partial \mathbb{E}[v]}{\partial
     \mathbf{B}}$ from $\frac{\partial \mathcal{L}}{\partial \mathbf{B}}$. This
@@ -1263,7 +1269,6 @@ step size in two different scenarios:
 \item In \textbf{Scenario 2}, we set $\mathbf{B} = \mathbf{I}_m$, and do not
   optimise it at all.
 \end{itemize}
-% TODO: use \ell when introducing the norms
 
 We plot how $\mathcal{L}$ as well as policies $\pi(a_1 \mid s_1)$, $\pi(a_2 \mid
 s_3)$, and $\pi(a_1 \mid s_2)$ converge over a number of iterations in Figure
@@ -1298,8 +1303,148 @@ This leaves us with two models: one that converges to reasonable-but-suboptimal
 values, and one that diverges to infinite variance but also provides correct
 policies.
 
-\section{Related Work}
-% TODO: comprehensive literature survey
+\section{Related Work} % 0.5-1 page
+% TODO: rewrite and make this section smaller
+
+As mentioned in the introduction, most IRL algorithms assume that the reward
+function can be represented as a linear combination of features. This assumption
+originated in one of the earliest papers on the topic by Ng and Russell
+\cite{DBLP:conf/icml/NgR00}, which introduced several linear programming
+approaches to the problem. The authors also noticed that often
+multiple reward functions can explain the same behaviour, and suggested
+heuristics for reward functions that are `far away' from reward functions that
+do not fit the data.
+
+A few years later, Abbeel and Ng \cite{DBLP:conf/icml/PieterN04} developed an
+algorithm for the same formulation of the problem with a guarantee to converge
+quickly. Neu and Szepesv\'ari \cite{DBLP:conf/uai/NeuS07} identified a weakness
+in Abbeel and Ng's approach: the algorithm requires features to be
+`appropriately' scaled, and optimal scaling may not be known. Instead, they
+suggest a way to combine IRL with \emph{apprenticeship learning}, i.e., a
+supervised learning task for optimal \emph{policy} recovery (whereas IRL focuses
+on recovering the reward function).
+
+Ramachandran and Amir \cite{DBLP:conf/ijcai/RamachandranA07} were the first to
+formulate IRL in terms of Bayesian learning. While the model is easily
+interpretable and able to handle experts that make mistakes, the algorithm can
+only handle small state spaces and requires Monte Carlo Markov Chain (MCMC)
+sampling for inference.
+
+Ziebart et al. \cite{ziebart2008maximum} keep the linearity assumption, but
+introduce an influential idea: resolving the ambiguity when multiple reward
+functions explain the data by appealing to the maximum entropy principle.
+
+Choi and Kim \cite{DBLP:conf/ijcai/ChoiK13} extend the Bayesian model to learn
+good features as well as the reward function, trying to overcome the limitation
+of linearity. However, the approach is quite limiting: all features are assumed
+to have Boolean values, and the algorithm simply learns their conjunctions.
+
+Levine et al. \cite{DBLP:conf/nips/LevinePK11} are the first to suggest a way to
+learn nonlinear reward functions without harsh restrictions on the problem
+domain by using GPs. We base our work primarily on their paper, and the
+weaknesses we hope to address have already been covered in the previous section.
+A recent extension to their work by Jin et al. \cite{DBLP:conf/uai/JinDAS17}
+aims to harness the power of deep learning by using several layers of GPs,
+making the model less dependent on being provided good features. They also use
+VI, but with a few simplifying assumptions: deterministic training conditional
+for the reward vector, and fully independent training conditional for the latent
+state.
+
+Finally, instead of using GPs to model nonlinear reward functions, one can use a
+neural network (NN), as demonstrated by Wulfmeier et al.
+\cite{wulfmeier2015maximum}. Their approach benefits from constant time
+inference and the ability to learn complex features either from already-given
+features or even from raw data. The only disadvantage (as demonstrated in the
+paper) is that NNs converge slower than GPs (as measured by the number of
+demonstrations).
+
+\subsection{Variational Inference}
+
+Variational inference has seen a recent increase in interest among academics,
+with different approaches focusing on different goals: better time complexity,
+handling a wider variety of models, making approximations more accurate, and
+using more complex function approximation techniques (such as NNs)
+to infer local latent variable values without having to calculate them
+individually for each data point \cite{DBLP:journals/corr/abs-1711-05597}. As
+our IRL model is based on a GP, we will begin by reviewing some of the VI
+approaches applied specifically to GP regression. Based on a recent review of
+scalable GPs \cite{DBLP:journals/corr/abs-1711-05597}, we will concentrate on
+\emph{stochastic variational sparse approximations}, as they have achieved
+modelling accuracy close to that of the full GP with no approximations, with
+many methods providing a time complexity of $\mathcal{O}(m^3)$. Below we provide
+a short overview of various assumptions that have been used in approximating
+\emph{sparse} GPs (i.e., GPs that use inducing points), following on a paper by
+Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
+
+Table ?? further summarises some of the recent and/or
+influential GP approximation approaches that might be relevant to our situation.
+For many of the variables in our model (including the inducing points and the
+hyperparameters of the covariance function), we have three possible ways of
+handling them:
+\begin{itemize}
+\item Provide a full Bayesian treatment by defining a prior probability
+  distribution. While this option can easily prevent overfitting, the choice of
+  prior can be difficult to justify.
+\item Fix the value of the variable. We can then optimise the value outside of
+  the main algorithm, e.g., by running the algorithm with a set of possible
+  values and keeping the value that produces the best performance. This option
+  can be slow if we are interested in finding the optimal value, but could be
+  appropriate if the variable has little impact on the algorithm's performance.
+\item Treat the variable as a variational parameter. This method will
+  efficiently optimise the value of the variable, but is vulnerable to
+  overfitting. Furthermore, this requires us to find the derivative of the ELBO
+  w.r.t. the variable, which could be difficult.
+\end{itemize}
+
+Titsias \cite{DBLP:journals/jmlr/Titsias09} is the first to suggest a
+variational approximation where inducing points are treated as variational
+parameters. The paper has influenced many of the later works covered in this
+section, and has been reformulated by Gal et al. \cite{DBLP:conf/nips/GalWR14}
+into a distributed algorithm. We will fix the inducing points for the baseline
+version of our algorithm, but keep the idea in mind for possible future work.
+
+Hensman et al. \cite{DBLP:conf/uai/HensmanFL13} reduce the complexity from
+$\mathcal{O}(nm^2)$ to $\mathcal{O}(m^3)$ using a stochastic variational
+inference (SVI) approach. While results such as efficiently computable natural
+gradients and analytically tractable optimal solutions for variational
+parameters are unlikely to transfer to a different problem domain, the overall
+SVI framework and an approximating Gaussian distribution for $\mathbf{u}$ will
+play an important role in our proposal.
+
+Cheng and Boots \cite{DBLP:conf/nips/ChengB17} suggest using different bases in
+the reproducing kernel Hilbert space for the mean and covariance functions.
+The paper makes few assumptions and mostly relies on the work of
+Titsias \cite{DBLP:journals/jmlr/Titsias09}, making it seem transferable to a
+new domain. However, applying the idea to IRL is likely to be beyond the scope
+of the project.
+
+The variational Fourier features (VFF) algorithm by Hensman et al.
+\cite{DBLP:journals/jmlr/HensmanDS17} is only defined for Mat\'ern kernels,
+which is likely to be too restrictive for our situation (the original paper on
+using GPs for IRL \cite{DBLP:conf/nips/LevinePK11} used the automatic relevance
+detection kernel that has weights controlling how important each feature is).
+While extending VFF to support a flexible class of kernels defined by Wilson and
+Adams \cite{pmlr-v28-wilson13} is an interesting and promising avenue of work,
+it is likely to be beyond the scope of this project as well.
+
+While Peng et al. \cite{DBLP:conf/icml/PengZZQ17} provide a highly efficient
+distributed implementation, the derivation of the ELBO relies primarily on the
+fact that the evidence for a GP is a Gaussian, while in our case the evidence is
+anything but. Hence, it is unlikely that the ideas from this paper could be
+applicable to our IRL model.
+
+Finally, since we expect $\posterior$ to be highly irregular, we would like our
+approximation to be capable of representing a wide range of possible probability
+distributions. The primary way of representing complex posteriors in VI is by
+using \emph{normalising flows}, i.e., a collection of invertible
+functions---parametrised by additional variational parameters---that are applied
+to latent variables \cite{DBLP:conf/icml/RezendeM15}. Normalising flows, along
+with some of the ideas mentioned previously, could provide great benefits to the
+GP IRL VI model. However, we are forced to keep any non-essential features as
+possible future work in order to make the project feasible in a given time
+frame. Furthermore, note that due to various differences between regression and
+IRL, we cannot simply apply a GP VI model as a whole. Instead, smaller tricks
+and ideas from various papers can (and will) be used throughout the project.
 
 \section{Conclusions}
 % TODO: write
@@ -1308,6 +1453,8 @@ Reasonable results in convergence.
 More variables/information. Fewer assumptions.
 
 We show how to avoid the deterministic training conditional assumption.
+
+%Why doesn't it work? Perhaps a stupid bug.
 
 \subsection{Further Work}
 
