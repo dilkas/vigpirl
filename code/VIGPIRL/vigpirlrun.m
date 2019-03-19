@@ -19,8 +19,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %gp = vigpirlgetinducingpoints(gp,mu_sa,algorithm_params);
   gp.X_u = gp.X;
   m = size(gp.X_u, 1);
-  %gp.mu = rand(1, m)';
-  gp.mu = [-5; 0; 4]; % TEMP
+  gp.mu = rand(1, m)';
+  %gp.mu = [-5; 0; 4]; % TEMP
 
   % B is a lower triangular matrix with positive diagonal entries
   %gp.B = normrnd(0, 1, [m, m]);
@@ -32,6 +32,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   elbo_list = [];
   grad_history = [];
   hyperparameter_history = [];
+  policy_history = [];
 
   % wrapper: vector of parameters -> scalar value * gradient vector
   function [elbo, grad] = wrapper(parameter_vector)
@@ -100,34 +101,29 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %mu1_log = [];
   %mu2_log = [];
   %mu3_log = [];
-  %multiplier = 10;
   %policy_log = [];
-  %for mu1 = 1:10
-  %  real_mu1 = multiplier * (mu1 - 5);
-  %  parameter_vector(d+m+2) = real_mu1;
-  %  for mu2 = 1:10
-  %    real_mu2 = multiplier * (mu2 - 5);
-  %    parameter_vector(d+m+3) = real_mu2;
-  %    for mu3 = 1:10
-  %      real_mu3 = multiplier * (mu3 - 5)
-  %      parameter_vector(d+m+4) = real_mu3;
+  %mu1_range = -5:5;
+  %mu_range = -5:0.5:5;
+  %num_points = length(mu_range) * length(mu_range);
+  %for mu1 = mu1_range
+  %  for mu2 = mu_range
+  %    for mu3 = mu_range
   %      solution = feval([mdp_model 'solve'], mdp_data, [mu1; mu2; mu3]);
   %      policy = solution.p(1, 1); % state 1, action 1
   %      policy_log = [policy_log policy];
-  %      mu1_log = [mu1_log real_mu1];
-  %      mu2_log = [mu2_log real_mu2];
-  %      mu3_log = [mu3_log real_mu3];
+  %      mu1_log = [mu1_log mu1];
+  %      mu2_log = [mu2_log mu2];
+  %      mu3_log = [mu3_log mu3];
   %    end
   %  end
   %end
-  %for mu1 = 1:10
-  %  indices = 100*(mu1-1)+1:100*mu1;
-  %  other_mu = multiplier * ((1:10) - 5);
+  %for mu1 = 1:length(mu1_range)
+  %  indices = num_points * (mu1-1) + (1:num_points);
   %  subplot(5, 2, mu1);
-  %  contourf(other_mu, other_mu, reshape(policy_log(indices), [10, 10]), 30);
+  %  contourf(mu_range, mu_range, reshape(policy_log(indices), [length(mu_range), length(mu_range)]), 30);
   %  xlabel('$r(s_2)$', 'Interpreter', 'latex');
   %  ylabel('$r(s_3)$', 'Interpreter', 'latex');
-  %  t = ['$r(s_1) = ', num2str(multiplier * (mu1 - 5)), '$'];
+  %  t = ['$r(s_1) = ', num2str(mu1 - 5), '$'];
   %  title(t, 'Interpreter', 'latex');
   %end
   %return;
@@ -208,51 +204,51 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %return;
 
   % ELBO and derivative over some element of B (more selective and polished version)
-  figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
-  subplot(2, 1, 1);
-  accuracy = 0.05;
-  B_from = 1;
-  B_to = 10;
-  B_log = [];
-  index = d + 2;
-  for B = B_from:accuracy:B_to
-    parameter_vector(index) = log(B);
-    wrapper(parameter_vector);
-    B_log = [B_log B];
-  end
-  parameter_vector(index) = 0;
-  first_index = size(grad_history, 2) - length(B_log) + 1;
-  xlabel('$B_{1,1}$', 'Interpreter', 'latex');
-  yyaxis left;
-  plot(B_log, elbo_list(first_index:end));
-  ylabel('$E[v]$', 'Interpreter', 'latex');
-  yyaxis right;
-  plot(B_log, grad_history(index, first_index:end));
-  ylabel('$\partial E[v]/\partial B_{1,1}$', 'Interpreter', 'latex');
+  %figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
+  %subplot(2, 1, 1);
+  %accuracy = 0.05;
+  %B_from = 1;
+  %B_to = 10;
+  %B_log = [];
+  %index = d + 2;
+  %for B = B_from:accuracy:B_to
+  %  parameter_vector(index) = log(B);
+  %  wrapper(parameter_vector);
+  %  B_log = [B_log B];
+  %end
+  %parameter_vector(index) = 0;
+  %first_index = size(grad_history, 2) - length(B_log) + 1;
+  %xlabel('$B_{1,1}$', 'Interpreter', 'latex');
+  %yyaxis left;
+  %plot(B_log, elbo_list(first_index:end));
+  %ylabel('$E[v]$', 'Interpreter', 'latex');
+  %yyaxis right;
+  %plot(B_log, grad_history(index, first_index:end));
+  %ylabel('$\partial E[v]/\partial B_{1,1}$', 'Interpreter', 'latex');
 
-  subplot(2, 1, 2);
-  B_from = -100;
-  B_to = 100;
-  accuracy = 1;
-  B_log = [];
-  index = d + 2 * m + 2;
-  for B = B_from:accuracy:B_to
-    parameter_vector(index) = B;
-    wrapper(parameter_vector);
-    B_log = [B_log B];
-  end
-  parameter_vector(index) = 0;
-  first_index = size(grad_history, 2) - length(B_log) + 1;
-  xlabel('$B_{2,1}$', 'Interpreter', 'latex');
-  yyaxis left;
-  plot(B_log, elbo_list(first_index:end));
-  ylabel('$E[v]$', 'Interpreter', 'latex');
-  yyaxis right;
-  plot(B_log, grad_history(index, first_index:end));
-  ylabel('$\partial E[v]/\partial B_{2,1}$', 'Interpreter', 'latex');
+  %subplot(2, 1, 2);
+  %B_from = -100;
+  %B_to = 100;
+  %accuracy = 1;
+  %B_log = [];
+  %index = d + 2 * m + 2;
+  %for B = B_from:accuracy:B_to
+  %  parameter_vector(index) = B;
+  %  wrapper(parameter_vector);
+  %  B_log = [B_log B];
+  %end
+  %parameter_vector(index) = 0;
+  %first_index = size(grad_history, 2) - length(B_log) + 1;
+  %xlabel('$B_{2,1}$', 'Interpreter', 'latex');
+  %yyaxis left;
+  %plot(B_log, elbo_list(first_index:end));
+  %ylabel('$E[v]$', 'Interpreter', 'latex');
+  %yyaxis right;
+  %plot(B_log, grad_history(index, first_index:end));
+  %ylabel('$\partial E[v]/\partial B_{2,1}$', 'Interpreter', 'latex');
 
-  print('../mpaper/elbo_over_B_short', '-depsc2');
-  return;
+  %print('../mpaper/elbo_over_B_short', '-depsc2');
+  %return;
 
   % Checking if the gradients are correct
   %options = optimoptions(@fminunc, 'SpecifyObjectiveGradient', true, 'CheckGradients', true);
@@ -278,7 +274,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %return;
 
   % for AdaGrad
-  G = zeros(m + d + 1 + m*(m+1)/2, 1);
+  %G = zeros(m + d + 1 + m*(m+1)/2, 1);
 
   % for AdaDelta
   %num_hyperparameters = m + d + 1 + m*(m+1)/2;
@@ -300,10 +296,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %grad(1) = 0; % lambda0
     %grad(2:d+1) = 0; % lambda (except first)
     %grad(d+m+2:d+2*m+1) = 0; % mu
-    %grad(d+m+3) = 0; % mu (second)
-    %grad(d+m+4) = 0; % mu (third)
-    %grad(d+2:d+m+1) = 0; % B diagonal
-    %grad(d+2*m+2:end) = 0; % rest of B
+    grad(d+2:d+m+1) = 0; % B diagonal
+    grad(d+2*m+2:end) = 0; % rest of B
 
     %fprintf('Hyperparameters:\n');
     %disp(old_hyperparameters);
@@ -318,8 +312,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     learning_rate_vector(d+2*m+2:end) = algorithm_params.B_learning_rate;
 
     % for AdaGrad
-    G = G + grad .^ 2;
-    rho = (algorithm_params.learning_rate / sqrt(G))';
+    %G = G + grad .^ 2;
+    %rho = (algorithm_params.learning_rate / sqrt(G))';
 
     % for AdaDelta
     %E_g = rho * E_g + (1 - rho) * grad .^ 2;
@@ -336,6 +330,10 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     elbo_list = horzcat(elbo_list, elbo);
     grad_history = horzcat(grad_history, grad);
 
+    r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
+    solution = feval([mdp_model 'solve'], mdp_data, r);
+    policy_history = horzcat(policy_history, [solution.p(1, 1); solution.p(2, 1); solution.p(3, 2)]);
+
     if norm(hyperparameters - old_hyperparameters, 1) < algorithm_params.required_precision
       break;
     end
@@ -347,9 +345,44 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   end
   time = toc;
 
+  figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
+  subplot(2, 1, 1);
   stem(elbo_list);
-  plot_history(hyperparameter_history);
-  plot_history(grad_history);
+  xlabel('number of iterations');
+  ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
+
+  subplot(2, 1, 2);
+  plot_history(policy_history);
+  xlabel('number of iterations');
+  legend('$\pi(a_1 \mid s_1)$', '$\pi(a_1 \mid s_2)$', '$\pi(a_2 \mid s_3)$', 'Interpreter', 'latex', 'Location', 'east');
+  print('../mpaper/convergence2', '-depsc2');
+
+  figure('Units', 'centimeters', 'Position', [0 0 15 5], 'PaperPositionMode', 'auto');
+  %plot(hyperparameter_history(1,:), 'k-');
+  %hold on;
+  %plot(exp(hyperparameter_history(2,:)), 'k--');
+  %plot(hyperparameter_history(6,:), 'b');
+  %plot(hyperparameter_history(7,:), 'b--');
+  %plot(hyperparameter_history(8,:), 'b-.');
+  %plot(exp(hyperparameter_history(3,:)), 'r');
+  %plot(exp(hyperparameter_history(4,:)), 'r--');
+  %plot(exp(hyperparameter_history(5,:)), 'r-.');
+  %plot(hyperparameter_history(9,:), 'g');
+  %plot(hyperparameter_history(10,:), 'g--');
+  %plot(hyperparameter_history(11,:), 'g-.');
+  %legend('$\log \lambda_0$', '$\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', '$B_{1,1}$', '$B_{2,2}$', '$B_{3,3}$', '$B_{2,1}$', '$B_{3,1}$', '$B_{3,2}$', 'Interpreter', 'latex', 'Location', 'westoutside');
+  plot(exp(hyperparameter_history(1,:)), 'k-');
+  hold on;
+  plot(hyperparameter_history(2,:), 'k--');
+  plot(hyperparameter_history(6,:), 'b');
+  plot(hyperparameter_history(7,:), 'b--');
+  plot(hyperparameter_history(8,:), 'b-.');
+  legend('$\lambda_0$', '$\log\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', 'Interpreter', 'latex', 'Location', 'westoutside');
+  xlabel('number of iterations');
+  hold off;
+  print('../mpaper/parameter_convergence2', '-depsc2');
+
+  %plot_history(grad_history);
 
   r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
   solution = feval([mdp_model 'solve'], mdp_data, r);
@@ -370,8 +403,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 end
 
 function plot_history(matrix)
-  figure();
-  %ylim([-400 100]);
   hold on;
   for row = 1:size(matrix, 1)
     plot(matrix(row,:));

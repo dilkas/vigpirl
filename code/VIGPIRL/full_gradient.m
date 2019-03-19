@@ -33,7 +33,8 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
     unique_lambda_part = arrayfun(@lambda_derivative, 1:size(matrices.Kuu_grad, 3));
     unique_mu_part = (u' - gp.mu)' * (Sigma_inv + Sigma_inv');
-    unique_B_part = 2 * (Sigma_inv * U * Sigma_inv - Sigma_inv) * gp.B;
+    %unique_B_part = 2 * (Sigma_inv * U * Sigma_inv - Sigma_inv) * gp.B;
+    unique_B_part = zeros(length(gp.mu));
 
     unique_part = vertcat(2, unique_lambda_part', diag(unique_B_part),...
       unique_mu_part', get_lower_triangle(unique_B_part));
@@ -42,7 +43,10 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
   Sigma = gp.B * gp.B';
   %disp(gp.B);
-  %disp(Sigma);
+  fprintf('Kuu:\n');
+  disp(matrices.Kuu);
+  fprintf('Sigma:\n');
+  disp(Sigma);
   Sigma_inv = inv(Sigma);
   Kuu_inv = inv(matrices.Kuu);
   S = matrices.Kru' * Kuu_inv;

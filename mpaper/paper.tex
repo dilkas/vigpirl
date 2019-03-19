@@ -7,7 +7,7 @@
 \usepackage[UKenglish]{isodate}
 \usepackage{tikz}
 \usepackage{layouts}
-%\usepackage{subcaption}
+\usepackage{xcolor}
 
 \usetikzlibrary{shapes,bayesnet,arrows.meta,arrows}
 %\tikzstyle{myarrow} = [-{Latex[length=2mm,width=2mm]}]
@@ -76,8 +76,12 @@
 \end{abstract}
 
 \section{Introduction}
-% problem description/statement
 % TODO: rewrite and make it good
+% 1. Problem (with examples, intuitive)
+% 2. Its importance/relevance/motivation
+% 3. My idea
+% 4. List of contributions
+% Forward-reference which section deals with what
 
 Inverse reinforcement learning (IRL)---a problem proposed by Russell in
 1998 \cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a
@@ -91,10 +95,10 @@ Moreover, IRL has seen a wide array of applications in autonomous vehicle
 control \cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16} and
 learning to predict another agent's behaviour
 \cite{DBLP:journals/ai/BogertD18,DBLP:conf/aaai/VogelRGR12,ziebart2008maximum,DBLP:conf/huc/ZiebartMDB08,DBLP:conf/iros/ZiebartRGMPBHDS09}.
-Most approaches in the literature (see Section \ref{sec:background}) make a
-convenient yet unjustified assumption that the reward function can be expressed
-as a linear combination of features. One proven way to abandon this assumption
-is by representing the reward function as a Gaussian process (GP)
+Most approaches in the literature make a convenient yet unjustified assumption
+that the reward function can be expressed as a linear combination of features.
+One proven way to abandon this assumption is by representing the reward function
+as a Gaussian process (GP)
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11,DBLP:journals/corr/abs-1208-2112}.
 The original approach used maximum likelihood estimation
 \cite{DBLP:conf/nips/LevinePK11}, whereas we use variational inference (VI)
@@ -110,7 +114,7 @@ point estimates. This approach can prove useful in three major ways:
   against overfitting \cite{DBLP:conf/uai/JinDAS17}.
 \end{enumerate}
 
-\subsection{Statement of the Problem}
+\section{The Problem}
 
 \begin{definition}[MDP]
   A \emph{Markov decision process} is a set $\mathcal{M} = \{ \mathcal{S},
@@ -259,21 +263,16 @@ By considering full probability distributions instead of point estimates---as
 long as the approximations are able to capture important features of the
 posterior---our predictions are likely to be more accurate and rely on fewer
 assumptions. Moreover, we hope to make use of various recent advancements in VI
-for both time complexity and approximation distribution fit (see Section
-\ref{sec:background}), making the resulting algorithm competitive both in terms of
-running time and model fit.
+for both time complexity and approximation distribution fit, making the
+resulting algorithm competitive both in terms of running time and model fit.
 
-\section{Background} \label{sec:background}
-% motivation, relevance (whatever that means)
-% comprehensive literature survey
-% TODO: need to add a literature survey here
+\section{Background}
 
-\subsection{Linear Algebra, Numerical Analysis, and Measure Theory}
-
-Here we introduce a few definitions and results that will be used later in the
-paper. Namely, we will use several different vector and matrix norms, consider
-how an inverse of a matrix changes with a small perturbation, and use Lebesgue's
-dominated convergence theorem in order to justify the validity of our approach.
+Here we introduce a few definitions and results from linear algebra, numerical
+analysis, and measure theory that will be used later in the paper. Namely, we
+will use several different vector and matrix norms, consider how an inverse of a
+matrix changes with a small perturbation, and use Lebesgue's dominated
+convergence theorem in order to justify the validity of our approach.
 
 \begin{definition}[Norms]
   For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
@@ -630,6 +629,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   \end{enumerate}
 \end{restatable}
 
+% TODO: need some editing
 \begin{lemma} \label{lemma:bound1}
   Let $i \in \{ 0, \dots, d \}$ and $\epsilon > 0$ be arbitrary. Furthermore,
   let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\lambda_i -
@@ -1178,7 +1178,6 @@ by Chen \cite{lecture_notes}.
 \end{proof}
 
 \section{Evaluation} % showing deep understanding
-% Mention all the constants I've used.
 
 In order to fully understand the model's behaviour, we focus on a three-state
 MDP where the agent can deterministically move from any state to any other
@@ -1189,7 +1188,7 @@ state. More formally, we set $\mathcal{S} = \{ s_1, s_2, s_3 \}$, $\mathcal{A} =
   &\mathcal{T}(s_2, a_1, s_1) = 1, \quad \mathcal{T}(s_1, a_2, s_3) = 1, \\
   &\mathcal{T}(s_3, a_1, s_1) = 1, \quad \mathcal{T}(s_1, a_2, s_2) = 1,
 \end{align*}
-all other values of $\mathcal{T}$ to zero, and vary the value of $\gamma$. We
+all other values of $\mathcal{T}$ to zero, and $\gamma = 0.9$. We
 also set the inducing points to be equal to the three states in $\mathcal{S}$,
 add a single feature $f : \mathcal{S} \to \mathbb{R}$ such that
 \[
@@ -1218,23 +1217,99 @@ highest.
     to $B_{1,1}$ (at the top) and $B_{2,1}$ (at the bottom), whereas the plots
     on the right are for $\mathbb{E}[v]$ and its corresponding derivatives.}
 \end{figure*}
-% TODO: describe the figure
 
-% TODO: evaluate by setting dE[v]/dB to zero
-% How does policy depend on rewards? Choose state and action, generate an array
-% of contour plots showing the probability of taking that action in an optimal policy
+TODO: describe the problem with B.
 
-% Observation from a plot not worth including here. The policy behaves as
-% expected: if we fix $r(s_1)$, $\pi(s_1, a_1)$ increases with higher $r(s_2)$ as
-% well as lower $r(s_3)$ values.
+\begin{figure*}
+  \centering
+  \begin{minipage}{.5\textwidth}
+    \centering
+    \includegraphics[width=\columnwidth]{convergence1}
+  \end{minipage}%
+  \begin{minipage}{.5\textwidth}
+    \centering
+    \includegraphics[width=\columnwidth]{convergence2}
+  \end{minipage}
+  \caption{The convergence of $\mathcal{L}$ (at the top) and several example
+    policies (at the bottom) over a number of iterations for Scenario~1 on the
+    left and Scenario~2 on the right.}
+  \label{fig:convergence1}
+\end{figure*}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth]{parameter_convergence1}
+  \includegraphics[width=\textwidth]{parameter_convergence2}
+  \caption{Convergence of all optimised parameters for Scenario~1 at the top and
+  Scenario~2 at the bottom. In order to represent different variables on the
+  same scale, some variables have been $\log$-transformed. Colours denote which
+  vector or matrix each scalar comes from: black for $\bm\lambda$,
+  \textcolor{blue}{blue} for $\bm\mu$, \textcolor{red}{red} for diagonal
+  elements of $\mathbf{B}$, and \textcolor{green}{green} for its non-diagonal
+  elements.}
+  \label{fig:convergence2}
+\end{figure*}
+
+Because of this issue, we look at the convergence of our model using a constant
+step size in two different scenarios:
+\begin{itemize}
+\item In \textbf{Scenario 1}, we remove $\frac{\partial \mathbb{E}[v]}{\partial
+    \mathbf{B}}$ from $\frac{\partial \mathcal{L}}{\partial \mathbf{B}}$. This
+  essentially optimises $\mathbf{B}$ to match $\Kuu$, because then
+  $\frac{\partial \mathcal{L}}{\partial \mathbf{B}}$ becomes
+  $-\frac{\partial}{\partial \mathbf{B}} \DKL{q(\mathbf{u})}{p(\mathbf{u})}$,
+  i.e., we are optimising $\mathbf{B}$ to minimise the difference between the
+  prior and the posterior of $\mathbf{u}$.
+\item In \textbf{Scenario 2}, we set $\mathbf{B} = \mathbf{I}_m$, and do not
+  optimise it at all.
+\end{itemize}
+% TODO: use \ell when introducing the norms
+
+We plot how $\mathcal{L}$ as well as policies $\pi(a_1 \mid s_1)$, $\pi(a_2 \mid
+s_3)$, and $\pi(a_1 \mid s_2)$ converge over a number of iterations in Figure
+\ref{fig:convergence1}. The first two policies correspond to actions taken in
+the set of demonstrations $\mathcal{D}$, so we would expect to see their
+probabilities converge to values above $0.5$. Note that due to the stochastic
+nature of our MDP model, we do not expect to see any probability reach exactly
+$1$. The third policy, however, has no relevant data in $\mathcal{D}$, so the
+maximum causal entropy framework would put the probability at around $0.5$.
+
+As we ran the algorithm with two stopping conditions---$300$ iterations and the
+$\ell_1$-norm of the change in parameter values being below $0.01$---note that
+the algorithm terminated early in Scenario~2 but not in Scenario~1, although
+there is clear convergence in both cases. An important difference is that
+$\pi(a_1 \mid s_1)$ and $\pi(a_2 \mid s_3)$ converge closer and closer to $1$
+with the slightly-restricted model of Scenario~1, but stabilise at $0.6$ in
+Scenario~2 due to an important part of the model being completely fixed. In both
+cases, $\pi(a_1 \mid s_2)$ converges to $0.5$ as expected.
+
+Figure \ref{fig:convergence2} shows how the parameters of the model converge in
+both scenarios. The algorithm seems to converge fine in Scenario~2, but most of
+the parameters fail to stabilise in Scenario~1. Most importantly, the diagonal
+values of the $\mathbf{B}$ matrix diverge to positive infinity, leading to higher
+variance in ELBO estimates seen in Figure \ref{fig:convergence1}. The
+non-diagonal values, however, converge just fine. Both $\lambda_0$ and
+$\lambda_1$ also diverge to positive infinity, while the elements of $\bm\mu$
+diverge, but in `the right' direction: as $\mu_2$ increases while $\mu_1$ and
+$\mu_3$ decrease, the policies in Figure \ref{fig:convergence1} converge to
+their optimal values.
+
+This leaves us with two models: one that converges to reasonable-but-suboptimal
+values, and one that diverges to infinite variance but also provides correct
+policies.
+
+\section{Related Work}
+% TODO: comprehensive literature survey
 
 \section{Conclusions}
+% TODO: write
 
+Reasonable results in convergence.
 More variables/information. Fewer assumptions.
 
 We show how to avoid the deterministic training conditional assumption.
 
-\subsection{Future Work}
+\subsection{Further Work}
 
 An interesting extension to our work would be to consider IRL in the context
 of a reinforcement learning (RL) agent. Suppose we have an agent whose purpose
