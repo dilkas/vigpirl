@@ -73,47 +73,87 @@
   We prove the validity of performing variational inference on the Gaussian
   process-based inverse reinforcement learning model that preserves and
   approximates the full joint probability distribution of rewards across states
-  of the Markov decision process.
+  of the Markov decision process.%TODO: finish this.
+  According to Simon Peyton Jones, an abstract should address
+  four key questions. First, what is the problem that this
+  paper tackles? Second, why is this an interesting problem?
+  Third, what is the solution this paper proposes?
+  Finally, why is the proposed solution a good one?
 \end{abstract}
 
 \section{Introduction} % first page
-% TODO: rewrite and make it good
 % 1. Problem (with examples, intuitive)
 % 2. Its importance/relevance/motivation
 % 3. My idea
 % 4. List of contributions
 % Forward-reference which section deals with what
 
-Inverse reinforcement learning (IRL)---a problem proposed by Russell in
-1998 \cite{DBLP:conf/colt/Russell98}---asks us to find a reward function for a
-Markov decision process (MDP) that best explains a set of given demonstrations.
-IRL is important because reward functions can be hard to define manually
-\cite{DBLP:conf/icml/PieterN04,DBLP:journals/corr/abs-1806-06877}, and rewards
-are not entirely specific to a given environment, allowing one to reuse the same
-reward structure in previously unseen environments
+Imagine using a machine learning (ML) algorithm to teach a robot how to move
+around people so that it learns to predict where people are going and adjust its
+path accordingly. The ML algorithm would use data about various possible
+situations. But do we have enough data to ensure reasonably optimal behaviour?
+Perhaps the robot behaves well in most situations, but fails in less common
+scenarios. Can the ML model itself describe its weaknesses so that we could
+ensure it is exposed to sufficiently many uncommon or difficult situations?
+
+This learning problem
+\cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16} as well as
+many others have benefited from an approach called \emph{inverse reinforcement
+  learning} (IRL) (also known as inverse optimal control). IRL proposes a way to
+learn behaviour from \emph{demonstrations} that typically come from human
+actions. More formally, the IRL problem asks us to find a reward function for a
+Markov decision process (MDP), where demonstrations are encoded as sets of
+state-action pairs.
+
+IRL is an important problem because adjusting the reward function by hand is
+often unwieldy, since human behaviour often depends on many factors in
+complicated ways
+\cite{DBLP:conf/icml/PieterN04,DBLP:journals/corr/abs-1806-06877}. Moreover,
+learning the reward function rather than the policy itself makes the model more
+transferable to new environments---a minor change in the environment can
+reorganise the whole policy but only have a local effect in the reward structure
 \cite{DBLP:journals/corr/abs-1806-06877,DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}.
-Moreover, IRL has seen a wide array of applications in autonomous vehicle
-control \cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16} and
-learning to predict another agent's behaviour
-\cite{DBLP:journals/ai/BogertD18,DBLP:conf/aaai/VogelRGR12,ziebart2008maximum,DBLP:conf/huc/ZiebartMDB08,DBLP:conf/iros/ZiebartRGMPBHDS09}.
-Most approaches in the literature make a convenient yet unjustified assumption
-that the reward function can be expressed as a linear combination of features.
-One proven way to abandon this assumption is by representing the reward function
-as a Gaussian process (GP)
-\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11,DBLP:journals/corr/abs-1208-2112}.
-The original approach used maximum likelihood estimation
-\cite{DBLP:conf/nips/LevinePK11}, whereas we use variational inference (VI)
-instead, which learns approximate posterior probability distributions instead of
-point estimates. This approach can prove useful in three major ways:
+IRL has been used to teach helicopters how to perform tricks
+\cite{DBLP:conf/nips/AbbeelCQN06}, predict taxi destinations
+\cite{DBLP:conf/huc/ZiebartMDB08}, and make driving safer and more efficient by
+predicting pedestrian movement \cite{DBLP:conf/iros/ZiebartRGMPBHDS09} and the
+driver's intentions \cite{DBLP:conf/aaai/VogelRGR12}.
+
+% TODO: need to rewrite the first sentence
+However, most IRL models in the literature make a convenient yet unjustified
+assumption that the reward function can be expressed as a linear combination of
+features
+\cite{DBLP:conf/icml/PieterN04,DBLP:conf/uai/NeuS07,DBLP:conf/icml/NgR00,ziebart2008maximum}.
+This assumption makes the models unable to represent many reward structures. Out
+of the non-linear models proposed to date, none can answer the questions posed
+in the first paragraph. Quite often, the models assume that rewards have no
+variance \cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}. In this paper,
+we show how that assumption can be lifted by switching from maximum likelihood
+estimation to \emph{variational inference} (VI), i.e., we approximate the
+posterior distribution of the model by optimising the parameters of a simpler
+distribution to make it similar to the posterior. This approach can prove useful
+in four major ways:
 \begin{enumerate}
-\item Modelling full posterior distributions for various parameters can result
-  in more precise reward predictions, as the model simply holds more
-  information.
-\item Having variance estimates for rewards can direct our choice in what data
-  should be collected next.
-\item An approximate Bayesian treatment of many parameters in the model guards
-  against overfitting \cite{DBLP:conf/uai/JinDAS17}.
+\item By working with full distributions instead of point estimates, we can
+  expect more precise reward predictions.
+\item Variance estimates can be used to guide what data should be collected
+  next, i.e., if the rewards of some states have abnormally high variance, we
+  might want to expose the model to more data visiting those and surrounding
+  states.
+\item Variances estimates can also be used to judge whether we can trust the
+  predictions of the model or, perhaps, the model could benefit from some
+  adjustments or more data.
+\item By adopting a more Bayesian approach, we automatically incorporate Occam's
+  razor into the model that guards against overfitting
+  \cite{DBLP:conf/uai/JinDAS17}.
 \end{enumerate}
+
+Our main contribution is a lengthy proof in Section \ref{sec:proof} that shows
+how VI can be applied to the maximum-entropy IRL model with Gaussian processes
+(GPs) proposed by Levine et al. \cite{DBLP:conf/nips/LevinePK11}. We describe
+how we adapt the model and set up the VI problem in Section \ref{sec:model}.
+Finally, in Section \ref{sec:evaluation} we examine the convergence properties
+of our model and its ability to deduce optimal policies in practice.
 
 \section{The Problem}
 
@@ -326,7 +366,7 @@ convergence theorem in order to justify the validity of our approach.
   \]
 \end{theorem}
 
-\section{The Model}
+\section{The Model} \label{sec:model}
 
 % TODO: make this fit the narrative
 For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
@@ -512,7 +552,7 @@ where
   \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
 \]
 
-\section{Theoretical Justification}
+\section{Theoretical Justification} \label{sec:proof}
 
 \begin{figure}
   \centering
@@ -553,16 +593,16 @@ complicates the situation. The goal of this section is to show how Theorem
 anyway\footnote{This technique is inspired by black box VI
   \cite{DBLP:conf/aistats/RanganathGB14}, but takes a more detailed look at the
   problem and requires significantly more work to prove correctness.}. After
-showing that the theorem applies to our situation, we can express
-$\nabla\mathbb{E}[v]$ as
+showing that the theorem applies to our situation, we can estimate
+$\nabla\mathbb{E}[v]$ with
 \begin{align*}
   \nabla\mathbb{E}[v] &= \nabla \iint q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})\dx \\
                       &= \iint \nabla[v q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})]\dx \\
                       &= \iint \frac{\nabla[v q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})]}{q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})} q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})\dx \\
-                      &\approx \frac{1}{S} \sum_{s=1}^S \frac{\nabla[v q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})]}{q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})},
+                      &\approx \frac{1}{S} \sum_{s=1}^S \frac{\nabla[v q(\mathbf{r}_s \mid \mathbf{u}_s)q(\mathbf{u}_s)]}{q(\mathbf{r}_s \mid \mathbf{u}_s)q(\mathbf{u}_s)},
 \end{align*}
-which can be computed by drawing $S$ Monte Carlo samples $(\mathbf{u}_s,
-\mathbf{r}_s) \sim \approximation$.
+which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
+\mathbf{r}_s)\}_{s=1}^S$ from $\approximation$.
 
 Our main goal is Theorem \ref{thm:main}, which allows us to move differentiation
 inside the integral. In order to prove it, we use a number of intermediate
@@ -1175,7 +1215,8 @@ by Chen \cite{lecture_notes}.
   \eqref{eq:remaining_integral} as well.
 \end{proof}
 
-\section{Evaluation} % showing deep understanding
+\section{Evaluation} \label{sec:evaluation}
+% showing deep understanding
 
 In order to fully understand the model's behaviour, we focus on a three-state
 MDP where the agent can deterministically move from any state to any other
@@ -1306,6 +1347,9 @@ policies.
 \section{Related Work} % 0.5-1 page
 % TODO: rewrite and make this section smaller
 
+% apprenticeship learning, imitation learning
+%a problem proposed by Russell in 1998 \cite{DBLP:conf/colt/Russell98}
+
 As mentioned in the introduction, most IRL algorithms assume that the reward
 function can be represented as a linear combination of features. This assumption
 originated in one of the earliest papers on the topic by Ng and Russell
@@ -1376,8 +1420,6 @@ a short overview of various assumptions that have been used in approximating
 \emph{sparse} GPs (i.e., GPs that use inducing points), following on a paper by
 Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
 
-Table ?? further summarises some of the recent and/or
-influential GP approximation approaches that might be relevant to our situation.
 For many of the variables in our model (including the inducing points and the
 hyperparameters of the covariance function), we have three possible ways of
 handling them:
@@ -1449,6 +1491,8 @@ and ideas from various papers can (and will) be used throughout the project.
 \section{Conclusions}
 % TODO: write
 
+% Show how we achieved our claimed contributions
+
 Reasonable results in convergence.
 More variables/information. Fewer assumptions.
 
@@ -1457,6 +1501,8 @@ We show how to avoid the deterministic training conditional assumption.
 %Why doesn't it work? Perhaps a stupid bug.
 
 \subsection{Further Work}
+% How much does a reward have to change to change the policy? Could be an
+% interesting use case for variance predictions.
 
 An interesting extension to our work would be to consider IRL in the context
 of a reinforcement learning (RL) agent. Suppose we have an agent whose purpose
