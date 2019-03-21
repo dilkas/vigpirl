@@ -108,11 +108,11 @@ state-action pairs.
 IRL is an important problem because adjusting the reward function by hand is
 often unwieldy, since human behaviour often depends on many factors in
 complicated ways
-\cite{DBLP:conf/icml/PieterN04,DBLP:journals/corr/abs-1806-06877}. Moreover,
+\cite{DBLP:conf/icml/PieterN04}. Moreover,
 learning the reward function rather than the policy itself makes the model more
 transferable to new environments---a minor change in the environment can
 reorganise the whole policy but only have a local effect in the reward structure
-\cite{DBLP:journals/corr/abs-1806-06877,DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}.
+\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}.
 IRL has been used to teach helicopters how to perform tricks
 \cite{DBLP:conf/nips/AbbeelCQN06}, predict taxi destinations
 \cite{DBLP:conf/huc/ZiebartMDB08}, and make driving safer and more efficient by
@@ -123,7 +123,7 @@ driver's intentions \cite{DBLP:conf/aaai/VogelRGR12}.
 However, most IRL models in the literature make a convenient yet unjustified
 assumption that the reward function can be expressed as a linear combination of
 features
-\cite{DBLP:conf/icml/PieterN04,DBLP:conf/uai/NeuS07,DBLP:conf/icml/NgR00,ziebart2008maximum}.
+\cite{DBLP:conf/icml/PieterN04,DBLP:conf/icml/NgR00,ziebart2008maximum}.
 This assumption makes the models unable to represent many reward structures. Out
 of the non-linear models proposed to date, none can answer the questions posed
 in the first paragraph. Quite often, the models assume that rewards have no
@@ -383,7 +383,7 @@ the Lebesgue definition of integration.
 
 We keep the covariance function the same as in the work by Levine et al.
 \cite{DBLP:conf/nips/LevinePK11}, which is a version of the automatic relevance
-detection kernel \cite{DBLP:conf/nips/LevinePK11,neal2012bayesian}:
+detection kernel \cite{DBLP:conf/nips/LevinePK11}:
 \begin{align*}
   k(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left( \vphantom{\frac{1}{2}} \right. &-\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i - \mathbf{x}_j) \\
                                                                                      &- \mathbbm{1}[i \ne j]\sigma^2\tr(\bm\Lambda) \left. \vphantom{\frac{1}{2}} \right).
@@ -424,13 +424,12 @@ guard against overfitting. For now, $\bm\lambda$ will have to be treated as a
 variational parameter.
 
 It remains to decide on the model for $\mathbf{u}$ and $\mathbf{r}$. As is
-commonly done when applying VI to GPs, we set
+commonly done when applying VI to GPs \cite{DBLP:conf/nips/ChengB17}, we set
 \begin{equation} \label{eq:approximation}
   \approximation = q(\mathbf{u}) q(\mathbf{r} \mid \mathbf{u}),
 \end{equation}
 where $q(\mathbf{r} \mid \mathbf{u}) = p(\mathbf{r} \mid \mathbf{u})$ and
 $q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \bm\mu, \bm\Sigma)$
-\cite{DBLP:conf/nips/ChengB17}.
 
 Ong et al. \cite{ong2018gaussian} have recently suggested that, in order to make
 variational approximation of a multivariate Gaussian more scalable, the
@@ -569,6 +568,7 @@ where
     \node [rectangle, draw] (theorem) at (0, -2) {\textsc{Theorem \ref{thm:main}}};
 
     \draw [->] (perturbation) edge (lemma3);
+    \draw [->] (perturbation) edge (lemma1);
     \draw [->] (lebesgue) edge (theorem);
     \draw [->] (derivatives) edge (lemma1);
     \draw [->] (derivatives) edge (lemma2);
@@ -1099,7 +1099,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
 \end{proof}
 
 Our main theorem is a specialised version of an integral differentiation result
-by Chen \cite{lecture_notes}.
+by Timoney \cite{lecture_notes}.
 \begin{theorem} \label{thm:main}
   Whenever the derivative exists,
   \[
@@ -1345,148 +1345,67 @@ values, and one that diverges to infinite variance but also provides correct
 policies.
 
 \section{Related Work} % 0.5-1 page
-% TODO: rewrite and make this section smaller
 
-% apprenticeship learning, imitation learning
-%a problem proposed by Russell in 1998 \cite{DBLP:conf/colt/Russell98}
+The IRL problem itself was originally proposed by Russell in 1998
+\cite{DBLP:conf/colt/Russell98}. Most of the early approaches had the
+aforementioned reward linearity assumption. One of the first papers on the
+subject by Ng and Russell \cite{DBLP:conf/icml/NgR00} introduced several linear
+programming algorithms and identified an important issue: there are typically
+many reward functions that can explain the data equally well. This problem was
+solved by Ziebart et al. \cite{ziebart2008maximum} with the introduction of IRL
+based on the principles of maximum causal entropy in a linearly-solvable MDP.
 
-As mentioned in the introduction, most IRL algorithms assume that the reward
-function can be represented as a linear combination of features. This assumption
-originated in one of the earliest papers on the topic by Ng and Russell
-\cite{DBLP:conf/icml/NgR00}, which introduced several linear programming
-approaches to the problem. The authors also noticed that often
-multiple reward functions can explain the same behaviour, and suggested
-heuristics for reward functions that are `far away' from reward functions that
-do not fit the data.
+Levine et al. \cite{DBLP:conf/nips/LevinePK11} were the first to lift the
+linearity assumption without imposing additional restrictions on the problem.
+They do, however, model rewards as having no variance---our work removes this
+restriction without any compromises.
 
-A few years later, Abbeel and Ng \cite{DBLP:conf/icml/PieterN04} developed an
-algorithm for the same formulation of the problem with a guarantee to converge
-quickly. Neu and Szepesv\'ari \cite{DBLP:conf/uai/NeuS07} identified a weakness
-in Abbeel and Ng's approach: the algorithm requires features to be
-`appropriately' scaled, and optimal scaling may not be known. Instead, they
-suggest a way to combine IRL with \emph{apprenticeship learning}, i.e., a
-supervised learning task for optimal \emph{policy} recovery (whereas IRL focuses
-on recovering the reward function).
+Recently, Jin et al. \cite{DBLP:conf/uai/JinDAS17} have adapted the model
+proposed by Levine et al. \cite{DBLP:conf/nips/LevinePK11} to use deep GPs,
+harnessing the power of deep learning to make the model less dependent on what
+features are provided. Although they use VI, their approximating distribution
+for rewards at inducing points is simply the Dirac $\delta$ function, which is
+essentially equivalent to the assumption of no variance.
 
-Ramachandran and Amir \cite{DBLP:conf/ijcai/RamachandranA07} were the first to
-formulate IRL in terms of Bayesian learning. While the model is easily
-interpretable and able to handle experts that make mistakes, the algorithm can
-only handle small state spaces and requires Monte Carlo Markov Chain (MCMC)
-sampling for inference.
-
-Ziebart et al. \cite{ziebart2008maximum} keep the linearity assumption, but
-introduce an influential idea: resolving the ambiguity when multiple reward
-functions explain the data by appealing to the maximum entropy principle.
-
-Choi and Kim \cite{DBLP:conf/ijcai/ChoiK13} extend the Bayesian model to learn
-good features as well as the reward function, trying to overcome the limitation
-of linearity. However, the approach is quite limiting: all features are assumed
-to have Boolean values, and the algorithm simply learns their conjunctions.
-
-Levine et al. \cite{DBLP:conf/nips/LevinePK11} are the first to suggest a way to
-learn nonlinear reward functions without harsh restrictions on the problem
-domain by using GPs. We base our work primarily on their paper, and the
-weaknesses we hope to address have already been covered in the previous section.
-A recent extension to their work by Jin et al. \cite{DBLP:conf/uai/JinDAS17}
-aims to harness the power of deep learning by using several layers of GPs,
-making the model less dependent on being provided good features. They also use
-VI, but with a few simplifying assumptions: deterministic training conditional
-for the reward vector, and fully independent training conditional for the latent
-state.
-
-Finally, instead of using GPs to model nonlinear reward functions, one can use a
-neural network (NN), as demonstrated by Wulfmeier et al.
-\cite{wulfmeier2015maximum}. Their approach benefits from constant time
-inference and the ability to learn complex features either from already-given
-features or even from raw data. The only disadvantage (as demonstrated in the
-paper) is that NNs converge slower than GPs (as measured by the number of
-demonstrations).
+An alternative to GPs for modelling nonlinear functions is, of course, neural
+networks. Wulfmeier et al. \cite{wulfmeier2015maximum} have shown how they can
+be used in the IRL setting. While this approach benefits from constant-time
+inference and the ability to learn complex features from data, neural
+networks often need significantly more data for the weights across all layers to
+stabilise.
 
 \subsection{Variational Inference}
+% none of these approaches really work in our situation because they tend to
+% depend on properties of how GPs are used in regression that are no longer true
+% in IRL
 
-Variational inference has seen a recent increase in interest among academics,
-with different approaches focusing on different goals: better time complexity,
-handling a wider variety of models, making approximations more accurate, and
-using more complex function approximation techniques (such as NNs)
-to infer local latent variable values without having to calculate them
-individually for each data point \cite{DBLP:journals/corr/abs-1711-05597}. As
-our IRL model is based on a GP, we will begin by reviewing some of the VI
-approaches applied specifically to GP regression. Based on a recent review of
-scalable GPs \cite{DBLP:journals/corr/abs-1711-05597}, we will concentrate on
-\emph{stochastic variational sparse approximations}, as they have achieved
-modelling accuracy close to that of the full GP with no approximations, with
-many methods providing a time complexity of $\mathcal{O}(m^3)$. Below we provide
-a short overview of various assumptions that have been used in approximating
-\emph{sparse} GPs (i.e., GPs that use inducing points), following on a paper by
-Qui\~{n}onero-Candela and Rasmussen \cite{DBLP:journals/jmlr/CandelaR05}.
+Since the focus of our work was on proving feasibility rather than ensuring
+performance, we simply used a combination of Gaussians for our variational
+approximation. However, while VI was initially focused on approximating
+distributions using simplistic models where all variables are independent
+\cite{blei2017variational}, the last few years have brought many advances in
+approximating more complex distributions and greatly reducing the computational
+complexity of the task. Adapting some of them to IRL is a nontrivial but highly
+valuable undertaking.
 
-For many of the variables in our model (including the inducing points and the
-hyperparameters of the covariance function), we have three possible ways of
-handling them:
-\begin{itemize}
-\item Provide a full Bayesian treatment by defining a prior probability
-  distribution. While this option can easily prevent overfitting, the choice of
-  prior can be difficult to justify.
-\item Fix the value of the variable. We can then optimise the value outside of
-  the main algorithm, e.g., by running the algorithm with a set of possible
-  values and keeping the value that produces the best performance. This option
-  can be slow if we are interested in finding the optimal value, but could be
-  appropriate if the variable has little impact on the algorithm's performance.
-\item Treat the variable as a variational parameter. This method will
-  efficiently optimise the value of the variable, but is vulnerable to
-  overfitting. Furthermore, this requires us to find the derivative of the ELBO
-  w.r.t. the variable, which could be difficult.
-\end{itemize}
+For approximating complex distributions, Rezende and Mohamed
+\cite{DBLP:conf/icml/RezendeM15} suggest using \emph{normalising flows}, i.e., a
+collection of invertible functions---parametrised by additional variational
+parameters---that are applied to latent variables. A major challenge in applying
+their work to IRL is related to variational parameters being used to compute the
+MDP value function, i.e., how can we take the derivative of the value function
+with respect to such a variational parameter? Alternatively, perhaps one can
+construct a different model that would make this question moot.
 
-Titsias \cite{DBLP:journals/jmlr/Titsias09} is the first to suggest a
-variational approximation where inducing points are treated as variational
-parameters. The paper has influenced many of the later works covered in this
-section, and has been reformulated by Gal et al. \cite{DBLP:conf/nips/GalWR14}
-into a distributed algorithm. We will fix the inducing points for the baseline
-version of our algorithm, but keep the idea in mind for possible future work.
-
-Hensman et al. \cite{DBLP:conf/uai/HensmanFL13} reduce the complexity from
-$\mathcal{O}(nm^2)$ to $\mathcal{O}(m^3)$ using a stochastic variational
-inference (SVI) approach. While results such as efficiently computable natural
-gradients and analytically tractable optimal solutions for variational
-parameters are unlikely to transfer to a different problem domain, the overall
-SVI framework and an approximating Gaussian distribution for $\mathbf{u}$ will
-play an important role in our proposal.
-
-Cheng and Boots \cite{DBLP:conf/nips/ChengB17} suggest using different bases in
-the reproducing kernel Hilbert space for the mean and covariance functions.
-The paper makes few assumptions and mostly relies on the work of
-Titsias \cite{DBLP:journals/jmlr/Titsias09}, making it seem transferable to a
-new domain. However, applying the idea to IRL is likely to be beyond the scope
-of the project.
-
-The variational Fourier features (VFF) algorithm by Hensman et al.
-\cite{DBLP:journals/jmlr/HensmanDS17} is only defined for Mat\'ern kernels,
-which is likely to be too restrictive for our situation (the original paper on
-using GPs for IRL \cite{DBLP:conf/nips/LevinePK11} used the automatic relevance
-detection kernel that has weights controlling how important each feature is).
-While extending VFF to support a flexible class of kernels defined by Wilson and
-Adams \cite{pmlr-v28-wilson13} is an interesting and promising avenue of work,
-it is likely to be beyond the scope of this project as well.
-
-While Peng et al. \cite{DBLP:conf/icml/PengZZQ17} provide a highly efficient
-distributed implementation, the derivation of the ELBO relies primarily on the
-fact that the evidence for a GP is a Gaussian, while in our case the evidence is
-anything but. Hence, it is unlikely that the ideas from this paper could be
-applicable to our IRL model.
-
-Finally, since we expect $\posterior$ to be highly irregular, we would like our
-approximation to be capable of representing a wide range of possible probability
-distributions. The primary way of representing complex posteriors in VI is by
-using \emph{normalising flows}, i.e., a collection of invertible
-functions---parametrised by additional variational parameters---that are applied
-to latent variables \cite{DBLP:conf/icml/RezendeM15}. Normalising flows, along
-with some of the ideas mentioned previously, could provide great benefits to the
-GP IRL VI model. However, we are forced to keep any non-essential features as
-possible future work in order to make the project feasible in a given time
-frame. Furthermore, note that due to various differences between regression and
-IRL, we cannot simply apply a GP VI model as a whole. Instead, smaller tricks
-and ideas from various papers can (and will) be used throughout the project.
+Another approach to flexibility in modelling could come from considering
+different GP kernels. For instance, Wilson and Adams \cite{pmlr-v28-wilson13}
+show how all \emph{stationary} (i.e., invariant to translations) kernels can be
+generated (or at least approximated) from a mixture of Gaussians in their
+spectral representation using Bochner's theorem
+\cite{bochner1959lectures,DBLP:journals/technometrics/Woodard00}. It looks
+promising to combine these kernels with the variational Fourier features
+approach by Hensman et al. \cite{DBLP:journals/jmlr/HensmanDS17} that leverages
+the same spectral representations for efficient VI.
 
 \section{Conclusions}
 % TODO: write
@@ -1501,8 +1420,6 @@ We show how to avoid the deterministic training conditional assumption.
 %Why doesn't it work? Perhaps a stupid bug.
 
 \subsection{Further Work}
-% How much does a reward have to change to change the policy? Could be an
-% interesting use case for variance predictions.
 
 An interesting extension to our work would be to consider IRL in the context
 of a reinforcement learning (RL) agent. Suppose we have an agent whose purpose
@@ -1525,6 +1442,13 @@ reduce or eliminate this performance bottleneck:
   simple way to do this would be by initialising the current values to the
   optimal values of the previous MDP value function computation.
 \end{itemize}
+
+Finally, building on the idea that variance estimates can be used to judge
+whether the model has learned optimal policy, an interesting question for
+MDP (or, perhaps, dynamical systems) research would be: how much does a reward
+have to change in order to affect the deterministic policy? A simple answer to
+this question would allow us to use variance estimates in order to quantify the
+model's confidence regarding optimal behaviour.
 
 %\vskip8pt \noindent
 %{\bf Acknowledgments.}
