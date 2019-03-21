@@ -70,15 +70,21 @@
 \maketitle
 
 \begin{abstract}
-  We prove the validity of performing variational inference on the Gaussian
-  process-based inverse reinforcement learning model that preserves and
-  approximates the full joint probability distribution of rewards across states
-  of the Markov decision process.%TODO: finish this.
-  According to Simon Peyton Jones, an abstract should address
-  four key questions. First, what is the problem that this
-  paper tackles? Second, why is this an interesting problem?
-  Third, what is the solution this paper proposes?
-  Finally, why is the proposed solution a good one?
+  The inverse reinforcement learning (IRL) problem asks us to find a reward
+  function of a Markov decision process that explains observed behaviour. Many
+  approaches are only able to construct reward functions as linear combinations
+  of state features. Out of those that can handle nonlinearity, none can provide
+  a full posterior distribution of rewards. Providing variance estimates for
+  rewards would allow one to judge how well the model has learned its policy and
+  discover any weak spots the model may have. We show how to perform variational
+  inference (VI) on a Gaussian process-based IRL model in order to approximate
+  the posterior distribution of rewards. We prove the correctness of the
+  approach and demonstrate the model's behaviour in practice. Being able to
+  provide full posterior probability distributions in IRL unlocks many new
+  research frontiers ranging from integrating recent developments in VI to make
+  the models more efficient and flexible, to developing complex reinforcement
+  learning agents that can explicitly search for opportunities to fix their
+  weaknesses.
 \end{abstract}
 
 \section{Introduction} % first page
