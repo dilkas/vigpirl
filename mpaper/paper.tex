@@ -163,13 +163,16 @@ of our model and its ability to deduce optimal policies in practice.
 
 \section{The Problem}
 
+In this section, we introduce definitions and mathematical details relevant to
+the problem. We begin by formally defining what the problem is.
+
 \begin{definition}[MDP]
   A \emph{Markov decision process} is a set $\mathcal{M} = \{ \mathcal{S},
   \mathcal{A}, \mathcal{T}, \gamma, \mathbf{r} \}$, where $\mathcal{S}$ and
   $\mathcal{A}$ are sets of states and actions, respectively; $\mathcal{T} :
   \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to [0, 1]$ is a function
-  defined so that $\mathcal{T}(s, a, s')$ is the probability of moving to state $s'$
-  after taking action $a$ in state $s$; $\gamma \in [0, 1)$ is the discount
+  defined so that $\mathcal{T}(s, a, s')$ is the probability of moving to state
+  $s'$ after taking action $a$ in state $s$; $\gamma \in [0, 1)$ is the discount
   factor; and $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ is the reward
   vector\footnote{Depending on the situation, we will sometimes represent
     rewards as a function $r : \mathcal{S} \to \mathbb{R}$.}.
@@ -188,13 +191,14 @@ of our model and its ability to deduce optimal policies in practice.
   \]
 \end{definition}
 
-The optimal \emph{policy} $\pi : \mathcal{S} \to \mathcal{A}$ (i.e., a choice of
-actions for each state that maximises reward over time) is usually constructed
-by defining a \emph{value (utility) function} $\V : \mathcal{S} \to \mathbb{R}$
-that measures how good a state is based on the reward $\mathbf{r}$ as well as
-the structure of the MDP. One can then find $\V$ by applying the Bellman backup
-operator until convergence to every $s \in \mathcal{S}$ (the technique is known
-as \emph{value iteration}) \cite{DBLP:books/daglib/0023820}:
+The optimal (deterministic) \emph{policy} $\pi : \mathcal{S} \to \mathcal{A}$
+(i.e., a choice of actions for each state that maximises reward over time) is
+usually constructed by defining a \emph{value (utility) function} $\V :
+\mathcal{S} \to \mathbb{R}$ that measures how good a state is based on the
+reward $\mathbf{r}$ as well as the structure of the MDP. One can then find $\V$
+by applying the Bellman backup operator until convergence to every $s \in
+\mathcal{S}$ (the technique is known as \emph{value iteration})
+\cite{DBLP:books/daglib/0023820}:
 \[
   V_{\mathbf{r}}(s) \coloneqq r(s) + \gamma \max_{a \in \mathcal{A}} \sum_{s' \in
     \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s').
@@ -202,10 +206,10 @@ as \emph{value iteration}) \cite{DBLP:books/daglib/0023820}:
 
 However, we follow previous work on GP IRL
 \cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}, and use a
-\emph{linearly solvable} (or \emph{maximum causal entropy}) MDP with stochastic
-policy that define probability distributions over actions (instead of
-suggesting a single action for each state) \cite{ziebart2008maximum}. This type
-of MDP can be solved by applying the 'soft' version of the operator
+\emph{linearly solvable} (or \emph{maximum causal entropy}) MDP with a
+stochastic policy that defines probability distributions over actions (instead
+of suggesting a single action for each state) \cite{ziebart2008maximum}. This
+type of MDP can be solved by applying the `soft' version of the operator
 \cite{DBLP:conf/nips/LevinePK11,supplementary_material}:
 \begin{equation} \label{eq:update_rule}
   \V(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s'
@@ -213,40 +217,35 @@ of MDP can be solved by applying the 'soft' version of the operator
 \end{equation}
 With this model, we can express the likelihood as
 \cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}
-\begin{equation} \label{pDr}
-  \begin{split}
-    p(\mathcal{D} \mid \mathbf{r}) &= \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} \mid s_{i,t}) \\
-    &= \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_{\mathbf{r}}(s_{i,t}, a_{i,t}) - \V(s_{i,t}) \right),
-  \end{split}
-\end{equation}
+\begin{align*}
+  p(\mathcal{D} \mid \mathbf{r}) &= \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} \mid s_{i,t}) \\
+                                 &= \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_{\mathbf{r}}(s_{i,t}, a_{i,t}) - \V(s_{i,t}) \right),
+\end{align*}
 where
 \[
   Q_{\mathbf{r}}(s, a) = r(s) + \gamma\sum_{s' \in \mathcal{S}}
   \mathcal{T}(s, a, s')\V(s').
 \]
 
-However, a reward function learned by maximising this likelihood is not
-transferable to new situations
-\cite{DBLP:conf/uai/JinDAS17,DBLP:conf/nips/LevinePK11}. One needs to model the
-reward structure in a way that would allow reward predictions for previously
-unseen states.
+% TODO: rewrite the 'we write' sentence and the sentence before that
+As we want learned rewards to generalise to previously unseen states and
+for states to have a notion of similarity, the IRL definition also includes $d$
+features associated with each state. In this paper, we will focus on modelling
+rewards as a function from feature space to $\mathbb{R}$ using a \emph{Gaussian
+  process}. A GP is defined as a collection of random variables, any finite
+number of which has a joint Gaussian distribution
+\cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0, k)$ to say
+that $r$ is a GP with mean $0$ and covariance function $k$. \emph{Covariance
+  functions} (also known as \emph{kernels}) take two state feature vectors as
+input and quantify how similar the two states are, in a sense that we would
+expect high covariance scores to be associated with similar rewards.
 
-One way to model rewards without assumptions of linearity is with a
-\emph{Gaussian process} (GP). A GP is a collection of random variables, any
-finite combination of which has a joint Gaussian distribution
-\cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0,
-k)$ to say that $r$ is a GP with mean $0$ and covariance function
-$k$. \emph{Covariance functions} (also known as \emph{kernels}) take two state
-feature vectors as input and quantify how similar the two states are, in a sense
-that we would expect them to have similar rewards.
-
-As training a GP with $n$ data points has a time complexity of
-$\mathcal{O}(n^3)$ \cite{DBLP:books/lib/RasmussenW06}, numerous approximation
-methods have been suggested, many of which select a subset of data called
-\emph{inducing points} and focus most of the training effort on them
-\cite{DBLP:journals/corr/abs-1807-01065}. Let $\mathbf{X_u}$ be the matrix of
-features at inducing states, $\mathbf{u}$ the rewards at those states. Then the
-full joint probability distribution can be factorised as
+A common way to scale GPs to larger data sets is by selecting $m$ points in the
+feature space--called \emph{inducing points}---and focus most of the training
+effort on them \cite{DBLP:journals/corr/abs-1807-01065}. Let $\mathbf{X_u}$ be
+the $m \times d$ matrix of features at inducing points, and let $\mathbf{u}$ be
+the rewards at those states. Then the full joint probability distribution can be
+factorised as
 \begin{equation} \label{eq:full}
   \pfull = p(\mathbf{u}) \times p(\mathbf{r} \mid \mathbf{u}) \times
   p(\mathcal{D} \mid \mathbf{r}),
@@ -257,47 +256,36 @@ where
                 &= \frac{1}{(2\pi)^{m/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} \right) \\
                 &= \exp\left(-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right)
 \end{align*}
-is the GP prior \cite{DBLP:books/lib/RasmussenW06}, and $m \in \mathbb{N}$ is
-the number of inducing points. The GP posterior is then a multivariate Gaussian
-\cite{DBLP:conf/nips/LevinePK11}
+is the GP prior \cite{DBLP:books/lib/RasmussenW06}. The GP posterior is then a
+multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11} defined as
 \begin{equation} \label{eq:r}
   p(\mathbf{r} \mid \mathbf{u}) =
-  \mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal\Kuu^{-1}\Kru),
+  \mathcal{N}(\mathbf{r}; \Kru^\intercal\Kuu^{-1}\mathbf{u}, \Krr - \Kru^\intercal\Kuu^{-1}\Kru).
 \end{equation}
-and $p(\mathcal{D} \mid \mathbf{r})$ is as in \eqref{pDr}. The matrices such as
-$\Kru$ are called \emph{covariance matrices} and are defined as
+The matrices such as
+$\Kru$ are called \emph{covariance matrices} (also \emph{kernel matrices} and
+\emph{Gram matrices}) and are defined as
 $[\Kru]_{i,j} = k(\mathbf{x}_{\mathbf{r},i},
 \mathbf{x}_{\mathbf{u},j})$, where $\mathbf{x}_{\mathbf{r},i}$ and
 $\mathbf{x}_{\mathbf{u},j}$ denote feature vectors for the $i$th state in
-$\mathcal{S}$ and the $j$th state in $\mathbf{X_u}$, respectively
+$\mathcal{S}$ and the $j$th inducing point, respectively
 \cite{DBLP:conf/uai/JinDAS17}.
 
-Given this model, data $\mathcal{D}$, and inducing feature matrix
-$\mathbf{X_u}$, our goal is then to find optimal values of parameters
-$\bm\lambda$, inducing rewards $\mathbf{u}$, and the rewards for all relevant
-states $\mathbf{r}$. While the previous paper to consider this IRL model
-computed maximum likelihood (ML) estimates for $\bm\lambda$ and $\mathbf{u}$,
-and made an assumption that $\mathbf{r}$ in \eqref{eq:r} has zero variance
-\cite{DBLP:conf/nips/LevinePK11}, we aim to avoid this assumption and use
-VI to approximate the full posterior distribution $\posterior$.
-\emph{Variational inference} is an approximation technique for probability
-densities \cite{blei2017variational}. Let $\approximation$ be our approximating
-family of probability distributions for $\posterior$. Then the job of VI is to
-optimise the parameters of the approximating distribution in order to minimise
-the \emph{Kullback-Leibler} (KL) divergence between the original probability
-distribution and our approximation.  KL divergence (asymmetrically) measures how
-different the two distributions are, and can be defined as
-\cite{blei2017variational}
+Our goal is then to use VI in order to approximate $\posterior$.
+Let $\approximation$ denote our approximation. VI aims to optimise this
+approximation by minimising the \emph{Kullback-Leibler} (KL) divergence between
+the original probability distribution and our approximation. KL divergence
+(asymmetrically) measures the difference between two probability distributions
+and can be defined as \cite{blei2017variational}
 \begin{align*}
-  \DKL{\approximation}{\posterior} &= \mathbb{E}[\log\approximation - \log\posterior ] \\
-                                   &= \mathbb{E}[\log\approximation - \log\pfull] \\
-                                   &+ \mathbb{E}[\log p(\mathcal{D})].
+  \DKL{\approximation}{\posterior} &= \mathbb{E}_{\approximation}[\log\approximation - \log\posterior ] \\
+                                   &= \mathbb{E}_{\approximation}[\log\approximation - \log\pfull] \\
+                                   &+ \mathbb{E}_{\approximation}[\log p(\mathcal{D})].
 \end{align*}
-The last term is both hard to compute and constant w.r.t. $\approximation$
-\cite{blei2017variational}, so we can remove it from our optimisation objective.
-The negation of what remains is often called the \emph{evidence lower bound}
-(ELBO) and is defined as\footnote{Throughout the proposal, all integrals should
-  be interpreted as definite integrals over the entire sample space.}
+The last term is both hard to compute and constant with respect to
+$\approximation$ \cite{blei2017variational}, so we can remove it from our
+optimisation objective. The negation of what remains is known as the
+\emph{evidence lower bound} (ELBO) and is defined as
 \cite{DBLP:books/lib/Bishop07,blei2017variational}
 \begin{equation} \label{eq:elbo}
   \begin{split}
@@ -305,13 +293,11 @@ The negation of what remains is often called the \emph{evidence lower bound}
     &= \iiint \log \frac{\pfull}{\approximation} \approximation\dx.
   \end{split}
 \end{equation}
-
-By considering full probability distributions instead of point estimates---as
-long as the approximations are able to capture important features of the
-posterior---our predictions are likely to be more accurate and rely on fewer
-assumptions. Moreover, we hope to make use of various recent advancements in VI
-for both time complexity and approximation distribution fit, making the
-resulting algorithm competitive both in terms of running time and model fit.
+Thus, instead of minimising KL divergence, we focus on maximising $\mathcal{L}$
+by optimising the values of parameters to be defined in Section \ref{sec:model}.
+Note that in this paper all integrals should be interpreted as definite
+integrals over the entire sample space. Also, all expected values are with
+respect to $\approximation$.
 
 \section{Background}
 
@@ -373,6 +359,7 @@ convergence theorem in order to justify the validity of our approach.
 \end{theorem}
 
 \section{The Model} \label{sec:model}
+% TODO: matrix notation should be at the start of The Problem
 
 % TODO: make this fit the narrative
 For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
