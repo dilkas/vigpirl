@@ -161,7 +161,23 @@ how we adapt the model and set up the VI problem in Section \ref{sec:model}.
 Finally, in Section \ref{sec:evaluation} we examine the convergence properties
 of our model and its ability to deduce optimal policies in practice.
 
-\section{The Problem}
+\paragraph{Notation and Conventions}
+
+For any matrix $\mathbf{A}$, we use either $A_{i,j}$ or
+$[\mathbf{A}]_{i,j}$ to denote the element of $\mathbf{A}$ in row $i$ and column
+$j$. We use $\tr(\mathbf{A})$ to denote its \emph{trace} and $\adj(\mathbf{A})$
+for its \emph{adjugate} (or \emph{classical adjoint}). For any vector
+$\mathbf{x}$, we write $\mathbb{R}_d[\mathbf{x}]$ to denote a vector space of
+polynomials with degree at most $d$, where variables are elements of
+$\mathbf{x}$, and coefficients are in $\mathbb{R}$.
+
+Throughout the paper, all integrals should be interpreted as definite integrals
+over the entire sample space. When referencing measurability, we assume Lebesgue
+measure in a Euclidean space with a suitable number of dimensions. Similarly,
+whenever we consider the existence of an integral, we use the Lebesgue
+definition of integration.
+
+\section{The Problem} \label{sec:problem}
 
 In this section, we introduce definitions and mathematical details relevant to
 the problem. We begin by formally defining what the problem is.
@@ -289,23 +305,23 @@ optimisation objective. The negation of what remains is known as the
 \cite{DBLP:books/lib/Bishop07,blei2017variational}
 \begin{equation} \label{eq:elbo}
   \begin{split}
-    \mathcal{L} &= \mathbb{E}\left[ \log \frac{\pfull}{\approximation} \right] \\
+    \mathcal{L} &= \mathbb{E}_{\approximation}\left[ \log \frac{\pfull}{\approximation} \right] \\
     &= \iiint \log \frac{\pfull}{\approximation} \approximation\dx.
   \end{split}
 \end{equation}
 Thus, instead of minimising KL divergence, we focus on maximising $\mathcal{L}$
 by optimising the values of parameters to be defined in Section \ref{sec:model}.
-Note that in this paper all integrals should be interpreted as definite
-integrals over the entire sample space. Also, all expected values are with
-respect to $\approximation$.
+Note that hereafter we drop the subscript notation, as all expected values will
+be with respect to $\approximation$.
 
 \section{Background}
 
-Here we introduce a few definitions and results from linear algebra, numerical
+We introduce a few definitions and results from linear algebra, numerical
 analysis, and measure theory that will be used later in the paper. Namely, we
 will use several different vector and matrix norms, consider how an inverse of a
-matrix changes with a small perturbation, and use Lebesgue's dominated
-convergence theorem in order to justify the validity of our approach.
+matrix changes with a small perturbation, and introduce Lebesgue's dominated
+convergence theorem which plays a major role in our theoretical results in
+Section \ref{sec:proof}.
 
 \begin{definition}[Norms]
   For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
@@ -359,70 +375,63 @@ convergence theorem in order to justify the validity of our approach.
 \end{theorem}
 
 \section{The Model} \label{sec:model}
-% TODO: matrix notation should be at the start of The Problem
 
-% TODO: make this fit the narrative
-For any matrix $\mathbf{A}$, we will use either $A_{i,j}$ or
-$[\mathbf{A}]_{i,j}$ to denote the element of $\mathbf{A}$ in row $i$ and column
-$j$. Moreover, we use $\tr(\mathbf{A})$ to denote its \emph{trace} and
-$\adj(\mathbf{A})$ for its \emph{adjugate} (or \emph{classical adjoint}). For
-any vector $\mathbf{x}$, we write $\mathbb{R}_d[\mathbf{x}]$ to denote a vector
-space of polynomials with degree at most $d$, where variables are elements of
-$\mathbf{x}$, and coefficients are in $\mathbb{R}$.
+In order to have a fully functional model, we still need to make several key
+design decisions. In this section, we describe the covariance function used to
+define the GP, consider what parameters should be used to optimise $\mathcal{L}$
+and how they should be initialised, and in Section \ref{sec:elbo}, we derive our
+final expression for $\mathcal{L}$.
 
-In this paper, all references to measurability are with respect to the Lebesgue
-measure. Similarly, whenever we consider the existence of an integral, we use
-the Lebesgue definition of integration.
-
-We keep the covariance function the same as in the work by Levine et al.
-\cite{DBLP:conf/nips/LevinePK11}, which is a version of the automatic relevance
-detection kernel \cite{DBLP:conf/nips/LevinePK11}:
+We stick with the same covariance function as in the work by Levine et al.
+\cite{DBLP:conf/nips/LevinePK11}, which is a version of the \emph{automatic
+  relevance detection kernel}:
 \begin{align*}
   k(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left( \vphantom{\frac{1}{2}} \right. &-\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i - \mathbf{x}_j) \\
                                                                                      &- \mathbbm{1}[i \ne j]\sigma^2\tr(\bm\Lambda) \left. \vphantom{\frac{1}{2}} \right).
 \end{align*}
-Here, $\lambda_0$ is the overall `scale' factor for how similar or distant the
-states are, $\bm\Lambda = \diag(\lambda_1, \dots, \lambda_d)$ is a diagonal
-matrix that determines the relevance of each feature (where $d$ denotes the
-number of features), $\mathbbm{1}$ is defined as
+Here, $\lambda_0$ is the overall `scale' factor, $\bm\Lambda = \diag(\lambda_1,
+\dots, \lambda_d)$ is a diagonal matrix that determines the importance of each
+feature, $\mathbbm{1}$ is defined as
 \[
   \mathbbm{1}[b] = \begin{cases}
     1 & \mbox{if $b$ is true} \\
     0 & \mbox{otherwise},
   \end{cases}
 \]
-and $\sigma^2$ is set to $10^{-2}/2$ (as the original paper noted that
-the value makes little difference to the performance of the algorithm
-\cite{DBLP:conf/nips/LevinePK11}). We will write $\bm\lambda = (\lambda_0,
-\dots, \lambda_d)^\intercal$ to refer to both $\lambda_0$ and $\bm\Lambda$ at
-the same time.
+and $\sigma^2$ is fixed as $10^{-2}/2$, since this value has little influence on
+the behaviour of the algorithm and is here as a noise factor used to avoid
+singular covariance matrices \cite{DBLP:conf/nips/LevinePK11}. We will write
+$\bm\lambda = (\lambda_0, \dots, \lambda_d)^\intercal$ to refer to both
+$\lambda_0$ and $\bm\Lambda$ at the same time.
 
 Ideally, we would like to model $\bm\lambda$ with an approximating distribution.
-However, due to how $p(\mathbf{u})$ has $\Kuu^{-1}$ in its expression, and the
-ELBO is defined as an expectation, we are unable to show that the ELBO is
-well-defined. More generally, we pose the following problem, which is open to
-the best of our knowledge:
+However, due to how the prior probability density function (PDF) for
+$\mathbf{u}$ involves $\Kuu^{-1}$, and $\mathcal{L}$ has an expected value that
+cannot be eliminated (see Section \ref{sec:elbo}), we are unable to show that
+such an $\mathcal{L}$ is well-defined. More generally, we pose the following
+problem, which, to the best of our knowledge, is currently open:
 \begin{problem}
   Let $\mathbf{A}$ be a $n \times n$ matrix of coefficients, $X$ be a random
   variable, and $\mathbf{M}$ be an $n \times n$ matrix such that $M_{i,j} = f(X,
   A_{i,j})$, where $f$ is an arbitrary function. Under what circumstances does
   $\mathbb{E}[\mathbf{M}^{-1}]$ exist?
 \end{problem}
-While there are some obvious examples of when the required expected value
-exists (e.g., $f(X, A_{i,j}) = A_{i,j}X$ for an invertible $\mathbf{A}$ and many
-distributions of $X$), it would be particularly interesting to know whether the
-answer is `always'. A proof of such a result would allow us to model
-$\bm\lambda$ instead of treating it as a variational parameter, and would thus
-guard against overfitting. For now, $\bm\lambda$ will have to be treated as a
-variational parameter.
+While there are some obvious examples where the expected value exists (e.g.,
+$f(X, A_{i,j}) = A_{i,j}X$ for an invertible $\mathbf{A}$ and many distributions
+of $X$), it would be particularly interesting to know whether the answer is
+`always'. A proof of such a result would allow us to model $\bm\lambda$ instead
+of treating it as a variational parameter, and would help to guard against
+overfitting. For now, $\bm\lambda$ will have to be treated as a variational
+parameter.
 
-It remains to decide on the model for $\mathbf{u}$ and $\mathbf{r}$. As is
-commonly done when applying VI to GPs \cite{DBLP:conf/nips/ChengB17}, we set
+It remains to decide on the approximation distribution for $\mathbf{u}$ and
+$\mathbf{r}$. As is commonly done when applying VI to GPs
+\cite{DBLP:conf/nips/ChengB17}, we set
 \begin{equation} \label{eq:approximation}
   \approximation = q(\mathbf{u}) q(\mathbf{r} \mid \mathbf{u}),
 \end{equation}
 where $q(\mathbf{r} \mid \mathbf{u}) = p(\mathbf{r} \mid \mathbf{u})$ and
-$q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \bm\mu, \bm\Sigma)$
+$q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \bm\mu, \bm\Sigma)$.
 
 Ong et al. \cite{ong2018gaussian} have recently suggested that, in order to make
 variational approximation of a multivariate Gaussian more scalable, the
@@ -430,9 +439,8 @@ covariance matrix should be decomposed as $\bm\Sigma =
 \mathbf{B}\mathbf{B}^\intercal + \mathbf{D}^2$, where $\mathbf{B}$ is a lower
 triangular $m \times p$ matrix with positive diagonal entries, and $\mathbf{D}$
 is a diagonal matrix. Typically, we would set $p$ so that $p \ll m$ to get an
-efficient approximation. However, as our goal is precision rather than
-scalability, we will set $p = m$ and $\mathbf{D} = \mathbf{O}_m$ in order to
-retain full covariance structure.
+efficient approximation, but in this case we will simply set $p = m$ and
+$\mathbf{D} = \mathbf{O}_m$ in order to retain full covariance structure.
 
 \begin{figure}
   \centering
@@ -455,12 +463,12 @@ retain full covariance structure.
 \end{figure}
 
 The resulting model is summarised in Figure \ref{fig:graphical_model}. We rely
-on $p(\mathcal{D} \mid \mathbf{r})$ as the only link between data and the model.
+on $p(\mathcal{D} \mid \mathbf{r})$ as the only link between data and our model.
 Since the expression for $q(\mathbf{r} \mid \mathbf{u})$ has both $\mathbf{u}$
 and covariance matrices in it, $\mathbf{r}$ depends on both $\mathbf{u}$ and the
 parameters of the kernel, $\bm\lambda$. The two remaining dependencies stem from
 the fact that the approximating distribution for $\mathbf{u}$ is
-$\mathcal{N}(\bm\lambda, \mathbf{BB}^\intercal)$.
+$\mathcal{N}(\bm\mu, \mathbf{BB}^\intercal)$.
 
 As we want to restrict some parameters (namely, $\bm\lambda$ and the diagonal of
 $\mathbf{B}$) to positive values, we express them as exponentials and later
@@ -473,7 +481,9 @@ e^{\lambda'_i}$ and optimise $\lambda'_i$ using the chain rule:
 This way, we restrict $\lambda_i$ to positive values while allowing $\lambda'_i$
 to range over $\mathbb{R}$.
 
-Finally, the parameters are initialised as follows:
+Finally, the parameters can be initialised as follows\footnote{In practice, it
+  is often easier to start with a fixed $\mathbf{B} = \mathbf{I}_m$, as random
+  values of $\mathbf{B}$ can often result in a near-singular $\bm\Sigma$.}:
 \begin{alignat*}{3}
   \mu_i &\sim \mathcal{U}(0, 1) \quad &&\text{for } i = 1, \dots, m, \\
   \lambda_0 &\sim \chi^2_5, && \\
@@ -482,23 +492,22 @@ Finally, the parameters are initialised as follows:
   \text{the rest of } \mathbf{B} &\sim \mathcal{N}(0, 1). &&
 \end{alignat*}
 The initialisation of $\bm\mu$ mirrors the initialisation of $\mathbf{r}$ in
-previous work by Levine et al. \cite{DBLP:conf/nips/LevinePK11}. While they have
-constant initial values for $\bm\lambda$, we sample from $\chi^2$ distributions
-centred around those values ($5$ for $\lambda_0$ and $1$ for any other
-$\lambda_i$). The distributions for initial values of $\mathbf{B}$ are simply
-set to provide a reasonable spread of positive values for the diagonal, and both
-positive and negative values for all other entries in the matrix.
+previous work by Levine et al. \cite{DBLP:conf/nips/LevinePK11}. In contrast,
+while they have constant initial values for $\bm\lambda$, we sample from
+$\chi^2$ distributions centred around those values ($5$ for $\lambda_0$ and $1$
+for any other $\lambda_i$). The distributions for initial values of $\mathbf{B}$
+are simply set to provide a reasonable spread of positive values for the
+diagonal, and both positive and negative values for all other entries in the
+matrix.
 
 \subsection{Evidence Lower Bound} \label{sec:elbo}
 
-In this section, we derive and simplify the ELBO for this (now fully specified)
-model. Note that in order to keep the derivation simple, we drop all constant
-terms in the expression of $\mathcal{L}$, i.e., equality is taken to mean
-`equality up to an additive constant'. Also note that all expected values are
-with respect to $(\mathbf{u}, \mathbf{r}) \sim q(\mathbf{u}, \mathbf{r})$.
+It remains to express $\mathcal{L}$ for our (now fully specified) model. Note
+that in order to keep the derivation simple, we drop all constant terms in the
+expression of $\mathcal{L}$, i.e., equality is taken to mean `equality up to an
+additive constant'.
 
-In order to derive the ELBO, let us go back to \eqref{eq:elbo} and
-write
+Firstly, let us return to \eqref{eq:elbo} and write
 \[
   \mathcal{L} = \mathbb{E}[\log\pfull] - \mathbb{E}[\log\approximation].
 \]
@@ -527,8 +536,8 @@ Using the expressions for $Q_{\mathbf{r}}$ we get
 \end{align*}
 We can simplify $\sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t})$ by defining a new vector
 $\mathbf{t} = (t_1, \dots, t_{|\mathcal{S}|})^\intercal$, where $t_i$ is the
-number of times the state associated with the reward $r_i$ has been visited
-across all demonstrations. Then
+number of times the state associated with reward $r_i$ has been visited
+across all demonstrations. Then,
 \begin{align*}
   \mathbb{E} \left[ \sum_{i=1}^N\sum_{t=1}^Tr(s_{i,t}) \right] &= \mathbb{E}[\mathbf{t}^\intercal\mathbf{r}] = \mathbf{t}^\intercal\mathbb{E}[\mathbf{r}] \\
                                                                &= \mathbf{t}^\intercal\mathbb{E}\left[\Kru^\intercal\Kuu^{-1}\mathbf{u}\right] = \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu.
@@ -602,13 +611,13 @@ which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
 
 Our main goal is Theorem \ref{thm:main}, which allows us to move differentiation
 inside the integral. In order to prove it, we use a number of intermediate
-results. We start by stating a few derivatives of probability density functions
-(PDFs) and covariance matrices, and bound their values with some
-easy-to-deal-with polynomials. We then provide a sketch proof of the
-measurability of MDP value functions, which is non-obvious due to their
-non-trivial definition. Afterwards, we establish bounds for the value functions,
-and, after another quick lemma, tackle the main proof of this paper. See Figure
-\ref{fig:theorems} for an overview of how these results fit together.
+results. We start by stating a few derivatives of PDFs and covariance matrices,
+and bound their values with some easy-to-deal-with polynomials. We then provide
+a sketch proof of the measurability of MDP value functions, which is non-obvious
+due to their non-trivial definition. Afterwards, we establish bounds for the
+value functions, and, after another quick lemma, tackle the main proof of this
+paper. See Figure \ref{fig:theorems} for an overview of how these results fit
+together.
 
 Before that, however, we define a few extra variables in order to simplify
 expressions of derivatives:
@@ -1415,17 +1424,20 @@ promising to combine these kernels with the variational Fourier features
 approach by Hensman et al. \cite{DBLP:journals/jmlr/HensmanDS17} that leverages
 the same spectral representations for efficient VI.
 
-\section{Conclusions}
+\section{Conclusion}
 % TODO: write
-
 % Show how we achieved our claimed contributions
 
-Reasonable results in convergence.
-More variables/information. Fewer assumptions.
-
-We show how to avoid the deterministic training conditional assumption.
-
-%Why doesn't it work? Perhaps a stupid bug.
+\begin{itemize}
+\item Why my theoretical contributions are important...
+\item Reasonable results with convergence: policies do converge to optimal
+  values, even at the extremes (i.e., $0$ and $1$).
+\item Shown how to eliminate the deterministic training conditional
+  assumption---a common weakness of previous approaches.
+\item Being able to model rewards using full probability distributions without
+  limiting assumptions opens up many new research directions.
+\item My excuse for the buggy implementation...
+\end{itemize}
 
 \subsection{Further Work}
 
