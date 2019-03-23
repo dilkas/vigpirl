@@ -1,5 +1,6 @@
-function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, matrices)
-% NOTE: returns the gradient for parameters in vector form
+function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, matrices, deterministic_r)
+  % z is a sample from q(u), deterministic_r is used for testing
+  % NOTE: returns the gradient for parameters in vector form
 
   function answer = estimate_derivative(u)
    % Uses a point-sample of u to estimate the part of dL/dnu under E[]
@@ -23,8 +24,13 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
       elbo_part = solution.v(state, 1) - mdp_data.discount * s;
     end
 
-    U = (u - gp.mu) * (u - gp.mu)';
+    U = (u' - gp.mu) * (u' - gp.mu)';
+    %if (nargin('full_gradient') > 6)
+    %  fprintf('Deterministic mode is on!\n');
+    %  r = (S * u')';
+    %else
     r = mvnrnd(S * u', Gamma);
+    %end
     solution = linearmdpsolve(mdp_data, r');
     v_for_each_state_action = cellfun(@expected_derivative_for,...
       demonstrations, 'Uniform', 0);
@@ -33,8 +39,8 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
     unique_lambda_part = arrayfun(@lambda_derivative, 1:size(matrices.Kuu_grad, 3));
     unique_mu_part = (u' - gp.mu)' * (Sigma_inv + Sigma_inv');
-    %unique_B_part = 2 * (Sigma_inv * U * Sigma_inv - Sigma_inv) * gp.B;
-    unique_B_part = zeros(length(gp.mu));
+    unique_B_part = 2 * (Sigma_inv * U * Sigma_inv - Sigma_inv) * gp.B;
+    %unique_B_part = zeros(length(gp.mu));
 
     unique_part = vertcat(2, unique_lambda_part', diag(unique_B_part),...
       unique_mu_part', get_lower_triangle(unique_B_part));
@@ -43,10 +49,10 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
   Sigma = gp.B * gp.B';
   %disp(gp.B);
-  fprintf('Kuu:\n');
-  disp(matrices.Kuu);
-  fprintf('Sigma:\n');
-  disp(Sigma);
+  %fprintf('Kuu:\n');
+  %disp(matrices.Kuu);
+  %fprintf('Sigma:\n');
+  %disp(Sigma);
   Sigma_inv = inv(Sigma);
   Kuu_inv = inv(matrices.Kuu);
   S = matrices.Kru' * Kuu_inv;
@@ -68,6 +74,7 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   not_estimated_elbo = counts' * S * gp.mu - 0.5 * (trace(Kuu_inv * Sigma) +...
     gp.mu' * Kuu_inv * gp.mu + log(det(matrices.Kuu)) - log(det(Sigma)));
   not_estimated_B = (Sigma_inv - Kuu_inv) * gp.B;
+  %disp(not_estimated_B);
 
   not_estimated = vertcat(not_estimated_elbo, not_estimated_lambda',...
     diag(not_estimated_B), not_estimated_mu, get_lower_triangle(not_estimated_B));

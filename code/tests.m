@@ -2,38 +2,10 @@ function tests = tests
   tests = functiontests(localfunctions);
 end
 
-function test_d_covariance_matrix_d_lambda_i(testCase)
-  answer = d_covariance_matrix_d_lambda_i(ones(3, 2), [2 0; 4 0; 8 0],...
-    [1 0; 3 0], zeros(3, 2), 1);
-  correct = -0.5 * [1 1; 9 1; 49 25];
-  verifyEqual(testCase, answer, correct);
-end
-
-function test_remaining_vigpirlkernel(testCase)
+function test_full_gradient(testCase)
   function c = k(x, y)
     c = rbf * exp(-0.5 * 2 * (x - y)^2);
   end
-
-  %Xu = [0 0; 1 3];
-  %X = [0 0; 1 0; 2 0];
-  %noise = 0;
-  %rbf = 0.1;
-  %gp = struct('X_u', Xu, 'X', X, 'noise_var', noise, 'rbf_var', rbf,...
-  %  'inv_widths', [2 0]);
-
-  %Kuu = [k(0, 0) k(1, 0); k(0, 1) k(1, 1)];
-  %Kuf = [k(0, 0) k(1, 0) k(2, 0); k(1, 0) k(1, 1) k(1, 2)];
-  %Kff = [k(0, 0) k(1, 0) k(2, 0); k(0, 1) k(1, 1) k(2, 1); k(0, 2) k(1, 2) k(2, 2)];
-  %Kuuinv = inv(Kuu);
-  %KruKuu = Kuf' * Kuuinv;
-
-  % Test vigpirlkernel
-  %[K_uf, K_uu, invK, K_ufKinv, K_ff] = vigpirlkernel(gp);
-  %verifyEqual(testCase, K_uf, Kuf, 'AbsTol', 1e-10);
-  %verifyEqual(testCase, K_uu, Kuu, 'AbsTol', 1e-10);
-  %verifyEqual(testCase, invK, Kuuinv, 'AbsTol', 1e-10);
-  %verifyEqual(testCase, K_ufKinv, KruKuu, 'AbsTol', 1e-10);
-  %verifyEqual(testCase, K_ff, Kff, 'AbsTol', 1e-10);
 
   demonstrations = {[1, 1], [3, 2]};
   counts = [1; 0; 1];
@@ -58,13 +30,26 @@ function test_remaining_vigpirlkernel(testCase)
   r = S * u';
   mdp_solution = linearmdpsolve(mdp_data, r);
   v = counts' * mdp_solution.v;
-  % mdp_values = [-23.3069; -13.3069; -24.3069];
 
-  % Test full_gradient
-  [~, full_gradient_answer] = full_gradient(mdp_data, demonstrations, counts, gp, u, matrices);
-  full_gradient_correct_answer = 116 + 0.5 * (417 * v - 25);
-  verifyEqual(testCase, full_gradient_answer(1), full_gradient_correct_answer);
-  disp(full_gradient_correct_answer);
+  [~, full_gradient_answer] = full_gradient(mdp_data, demonstrations, counts, gp, u, matrices, true);
+
+  lambda0_derivative = 116 + 0.5 * (417 * v - 25);
+  verifyEqual(testCase, full_gradient_answer(1), lambda0_derivative);
+
+  B11_derivative = -8 * v;
+  B22_derivative = -24 * v;
+  B33_derivative = v;
+  B21_derivative = 15 * v;
+  B31_derivative = 0;
+  B32_derivative = 0;
+
+  verifyEqual(testCase, full_gradient_answer(3), B11_derivative);
+  verifyEqual(testCase, full_gradient_answer(4), B22_derivative);
+  verifyEqual(testCase, full_gradient_answer(5), B33_derivative);
+
+  verifyEqual(testCase, full_gradient_answer(9), B21_derivative);
+  verifyEqual(testCase, full_gradient_answer(10), B31_derivative);
+  verifyEqual(testCase, full_gradient_answer(11), B32_derivative);
 end
 
 function test_hyperparameter_packing(testCase)

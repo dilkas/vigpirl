@@ -557,6 +557,25 @@ where
 % TODO: Possible improvements:
 % 1. Use limits more often.
 % 2. Perturbation lemma can be replaced by continuity of A |-> A^-1.
+% 3. epsilon is treated as an arbitrary constant.
+
+The typical way to optimise a quantity (the ELBO, in this case) involves
+computing its gradient. Unfortunately, the term $\mathbb{E}[v]$ in $\mathcal{L}$
+complicates the situation. The goal of this section is to show how Theorem
+\ref{thm:lebesgue} can be applied to our model in order to derive the gradient
+anyway\footnote{This technique is inspired by black box VI
+  \cite{DBLP:conf/aistats/RanganathGB14}, but takes a more detailed look at the
+  problem and requires significantly more work to prove correctness.}. After
+showing that the theorem applies to our situation, we can estimate
+$\nabla\mathbb{E}[v]$ with
+\begin{align*}
+  \nabla\mathbb{E}[v] &= \nabla \iint v q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})\dx \\
+                      &= \iint \nabla[v q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})]\dx \\
+                      &= \iint \frac{\nabla[v q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})]}{q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})} q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})\dx \\
+                      &\approx \frac{1}{S} \sum_{s=1}^S \frac{\nabla[v q(\mathbf{r}_s \mid \mathbf{u}_s)q(\mathbf{u}_s)]}{q(\mathbf{r}_s \mid \mathbf{u}_s)q(\mathbf{u}_s)},
+\end{align*}
+which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
+\mathbf{r}_s)\}_{s=1}^S$ from $\approximation$.
 
 \begin{figure}
   \centering
@@ -573,7 +592,6 @@ where
     \node [rectangle, draw] (theorem) at (0, -2) {\textsc{Theorem \ref{thm:main}}};
 
     \draw [->] (perturbation) edge (lemma3);
-    \draw [->] (perturbation) edge (lemma1);
     \draw [->] (lebesgue) edge (theorem);
     \draw [->] (derivatives) edge (lemma1);
     \draw [->] (derivatives) edge (lemma2);
@@ -591,33 +609,14 @@ where
   \label{fig:theorems}
 \end{figure}
 
-The typical way to optimise a quantity (the ELBO, in this case) involves
-computing its gradient. Unfortunately, the term $\mathbb{E}[v]$ in $\mathcal{L}$
-complicates the situation. The goal of this section is to show how Theorem
-\ref{thm:lebesgue} can be applied to our model in order to derive the gradient
-anyway\footnote{This technique is inspired by black box VI
-  \cite{DBLP:conf/aistats/RanganathGB14}, but takes a more detailed look at the
-  problem and requires significantly more work to prove correctness.}. After
-showing that the theorem applies to our situation, we can estimate
-$\nabla\mathbb{E}[v]$ with
-\begin{align*}
-  \nabla\mathbb{E}[v] &= \nabla \iint q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})\dx \\
-                      &= \iint \nabla[v q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})]\dx \\
-                      &= \iint \frac{\nabla[v q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})]}{q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})} q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})\dx \\
-                      &\approx \frac{1}{S} \sum_{s=1}^S \frac{\nabla[v q(\mathbf{r}_s \mid \mathbf{u}_s)q(\mathbf{u}_s)]}{q(\mathbf{r}_s \mid \mathbf{u}_s)q(\mathbf{u}_s)},
-\end{align*}
-which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
-\mathbf{r}_s)\}_{s=1}^S$ from $\approximation$.
-
 Our main goal is Theorem \ref{thm:main}, which allows us to move differentiation
 inside the integral. In order to prove it, we use a number of intermediate
 results. We start by stating a few derivatives of PDFs and covariance matrices,
 and bound their values with some easy-to-deal-with polynomials. We then provide
-a sketch proof of the measurability of MDP value functions, which is non-obvious
-due to their non-trivial definition. Afterwards, we establish bounds for the
-value functions, and, after another quick lemma, tackle the main proof of this
-paper. See Figure \ref{fig:theorems} for an overview of how these results fit
-together.
+a sketch proof of the measurability of MDP value functions as well as new upper
+and lower bounds on their values. After another quick lemma, we tackle the main
+proof of this paper. See Figure \ref{fig:theorems} for an overview of how these
+results fit together.
 
 Before that, however, we define a few extra variables in order to simplify
 expressions of derivatives:
@@ -672,13 +671,11 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   \end{enumerate}
 \end{restatable}
 
-% TODO: too long, lemma could be replaced by the continuity argument (and arrow
-% removed from the figure), needs more explanations. Otherwise quite tolerable.
 \begin{lemma} \label{lemma:bound1}
-  Let $i \in \{ 0, \dots, d \}$ and $\epsilon > 0$ be arbitrary. Furthermore,
-  let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\lambda_i -
-  \epsilon, \lambda_i + \epsilon) \subset \mathbb{R}$ be a function with a
-  codomain arbitrarily close to $\lambda_i$. Then
+  Let $i \in \{ 0, \dots, d \}$ be arbitrary, and let $c :
+  \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\lambda_i - \epsilon,
+  \lambda_i + \epsilon) \subset \mathbb{R}$ be a function with a codomain
+  arbitrarily close to $\lambda_i$. Then
   \[
     \left. \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i}
     \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
@@ -687,19 +684,17 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   \mathbf{u})d(\mathbf{u})$, where $d(\mathbf{u}) \in \mathbb{R}_2[\mathbf{u}]$.
 \end{lemma}
 \begin{proof}
-  Remember that
-  \begin{align*}
-    \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} &= \frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) (|\bm\Gamma|^{-1} \tr(\mathbf{R} \adj(\bm\Gamma)) \\
-                                                                      &- (\mathbf{r} - \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su})).
-  \end{align*}
-  by Lemma \ref{lemma:derivatives}. Let $\mathbf{K}$ be any covariance
-  matrix and
+  Let $\mathbf{K}$ be any covariance matrix and set
   \[
     \mathbf{A} = \frac{1}{\lambda_0} \mathbf{K}.
   \]
 
   % K and its derivative
-  First, we can easily deduce that
+  First, we can easily deduce that\footnote{Note that we often switch between
+    proving limits and bounds. We are fundamentally interested in proving
+    constant bounds, but sometimes it is more convenient to show convergence
+    instead. In this situation, convergence as $\epsilon \to 0$ implies constant
+    upper and lower bounds.}
   \begin{equation} \label{eq:convergence1}
     \mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to \mathbf{K}
   \end{equation}
@@ -714,7 +709,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
     \left. \frac{\partial \mathbf{K}}{\partial \lambda_0} \right|_{\lambda_0 =
       c(\mathbf{r}, \mathbf{u})}
   \]
-  as an expression has no $\lambda_0$ in it, so
+  as an expression contains no $\lambda_0$, so
   \[
     \left. \frac{\partial \mathbf{K}}{\partial \lambda_0} \right|_{\lambda_0 =
       c(\mathbf{r}, \mathbf{u})} = \frac{\partial \mathbf{K}}{\partial
@@ -729,70 +724,26 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   \[
     \mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})},
   \]
-  so the same reasoning as for \eqref{eq:convergence1} applies.
+  so the same reasoning applies as in case of \eqref{eq:convergence1}.
 
   % Inverse of a covariance matrix
-  Now, we will show that $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
+  Next, we will show that $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
     \mathbf{u})}$ exists and
-  \[
+  \begin{equation} \label{eq:limit3}
     \lim_{\epsilon \to 0} \mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
-      \mathbf{u})} = \mathbf{K}.
-  \]
+      \mathbf{u})} = \mathbf{K}^{-1}.
+  \end{equation}
   If $i = 0$, then $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
   c(\mathbf{r}, \mathbf{u})\mathbf{A}$. Therefore\footnote{Note that since
-    $\lambda_0 \ne 0$, $c(\mathbf{r}, \mathbf{u}) \ne 0$ for small enough
+    $\lambda_0 > 0$, $c(\mathbf{r}, \mathbf{u}) \ne 0$ for small enough
     $\epsilon$.},
   \begin{align*}
     \mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &=
                                                                \frac{1}{c(\mathbf{r}, \mathbf{u})}\mathbf{A}^{-1} \\
                                                              &\to \frac{1}{\lambda_0}\mathbf{A}^{-1} = \frac{1}{\lambda_0} \left( \frac{1}{\lambda_0}\mathbf{K} \right)^{-1} = \mathbf{K}^{-1}
   \end{align*}
-  as $\epsilon \to 0$. For $i > 0$, let
-  \[
-    S = \sum_{n \in \{ 1, \dots, d \} \setminus \{ i \}} \frac{\lambda_n}{2}
-    (x_{j,n} - x_{k,n})^2 + \mathbbm{1}[j \ne k]\sigma^2 \lambda_n
-  \]
-  and $\delta = c(\mathbf{r}, \mathbf{u}) - \lambda_i$ so that $c(\mathbf{r},
-  \mathbf{u}) = \lambda_i + \delta$, and $\lim_{\epsilon \to 0} \delta = 0$.
-  Then,
-  \begin{align*}
-    &k(\mathbf{x}_j, \mathbf{x}_k)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \!\begin{multlined}[t]
-      \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. -\frac{1}{2} c(\mathbf{r}, \mathbf{u})(x_{j,i} - x_{k,i})^2\\
-      - \mathbbm{1}[j \ne k]\sigma^2c(\mathbf{r}, \mathbf{u}) - S \left. \vphantom{\frac{1}{2}} \right)
-    \end{multlined} \\
-    &= \!\begin{multlined}[t]
-      \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. -\frac{1}{2} (\lambda_i + \delta)(x_{j,i} - x_{k,i})^2 \\
-      - \mathbbm{1}[j \ne k]\sigma^2(\lambda_i + \delta) - S \left. \vphantom{\frac{1}{2}} \right)
-    \end{multlined} \\
-    &= \!\begin{multlined}[t]
-      \lambda_0 \exp \left( \vphantom{\frac{1}{2}} \right. -\frac{1}{2}(\mathbf{x}_j - \mathbf{x}_k)^\intercal \bm\Lambda (\mathbf{x}_j - \mathbf{x}_k) - \mathbbm{1}[j \ne k]\sigma^2\tr(\bm\Lambda) \\
-      - \frac{\delta}{2}(x_{j,i} - x_{k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2\delta \left. \vphantom{\frac{1}{2}} \right)
-    \end{multlined} \\
-    &= k(\mathbf{x}_j, \mathbf{x}_k)\exp \left( \vphantom{\frac{1}{2}} \right. -\frac{\delta}{2}(x_{j,i} - x_{k,i})^2 - \mathbbm{1}[j \ne k]\sigma^2\delta \left. \vphantom{\frac{1}{2}} \right) \\
-    &= \!\begin{multlined}[t]
-      k(\mathbf{x}_j, \mathbf{x}_k) + k(\mathbf{x}_j, \mathbf{x}_k) \left( \exp
-        \left( -\frac{\delta}{2}(x_{j,i} - x_{k,i})^2 \right. \right. \\
-      -\mathbbm{1}[j \ne k]\sigma^2\delta \left. \left. \vphantom{\frac{1}{2}} \right) - 1 \right).
-    \end{multlined}
-  \end{align*}
-  Thus, we can express $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ as
-  $\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \mathbf{K} +
-  \mathbf{E}$, where $\mathbf{E}$ is defined by
-  \[
-    E_{j,k} = k(\mathbf{x}_j, \mathbf{x}_k) \left( \exp \left(
-        -\frac{\delta}{2}(x_{j,i} - x_{k,i})^2 \right. \right. -\mathbbm{1}[j
-    \ne k]\sigma^2\delta \left. \left. \vphantom{\frac{1}{2}} \right) - 1
-    \right).
-  \]
-  By this definition,
-  \[
-    \lim_{\epsilon \to 0} E_{j,k} = 0.
-  \]
-  Then, since $\mathbf{K}$ is invertible,
-  \[
-    \mathbf{K}^{-1}_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to \mathbf{K}^{-1}
-  \]
-  by continuity of $\mathbf{A} \mapsto \mathbf{A}^{-1}$.
+  as $\epsilon \to 0$. For $i > 0$, by \eqref{eq:convergence1} and continuity of
+  $\mathbf{A} \mapsto \mathbf{A}^{-1}$ we immediate get \eqref{eq:limit3}.
 
   This is enough to prove constant upper and lower bounds on
   $\mathbf{S}$, $\bm\Gamma$, and $\mathbf{R}$ (all with $\lambda_i$ replaced
@@ -801,15 +752,15 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   \mathbf{Su})|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ has upper and lower
   bounds in $\mathbb{R}_2[\mathbf{u}]$. Furthermore, having convergence results
   for arbitrary covariance matrices and their inverses means that
-  \[
+  \begin{equation} \label{eq:gamma_convergence}
     \lim_{\epsilon \to 0} \bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
-    \bm\Gamma.
-  \]
-  Hence,
-  \[
+    \bm\Gamma
+  \end{equation}
+  and, by continuity of the determinant function,
+  \begin{equation} \label{eq:det_gamma}
     \lim_{\epsilon \to 0} \det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
     \det(\bm\Gamma).
-  \]
+  \end{equation}
   Assuming that
   $\bm\Gamma$ is invertible so that $q(\mathbf{r} \mid \mathbf{u})$ exists,
   \[
@@ -817,51 +768,30 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   \]
   for small enough $\epsilon$, and, thus, $\det(\bm\Gamma)^{-1}|_{\lambda_i =
     c(\mathbf{r}, \mathbf{u})}$ exists and is bounded.
-
-  Recall that
+  
+  From \eqref{eq:gamma_convergence} and continuity of $\mathbf{A} \mapsto
+  \mathbf{A}^{-1}$ we can immediately deduce that
+  \begin{equation} \label{eq:gamma_inverse}
+    \lim_{\epsilon \to 0} \bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r},
+      \mathbf{u})} = \bm\Gamma^{-1}.
+  \end{equation}
+  Similarly, from \eqref{eq:det_gamma} and \eqref{eq:gamma_inverse} we get that
   \[
-    \bm\Gamma = \Krr - \mathbf{S}\Kru = \Krr - \Kru^\intercal\Kuu^{-1}\Kru.
+    \adj(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
+    \det(\bm\Gamma)\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to
+    \det(\bm\Gamma)\bm\Gamma^{-1}
   \]
-  We have already demonstrated that for $\mathbf{K} \in \{ \Krr, \Kru, \Kuu^{-1}
-  \}$,
+  as $\epsilon \to 0$. This gives us constant bounds on
   \[
-    \lim_{\epsilon \to 0}\mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
-    \mathbf{K}.
+    |\bm\Gamma|^{-1}\tr(\mathbf{R}\adj(\bm\Gamma))|_{\lambda_i = c(\mathbf{r},
+      \mathbf{u})},
   \]
-  We can use a general fact that if $\lim_{x \to 0} f(x) = f$,
-  then $f(x) = f + g(x)$ for some function $g$ such that $\lim_{x \to 0} g(x) =
-  0$ to define matrices $\Err$, $\Eru$, and $\Euu$ such that
-  \begin{alignat*}{3}
-    \Krr|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &= \Krr + \Err, &&\Err \to
-    \mathbf{O}_{|\mathcal{S}|}, \\
-    \Kru|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &= \Kru + \Eru, \quad
-    \text{and} \quad &&\Eru \to \mathbf{O}_{|\mathcal{S}|, m}, \\
-    \Kuu^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} &= \Kuu^{-1} + \Euu,
-    &&\Euu \to \mathbf{O}_{m}.
-  \end{alignat*}
-  as $\epsilon \to 0$. Then, $\bm\Gamma|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
-  = \bm\Gamma + \mathbf{E}$, where
-  \begin{align*}
-    \mathbf{E} &= \Err - \Kru^\intercal\Kuu^{-1}\Eru - \Kru^\intercal\Euu(\Kru + \Eru) \\
-               &- \Eru^\intercal(\Kuu^{-1} + \Euu)(\Kru + \Eru) \\
-               &\to \mathbf{O}_{|\mathcal{S}|}
-  \end{align*}
-  as $\epsilon \to 0$. Thus, Lemma \ref{lemma:perturbation} shows that
-  $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$ exists and provides
-  constant bounds on its elements.
-
-  Since we already know that $\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r},
-    \mathbf{u})}$ and $\det(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$
-  are bounded, so is $\adj(\bm\Gamma) =
-  \det(\bm\Gamma)\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}$. Thus,
-  we have constant bounds on
-  $|\bm\Gamma|^{-1}\tr(\mathbf{R}\adj(\bm\Gamma))|_{\lambda_i = c(\mathbf{r},
-    \mathbf{u})}$, which means that
+  which completes the proof that
   \[
     \left. \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i}
     \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
   \]
-  has the required bounds.
+  has the required quadratic bounds.
 \end{proof}
 
 \begin{remark}
@@ -903,8 +833,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
 \end{proof}
 
 \begin{lemma} \label{lemma:bound3}
-  Let $i, j = 1, \dots, m$, and let $\epsilon > 0$ be arbitrary. Furthermore,
-  let
+  Let $i, j = 1, \dots, m$, and let
   \[
     c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\Sigma_{i,j} - \epsilon,
     \Sigma_{i,j} + \epsilon) \subset \mathbb{R}
@@ -924,8 +853,8 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
     \left. \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} \right|_{\Sigma_{i,j} =
     c(\mathbf{r}, \mathbf{u})} =
     \frac{1}{2}q(\mathbf{u})(\mathbf{C}(\mathbf{r},
-    \mathbf{u})^{-\intercal}\mathbf{UC}(\mathbf{r}, \mathbf{u})^{-\intercal} -
-    \mathbf{C}(\mathbf{r}, \mathbf{u})^{-\intercal}),
+    \mathbf{u})^{-1}\mathbf{UC}(\mathbf{r}, \mathbf{u})^{-1} -
+    \mathbf{C}(\mathbf{r}, \mathbf{u})^{-1}),
   \]
   where
   \[
@@ -945,37 +874,37 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
       0 & \text{otherwise.}
     \end{cases}
   \]
-  We begin by establishing upper and lower bounds on $\mathbf{C}(\mathbf{r},
-  \mathbf{u})^{-1}$. For this, we use the maximum norm $\lVert \cdot
-  \rVert_\infty$ on both vectors and matrices. We can apply Lemma
-  \ref{lemma:perturbation} to $\bm\Sigma$ and $\mathbf{E}(\mathbf{r},
-  \mathbf{u})$ since
+  We will show how we can establish bounds on $\mathbf{C}(\mathbf{r},
+  \mathbf{u})^{-1}$ without using the continuity of matrix inversion. For this,
+  we use the maximum norm $\lVert \cdot \rVert_\infty$ on both vectors and
+  matrices. We can apply Lemma \ref{lemma:perturbation} to $\bm\Sigma$ and
+  $\mathbf{E}(\mathbf{r}, \mathbf{u})$ since
   \[
     \lVert \mathbf{E}(\mathbf{r}, \mathbf{u}) \rVert_\infty = \max_k \sum_l
     |[\mathbf{E}(\mathbf{r}, \mathbf{u})]_{k,l}| = |c(\mathbf{r}, \mathbf{u}) -
-    \Sigma_{i,j}| < \epsilon
+    \Sigma_{i,j}| < \epsilon \to 0,
   \]
-  can be made arbitrarily small so that $\lVert \bm\Sigma^{-1} \rVert_\infty
+  ensuring that $\lVert \bm\Sigma^{-1} \rVert_\infty
   \lVert \mathbf{E}(\mathbf{r}, \mathbf{u}) \rVert_\infty < 1$. Then
   $\mathbf{C}(\mathbf{r}, \mathbf{u})$ is invertible, and
   \[
     \lVert \mathbf{C}(\mathbf{r}, \mathbf{u})^{-1} \rVert_\infty \le
     \frac{\lVert \bm\Sigma^{-1} \rVert_\infty}{1 - \lVert \bm\Sigma^{-1}
       \rVert_\infty \lVert \mathbf{E}(\mathbf{r}, \mathbf{u}) \rVert_\infty} <
-    \frac{\lVert \bm\Sigma^{-1} \rVert_\infty}{1 - \lVert \bm\Sigma^{-1}
-      \rVert_\infty \epsilon},
+    \frac{\lVert \bm\Sigma^{-1} \rVert_\infty}{1 - \epsilon \lVert
+      \bm\Sigma^{-1} \rVert_\infty},
   \]
   which means that
   \[
     \max_k \sum_l \left| [\mathbf{C}(\mathbf{r}, \mathbf{u})^{-1}]_{k,l} \right|
-    < \frac{\lVert \bm\Sigma^{-1} \rVert_\infty}{1 - \lVert \bm\Sigma^{-1}
-      \rVert_\infty \epsilon},
+    < \frac{\lVert \bm\Sigma^{-1} \rVert_\infty}{1 - \epsilon \lVert
+      \bm\Sigma^{-1} \rVert_\infty},
   \]
   i.e., for any row $k$ and column $l$,
   \[
     \left| [\mathbf{C}(\mathbf{r}, \mathbf{u})^{-1}]_{k,l} \right| <
-    \frac{\lVert \bm\Sigma^{-1} \rVert_\infty}{1 - \lVert \bm\Sigma^{-1}
-      \rVert_\infty \epsilon},
+    \frac{\lVert \bm\Sigma^{-1} \rVert_\infty}{1 - \epsilon \lVert
+      \bm\Sigma^{-1} \rVert_\infty},
   \]
   which bounds all elements of $\mathbf{C}(\mathbf{r}, \mathbf{u})^{-1}$ as
   required. Since every element of $\mathbf{U} = (\mathbf{u} - \bm\mu)(\mathbf{u} -
@@ -985,14 +914,14 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
 \end{proof}
 
 \begin{remark}
-  MDP values are characterised by both a state and a reward function/vector. In
-  this section, we think of the value function as $V : \mathcal{S} \to
-  \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$, i.e., $V$ takes a state $s \in
-  \mathcal{S}$ and returns a function $V(s) : \mathbb{R}^{|\mathcal{S}|} \to
-  \mathbb{R}$ that takes a reward vector $\mathbf{r} \in
-  \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state $s$, $\V(s) \in
-  \mathbb{R}$. Given a reward vector, the function $V(s)$ computes the values of
-  all states and returns the value of state $s$.
+  MDP values are characterised by both a state and a reward function/vector. For
+  the rest of this section, we will think of the value function as $V :
+  \mathcal{S} \to \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$, i.e., $V$ takes a
+  state $s \in \mathcal{S}$ and returns a function $V(s) :
+  \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ that takes a reward vector
+  $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state
+  $s$, $\V(s) \in \mathbb{R}$. Given a reward vector, the function $V(s)$
+  computes the values of all states and returns the value of state $s$.
 \end{remark}
 
 \begin{proposition}[Measurability] \label{thm:measurability}
@@ -1001,7 +930,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
 \end{proposition}
 \begin{proof}
   For any reward vector $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$, the
-  collection of converged value functions $\{ \V(s) \mid s \in
+  set of converged value functions $\{ \V(s) \mid s \in
   \mathcal{S} \}$ satisfy
   \begin{equation} \label{eq:linear_mdp}
     \V(s) = \log \sum_{a \in \mathcal{A}}
@@ -1043,9 +972,9 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   and assuming that the initial values of $\{ \V(s) \mid s \in \mathcal{S} \}$
   already satisfy \eqref{eq:positive_bound}. Recall that for each $s \in
   \mathcal{S}$, the value of $\V(s)$ is updated by applying
-  \eqref{eq:update_rule}. Note that both $\log$ and $\exp$ are increasing
-  functions, $\gamma > 0$, and the $\mathcal{T}$ function gives a probability (a
-  non-negative number). Thus
+  \eqref{eq:update_rule}. Note that both the natural logarithm and the
+  exponential function are increasing, $\gamma > 0$, and the $\mathcal{T}$
+  function gives a probability (a non-negative number). Thus,
   \begin{align*}
     \V(s) &\le \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma} \right) \\
           &= \log \sum_{a \in \mathcal{A}} \exp\left( r(s) + \frac{\gamma (\rinf + \log|\mathcal{A}|)}{1 - \gamma}\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s') \right) \\
@@ -1161,16 +1090,16 @@ by Timoney \cite{lecture_notes}.
     |\fn| \le \g.
   \]
   The MDP value function is measurable by Proposition \ref{thm:measurability}.
-  The result of multiplying or adding measurable functions (e.g., probability
-  density functions) to a measurable function is still measurable. Thus,
-  both $f$ and $f_n$ are measurable.
+  The result of multiplying or adding measurable functions (e.g., PDFs) to a
+  measurable function is still measurable. Thus, both $f$ and $f_n$ are
+  measurable.
 
   It remains to find $g$. For notational simplicity and without loss of
   generality, we will temporarily assume that $t$ is a parameter of
   $q(\mathbf{r} \mid \mathbf{u})$. Then
   \[
     |\fn| = |\V(s)| \left| \frac{q(\mathbf{r} \mid \mathbf{u})|_{t =
-          t_n} - q(\mathbf{r} \mid \mathbf{u})}{t_n - t} \right| q(\mathbf{u})
+          t_n} - q(\mathbf{r} \mid \mathbf{u})}{t_n - t} \right| q(\mathbf{u}),
   \]
   since PDFs are non-negative. An upper bound for
   $|\V(s)|$ is given by Proposition \ref{thm:bound}, while

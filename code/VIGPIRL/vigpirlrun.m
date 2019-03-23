@@ -296,8 +296,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %grad(1) = 0; % lambda0
     %grad(2:d+1) = 0; % lambda (except first)
     %grad(d+m+2:d+2*m+1) = 0; % mu
-    grad(d+2:d+m+1) = 0; % B diagonal
-    grad(d+2*m+2:end) = 0; % rest of B
+    %grad(d+2:d+m+1) = 0; % B diagonal
+    %grad(d+2*m+2:end) = 0; % rest of B
 
     %fprintf('Hyperparameters:\n');
     %disp(old_hyperparameters);
@@ -355,32 +355,32 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   plot_history(policy_history);
   xlabel('number of iterations');
   legend('$\pi(a_1 \mid s_1)$', '$\pi(a_1 \mid s_2)$', '$\pi(a_2 \mid s_3)$', 'Interpreter', 'latex', 'Location', 'east');
-  print('../mpaper/convergence2', '-depsc2');
+  %print('../mpaper/convergence2', '-depsc2');
 
   figure('Units', 'centimeters', 'Position', [0 0 15 5], 'PaperPositionMode', 'auto');
-  %plot(hyperparameter_history(1,:), 'k-');
-  %hold on;
-  %plot(exp(hyperparameter_history(2,:)), 'k--');
-  %plot(hyperparameter_history(6,:), 'b');
-  %plot(hyperparameter_history(7,:), 'b--');
-  %plot(hyperparameter_history(8,:), 'b-.');
-  %plot(exp(hyperparameter_history(3,:)), 'r');
-  %plot(exp(hyperparameter_history(4,:)), 'r--');
-  %plot(exp(hyperparameter_history(5,:)), 'r-.');
-  %plot(hyperparameter_history(9,:), 'g');
-  %plot(hyperparameter_history(10,:), 'g--');
-  %plot(hyperparameter_history(11,:), 'g-.');
-  %legend('$\log \lambda_0$', '$\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', '$B_{1,1}$', '$B_{2,2}$', '$B_{3,3}$', '$B_{2,1}$', '$B_{3,1}$', '$B_{3,2}$', 'Interpreter', 'latex', 'Location', 'westoutside');
-  plot(exp(hyperparameter_history(1,:)), 'k-');
+  plot(hyperparameter_history(1,:), 'k-');
   hold on;
   plot(hyperparameter_history(2,:), 'k--');
   plot(hyperparameter_history(6,:), 'b');
   plot(hyperparameter_history(7,:), 'b--');
   plot(hyperparameter_history(8,:), 'b-.');
-  legend('$\lambda_0$', '$\log\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', 'Interpreter', 'latex', 'Location', 'westoutside');
+  plot(exp(hyperparameter_history(3,:)), 'r');
+  plot(exp(hyperparameter_history(4,:)), 'r--');
+  plot(exp(hyperparameter_history(5,:)), 'r-.');
+  plot(hyperparameter_history(9,:), 'g');
+  plot(hyperparameter_history(10,:), 'g--');
+  plot(hyperparameter_history(11,:), 'g-.');
+  legend('$\log \lambda_0$', '$\log \lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', '$B_{1,1}$', '$B_{2,2}$', '$B_{3,3}$', '$B_{2,1}$', '$B_{3,1}$', '$B_{3,2}$', 'Interpreter', 'latex', 'Location', 'westoutside');
+  %plot(exp(hyperparameter_history(1,:)), 'k-');
+  %hold on;
+  %plot(hyperparameter_history(2,:), 'k--');
+  %plot(hyperparameter_history(6,:), 'b');
+  %plot(hyperparameter_history(7,:), 'b--');
+  %plot(hyperparameter_history(8,:), 'b-.');
+  %legend('$\lambda_0$', '$\log\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', 'Interpreter', 'latex', 'Location', 'westoutside');
   xlabel('number of iterations');
   hold off;
-  print('../mpaper/parameter_convergence2', '-depsc2');
+  %print('../mpaper/parameter_convergence2', '-depsc2');
 
   %plot_history(grad_history);
 
