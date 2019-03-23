@@ -56,7 +56,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     elbo_list = horzcat(elbo_list, elbo);
     hyperparameter_history = horzcat(hyperparameter_history, parameter_vector);
     grad_history = horzcat(grad_history, grad);
-    fprintf('elbo: %f\n', elbo);
+    %fprintf('elbo: %f\n', elbo);
 
     % We want to maximise the ELBO, while fmincon wants to minimize...
     grad = -grad;
@@ -286,10 +286,14 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   i = 0;
   tic;
   while true
+    fprintf('.');
     % Compute the gradient
     matrices = vigpirlkernel(gp);
     z = mvnrnd(gp.mu', gp.B * gp.B', algorithm_params.samples_count);
     [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, matrices);
+    if (isempty(grad))
+      break;
+    end
 
     old_hyperparameters = vigpirlpackparam(gp);
 
@@ -325,7 +329,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %hyperparameters = old_hyperparameters + rho .* grad;
     gp = vigpirlunpackparam(gp, hyperparameters);
 
-    fprintf('ELBO: %f\n', elbo);
+    %fprintf('ELBO: %f\n', elbo);
     %fprintf('----------\n');
     elbo_list = horzcat(elbo_list, elbo);
     grad_history = horzcat(grad_history, grad);
@@ -343,34 +347,35 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
       break;
     end
   end
+  fprintf('\n');
   time = toc;
 
-  figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
-  subplot(2, 1, 1);
-  stem(elbo_list);
-  xlabel('number of iterations');
-  ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
+  %figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
+  %subplot(2, 1, 1);
+  %stem(elbo_list);
+  %xlabel('number of iterations');
+  % ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
 
-  subplot(2, 1, 2);
-  plot_history(policy_history);
-  xlabel('number of iterations');
-  legend('$\pi(a_1 \mid s_1)$', '$\pi(a_1 \mid s_2)$', '$\pi(a_2 \mid s_3)$', 'Interpreter', 'latex', 'Location', 'east');
+  % subplot(2, 1, 2);
+  % plot_history(policy_history);
+  % xlabel('number of iterations');
+  % legend('$\pi(a_1 \mid s_1)$', '$\pi(a_1 \mid s_2)$', '$\pi(a_2 \mid s_3)$', 'Interpreter', 'latex', 'Location', 'east');
   %print('../mpaper/convergence2', '-depsc2');
 
-  figure('Units', 'centimeters', 'Position', [0 0 15 5], 'PaperPositionMode', 'auto');
-  plot(hyperparameter_history(1,:), 'k-');
-  hold on;
-  plot(hyperparameter_history(2,:), 'k--');
-  plot(hyperparameter_history(6,:), 'b');
-  plot(hyperparameter_history(7,:), 'b--');
-  plot(hyperparameter_history(8,:), 'b-.');
-  plot(exp(hyperparameter_history(3,:)), 'r');
-  plot(exp(hyperparameter_history(4,:)), 'r--');
-  plot(exp(hyperparameter_history(5,:)), 'r-.');
-  plot(hyperparameter_history(9,:), 'g');
-  plot(hyperparameter_history(10,:), 'g--');
-  plot(hyperparameter_history(11,:), 'g-.');
-  legend('$\log \lambda_0$', '$\log \lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', '$B_{1,1}$', '$B_{2,2}$', '$B_{3,3}$', '$B_{2,1}$', '$B_{3,1}$', '$B_{3,2}$', 'Interpreter', 'latex', 'Location', 'westoutside');
+  % figure('Units', 'centimeters', 'Position', [0 0 15 5], 'PaperPositionMode', 'auto');
+  % plot(hyperparameter_history(1,:), 'k-');
+  % hold on;
+  % plot(hyperparameter_history(2,:), 'k--');
+  % plot(hyperparameter_history(6,:), 'b');
+  % plot(hyperparameter_history(7,:), 'b--');
+  % plot(hyperparameter_history(8,:), 'b-.');
+  % plot(exp(hyperparameter_history(3,:)), 'r');
+  % plot(exp(hyperparameter_history(4,:)), 'r--');
+  % plot(exp(hyperparameter_history(5,:)), 'r-.');
+  % plot(hyperparameter_history(9,:), 'g');
+  % plot(hyperparameter_history(10,:), 'g--');
+  % plot(hyperparameter_history(11,:), 'g-.');
+  % legend('$\log \lambda_0$', '$\log \lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', '$B_{1,1}$', '$B_{2,2}$', '$B_{3,3}$', '$B_{2,1}$', '$B_{3,1}$', '$B_{3,2}$', 'Interpreter', 'latex', 'Location', 'westoutside');
   %plot(exp(hyperparameter_history(1,:)), 'k-');
   %hold on;
   %plot(hyperparameter_history(2,:), 'k--');
@@ -378,8 +383,8 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %plot(hyperparameter_history(7,:), 'b--');
   %plot(hyperparameter_history(8,:), 'b-.');
   %legend('$\lambda_0$', '$\log\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', 'Interpreter', 'latex', 'Location', 'westoutside');
-  xlabel('number of iterations');
-  hold off;
+  % xlabel('number of iterations');
+  % hold off;
   %print('../mpaper/parameter_convergence2', '-depsc2');
 
   %plot_history(grad_history);
@@ -389,17 +394,17 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   v = solution.v;
   q = solution.q;
   p = solution.p;
-  fprintf('Parameters:\n');
-  disp(hyperparameters);
-  fprintf('Rewards:\n');
-  disp(r);
-  fprintf('values:\n');
-  disp(v);
-  fprintf('Policy:\n');
-  disp(p);
+  %fprintf('Parameters:\n');
+  %disp(hyperparameters);
+  %fprintf('Rewards:\n');
+  %disp(r);
+  %fprintf('values:\n');
+  %disp(v);
+  %fprintf('Policy:\n');
+  %disp(p);
   irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
                       'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
-                      'model_p_itr', {{p}}, 'time', 0, 'score', 0);
+                      'model_p_itr', {{p}}, 'time', 0, 'score', 0, 'sigma', gp.B * gp.B');
 end
 
 function plot_history(matrix)

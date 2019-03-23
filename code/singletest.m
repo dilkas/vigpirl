@@ -36,5 +36,42 @@ mdp_data = struct('discount', 0.9, 'states', 3, 'actions', 2);
 mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
 mdp_data.sa_p(1:3, 1:2, 1) = 1;
 feature_data = struct('splittable', [1; 2; 3]);
-example_samples = {[1, 1], [3, 2], [1, 1], [1, 1]};
-vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, example_samples);
+%example_samples = {[1, 1], [3, 2]};
+%vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, example_samples);
+%return;
+
+% Fancy stuff
+max_demonstrations_count = 5;
+num_repeats = 10;
+data = [];
+for x = 1:max_demonstrations_count
+    for y = 1:max_demonstrations_count
+        fprintf('x=%d, y=%d\n', x, y);
+        demonstrations = {};
+        [demonstrations{1:x}] = deal([1, 1]);
+        [demonstrations{x+1:x+y}] = deal([3, 2]);
+        temp_data1 = [];
+        for i = 1:num_repeats
+            result = wrapper(mdp_data, feature_data, demonstrations);
+            % The format is: first column top to bottom, then second, etc.
+            temp_data1 = [temp_data1; reshape(result.sigma, [1, 9]), reshape(result.p, [1, 6])];
+       end
+       data = [data; [x, y, mean(temp_data1, 1)]];
+    end
+end
+writematrix(data, '../mpaper/covariance_and_policy.csv');
+
+function result = wrapper(mdp_data, feature_data, demonstrations)
+    warning('');
+    try
+        result = vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, demonstrations);
+    catch
+        fprintf('Failed!\n');
+        result = wrapper(mdp_data, feature_data, demonstrations);
+    end
+    [warning_message, ~] = lastwarn;
+    if ~isempty(warning_message)
+        fprintf('Failed because of a warning!\n');
+        result = wrapper(mdp_data, feature_data, demonstrations);
+    end
+end

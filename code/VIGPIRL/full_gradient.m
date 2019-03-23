@@ -53,14 +53,28 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
   %disp(matrices.Kuu);
   %fprintf('Sigma:\n');
   %disp(Sigma);
-  Sigma_inv = inv(Sigma);
+
   Kuu_inv = inv(matrices.Kuu);
+  warning('');
+  Sigma_inv = inv(Sigma);
+  [warning_message, ~] = lastwarn;
+  if ~isempty(warning_message)
+    grad = [];
+    elbo = 0;
+    return;
+  end
+
   S = matrices.Kru' * Kuu_inv;
   % we need to round Gamma because otherwise it's not symmetric due to numerical errors
   Gamma = round(matrices.Krr - S * matrices.Kru, 4);
-  %disp(Gamma);
-  %disp(cond(Gamma));
+
   Gamma_inv = inv(Gamma);
+  [warning_message, ~] = lastwarn;
+  if ~isempty(warning_message)
+    grad = [];
+    elbo = 0;
+    return;
+  end
 
   grad_prediction_for_each_u = arrayfun(@(i) estimate_derivative(z(i, :)), 1:size(z, 1), 'Uniform', 0);
   estimated_grad = mean(cat(3, grad_prediction_for_each_u{:}), 3);
