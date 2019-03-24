@@ -37,11 +37,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   % wrapper: vector of parameters -> scalar value * gradient vector
   function [elbo, grad] = wrapper(parameter_vector)
     gp = vigpirlunpackparam(gp, parameter_vector);
-
-    %disp(gp);
-    %disp(gp.B * gp.B');
-    %disp(gp.mu);
- 
     matrices = vigpirlkernel(gp);
     zz = mvnrnd(gp.mu', gp.B * gp.B', algorithm_params.samples_count);
     [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, zz, matrices);
@@ -303,11 +298,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
     %grad(d+2:d+m+1) = 0; % B diagonal
     %grad(d+2*m+2:end) = 0; % rest of B
 
-    %fprintf('Hyperparameters:\n');
-    %disp(old_hyperparameters);
-    %fprintf('Gradient:\n');
-    %disp(grad);
-
     hyperparameter_history = horzcat(hyperparameter_history, old_hyperparameters);
 
     % Make the derivative of B weaker
@@ -350,10 +340,10 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   fprintf('\n');
   time = toc;
 
-  %figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
-  %subplot(2, 1, 1);
-  %stem(elbo_list);
-  %xlabel('number of iterations');
+  % figure('Units', 'centimeters', 'Position', [0 0 15 20], 'PaperPositionMode', 'auto');
+  % subplot(2, 1, 1);
+  % stem(elbo_list);
+  % xlabel('number of iterations');
   % ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
 
   % subplot(2, 1, 2);
@@ -383,12 +373,11 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %plot(hyperparameter_history(7,:), 'b--');
   %plot(hyperparameter_history(8,:), 'b-.');
   %legend('$\lambda_0$', '$\log\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', 'Interpreter', 'latex', 'Location', 'westoutside');
-  % xlabel('number of iterations');
-  % hold off;
+  %xlabel('number of iterations');
+  %hold off;
   %print('../mpaper/parameter_convergence2', '-depsc2');
 
-  %plot_history(grad_history);
-
+  matrices = vigpirlkernel(gp);
   r = matrices.Kru' * inv(matrices.Kuu) * gp.mu;
   solution = feval([mdp_model 'solve'], mdp_data, r);
   v = solution.v;
@@ -404,7 +393,7 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %disp(p);
   irl_result = struct('r', r, 'v', v, 'p', p, 'q', q, 'model_itr', {{gp}},...
                       'r_itr', {{r}}, 'model_r_itr', {{r}}, 'p_itr', {{p}},...
-                      'model_p_itr', {{p}}, 'time', 0, 'score', 0, 'sigma', gp.B * gp.B');
+                      'model_p_itr', {{p}}, 'time', 0, 'score', 0, 'matrices', matrices, 'gp', gp);
 end
 
 function plot_history(matrix)

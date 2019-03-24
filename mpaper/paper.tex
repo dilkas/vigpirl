@@ -571,8 +571,8 @@ where
 \section{Theoretical Justification} \label{sec:proof}
 % TODO: Possible improvements:
 % 1. Use limits more often.
-% 2. Perturbation lemma can be replaced by continuity of A |-> A^-1.
-% 3. epsilon is treated as an arbitrary constant.
+% 2. Avoid saying that epsilon is arbitrary and using phrases like 'sufficiently small'.
+% TODO: Q should be lowercase
 
 The typical way to optimise a quantity (the ELBO, in this case) involves
 computing its gradient. Unfortunately, the term $\mathbb{E}[v]$ in $\mathcal{L}$
@@ -1203,26 +1203,6 @@ rewards in order to reflect this.
   \centering
   \begin{minipage}{.5\textwidth}
     \centering
-    \includegraphics[width=0.8\columnwidth]{sage1}
-    \includegraphics[width=0.8\columnwidth]{sage2}
-  \end{minipage}%
-  \begin{minipage}{.5\textwidth}
-    \centering
-    \includegraphics[width=0.8\columnwidth]{elbo_over_B_short}
-  \end{minipage}
-  \caption{How a well-defined problem with a correct solutions becomes a
-    well-defined problem with an incorrect solution. In each plot, the function
-    we are trying to optimise is in blue, and its derivative is in red. The
-    plots on the left are for $q(\mathbf{u})$ and its derivatives with respect
-    to $B_{1,1}$ (at the top) and $B_{2,1}$ (at the bottom), whereas the plots
-    on the right are for $\mathbb{E}[v]$ and its corresponding derivatives.}
-  \label{fig:B_gradient}
-\end{figure*}
-
-\begin{figure*}
-  \centering
-  \begin{minipage}{.5\textwidth}
-    \centering
     \includegraphics[width=0.8\columnwidth]{convergence1}
   \end{minipage}%
   \begin{minipage}{.5\textwidth}
@@ -1249,38 +1229,15 @@ rewards in order to reflect this.
   \label{fig:convergence2}
 \end{figure*}
 
-Unfortunately, we are not able to use $\frac{\partial \mathcal{L}}{\partial
-  \mathbf{B}}$ in order to optimise $\mathbf{B}$. We illustrate the problem in
-Figure \ref{fig:B_gradient}. On the left side of the figure, we plot how
-$q(\mathbf{u})$ behaves as a function of a diagonal and a non-diagonal element
-of $\mathbf{B}$. Both functions have maximum values that can be attained by
-following the corresponding derivatives. However, when these derivatives are
-used to estimate $\frac{\partial \mathbb{E}[v]}{\partial \mathbf{B}}$, the
-resulting derivatives no longer match their corresponding functions, although
-the functions themselves still have optimal values: at or below $1$ for
-$B_{1,1}$ and at $0$ for $B_{2,1}$. This leads us to consider two restrictions
-of the model in order to investigate its convergence behaviour:
-\begin{itemize}
-\item In \textbf{Scenario 1}, we remove $\frac{\partial \mathbb{E}[v]}{\partial
-    \mathbf{B}}$ from $\frac{\partial \mathcal{L}}{\partial \mathbf{B}}$. This
-  essentially optimises $\mathbf{B}$ to match $\Kuu$, because then
-  $\frac{\partial \mathcal{L}}{\partial \mathbf{B}}$ becomes
-  $-\frac{\partial}{\partial \mathbf{B}} \DKL{q(\mathbf{u})}{p(\mathbf{u})}$,
-  i.e., we are optimising $\mathbf{B}$ to minimise the difference between the
-  prior and the posterior of $\mathbf{u}$.
-\item In \textbf{Scenario 2}, we set $\mathbf{B} = \mathbf{I}_m$, and do not
-  optimise it at all.
-\end{itemize}
-
 We plot how $\mathcal{L}$ as well as policies $\pi(a_1 \mid s_1)$, $\pi(a_2 \mid
 s_3)$, and $\pi(a_1 \mid s_2)$ converge over a number of iterations in Figure
 \ref{fig:convergence1}. The first two policies correspond to actions taken in
 the set of demonstrations $\mathcal{D}$, so we would expect to see their
-probabilities converge to values above $0.5$. Note that due to the stochastic
-nature of our MDP model, we do not expect to see any probability reach exactly
-$1$. The third policy, however, has no relevant data in $\mathcal{D}$, so the
-maximum causal entropy framework would put the probability at around $0.5$.
+probabilities converge to values near $1$. The third policy, however, has no
+data in $\mathcal{D}$ that would guide its value, so the maximum causal entropy
+framework would put the probability at around $0.5$.
 
+% TODO: rewrite this
 As we ran the algorithm with two stopping conditions---$300$ iterations and the
 $\ell_1$-norm of the change in parameter values being below $0.01$---note that
 the algorithm terminated early in Scenario~2 but not in Scenario~1, although
@@ -1290,6 +1247,7 @@ with the slightly-restricted model of Scenario~1, but stabilise at $0.6$ in
 Scenario~2 due to an important part of the model being completely fixed. In both
 cases, $\pi(a_1 \mid s_2)$ converges to $0.5$ as expected.
 
+% TODO: rewrite
 Figure \ref{fig:convergence2} shows how the parameters of the model converge in
 both scenarios. The algorithm seems to converge fine in Scenario~2, but most of
 the parameters fail to stabilise in Scenario~1. Most importantly, the diagonal
@@ -1301,44 +1259,42 @@ diverge, but in `the right' direction: as $\mu_2$ increases while $\mu_1$ and
 $\mu_3$ decrease, the policies in Figure \ref{fig:convergence1} converge to
 their optimal values.
 
-This leaves us with two models: one that converges to reasonable-but-suboptimal
-values, and one that diverges to infinite variance but also provides correct
-policies.
+  % \begin{tikzpicture}[
+  %   /pgfplots/colormap/viridis,
+  %   ellipse2/.style={
+  %     draw,
+  %     ellipse,
+  %     /utils/exec={
+  %       \pgfplotscolormapdefinemappedcolor{#1}},
+  %     fill=mapped color},
+  %   edge2/.style={
+  %     ultra thick,
+  %     /utils/exec={
+  %       \pgfplotscolormapdefinemappedcolor{#1}},
+  %     draw=mapped color}]
+  %   \csvreader[
+  %   no head,
+  %   column count=11
+  %   ]{covariance_and_policy_transformed.csv}{1=\x, 2=\y, 3=\Soneone, 4=\Stwotwo, 5=\Sthreethree, 6=\Stwoone, 7=\Sthreeone, 8=\Sthreetwo, 9=\ponetwo, 10=\ptwoone, 11=\pthreetwo}{%
+  %     \node[ellipse2=\Soneone] (s1) at (3*\x, 2*\y) {$s_1$};
+  %     \node[ellipse2=\Stwotwo] (s2) at (3*\x+1, 2*\y+1) {$s_2$};
+  %     \node[ellipse2=\Sthreethree] (s3) at (3*\x+2, 2*\y) {$s_3$};
+  %     \draw[edge2=\Stwoone] (s1) -- (s2);
+  %     \draw[edge2=\Sthreeone] (s1) to (s3);
+  %     \draw[edge2=\Sthreetwo] (s2) to (s3);
+  %   }
+  %   \draw [<->] (2.5, 7.5) node (yaxis) [above] {$\zeta_2$}
+  %   |- (11.5, 1.5) node (xaxis) [right] {$\zeta_1$};
+  %   \foreach \x in {1, 2, 3} {
+  %     \node (x\x) at (1+3*\x, 1.3) {$\x$};
+  %   }
+  %   \foreach \y in {1, 2, 3} {
+  %     \node (y\y) at (2.3, 0.5+2*\y) {$\y$};
+  %   }
+  % \end{tikzpicture}
 
-\begin{figure*}
-  \begin{tikzpicture}[
-    /pgfplots/colormap/viridis,
-    ellipse2/.style={
-      draw,
-      ellipse,
-      /utils/exec={
-        \pgfplotscolormapdefinemappedcolor{#1}},
-      fill=mapped color},
-    edge2/.style={
-      ultra thick,
-      /utils/exec={
-        \pgfplotscolormapdefinemappedcolor{#1}},
-      draw=mapped color}]
-    \csvreader[
-    no head,
-    column count=11
-    ]{covariance_and_policy_transformed.csv}{1=\x, 2=\y, 3=\Soneone, 4=\Stwotwo, 5=\Sthreethree, 6=\Stwoone, 7=\Sthreeone, 8=\Sthreetwo, 9=\ponetwo, 10=\ptwoone, 11=\pthreetwo}{%
-      \node[ellipse2=\Soneone] (s1) at (3*\x, 2*\y) {$s_1$};
-      \node[ellipse2=\Stwotwo] (s2) at (3*\x+1, 2*\y+1) {$s_2$};
-      \node[ellipse2=\Sthreethree] (s3) at (3*\x+2, 2*\y) {$s_3$};
-      \draw[edge2=\Stwoone] (s1) -- (s2);
-      \draw[edge2=\Sthreeone] (s1) to (s3);
-      \draw[edge2=\Sthreetwo] (s2) to (s3);
-    }
-    \draw [<->] (2.5, 7.5) node (yaxis) [above] {$\zeta_2$}
-    |- (11.5, 1.5) node (xaxis) [right] {$\zeta_1$};
-    \foreach \x in {1, 2, 3} {
-      \node (x\x) at (1+3*\x, 1.3) {$\x$};
-    }
-    \foreach \y in {1, 2, 3} {
-      \node (y\y) at (2.3, 0.5+2*\y) {$\y$};
-    }
-  \end{tikzpicture}
+\begin{figure}
+  \centering
   \begin{tikzpicture}
     \csvreader[
     no head,
@@ -1356,7 +1312,6 @@ policies.
         at={(350*\x, 110*\y)},
         height=100,
         bar shift=0pt,
-        %legend pos=outer south,
         legend style={
           legend columns=-1,
           at={(1.7,-0.4)}
@@ -1380,8 +1335,39 @@ policies.
       \node (y\y) at (2.1, 1+2.1*\y) {$\y$};
     }
   \end{tikzpicture}
-\end{figure*}
+  \caption{How policy probabilities change after adding more demonstrations. The
+    $x$-axis ($y$-axis) shows how many copies of $\zeta_1$ ($\zeta_2$) were in
+    $\mathcal{D}$. Each plot shows the values of three policies after 300
+    iterations (averaged out over 10 runs). The bottom (top) of each bar plot
+    corresponds to probability 0 (1), and dashed lines mark probability 0.5.}
+  \label{fig:policies}
+\end{figure}
 
+We would expect stochastic probabilities to converge closer to extreme
+values (i.e., 0 and 1) as we add more data to the model. We test this hypothesis
+with a small-scale experiment in Figure \ref{fig:policies}. The policy $\pitwo$,
+in particular, confirms our prediction. As this policy denotes the probability
+of going from $s_2$ to $s_1$, we expect it to stay around $0.5$ as long as we
+have equal amounts of demonstrations $\zeta_1$ and $\zeta_2$ (this corresponds
+to the plots at coordinates $(1, 1)$, $(2, 2)$, and $(3, 3)$). But as we
+increase the number of times state $s_1$ appears in our demonstrations (going
+to the right across any row of plots), the model recognises the increasing value
+of state $s_1$, and the probability increases. In contrast, going up across the
+plots reduces the probability, as state $s_3$ becomes more valuable, and the
+model prefers it over state $s_1$. Interestingly, the other two policy
+probabilities seem to increase with any added data. This is likely due to the
+fact that more demonstrations result in higher gradient values, and thus lead to
+better-converged policies.
+
+%The experiments were run with a constant step size of 0.1, discarding iterations where either $\bm\Sigma$ or $\bm\Gamma$ becomes near-singular.
+
+%Diagonal and non-diagonal entries of the covariance matrix are normalised to
+%$[0, 1]$ separately, so as to emphasize the variation in each. There were no
+%negative entries of the covariance matrix after convergence.
+
+%More data creates bigger gradients---need smaller step size. Dynamic step sizes
+%don't work very well because they become zero after a big spike (and spikes do
+%happen).
 \section{Related Work} % 0.5-1 page
 
 The IRL problem itself was originally proposed by Russell in 1998
@@ -1413,9 +1399,6 @@ networks often need significantly more data for the weights across all layers to
 stabilise.
 
 \subsection{Variational Inference}
-% none of these approaches really work in our situation because they tend to
-% depend on properties of how GPs are used in regression that are no longer true
-% in IRL
 
 Since the focus of our work was on proving feasibility rather than ensuring
 performance, we simply used a combination of Gaussians for our variational
@@ -1457,7 +1440,6 @@ the same spectral representations for efficient VI.
   assumption---a common weakness of previous approaches.
 \item Being able to model rewards using full probability distributions without
   limiting assumptions opens up many new research directions.
-\item My excuse for the buggy implementation...
 \end{itemize}
 
 \subsection{Further Work}
