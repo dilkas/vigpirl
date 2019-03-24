@@ -41,7 +41,7 @@ feature_data = struct('splittable', [1; 2; 3]);
 %return;
 
 % Fancy stuff
-max_demonstrations_count = 5;
+max_demonstrations_count = 3;
 num_repeats = 10;
 data = [];
 for x = 1:max_demonstrations_count

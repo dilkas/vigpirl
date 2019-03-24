@@ -113,11 +113,11 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
   % If our rewards go too far towards negative infinity, and probability of a
   % state-action pair is over 1, freeze the reward of current state
-  elbo_data_part = counts' * S * gp.mu - 0.5 * estimated_grad(1);
-  if (elbo_data_part > 0)
-    fprintf('Should be negative: %f\n', elbo_data_part);
+  %elbo_data_part = counts' * S * gp.mu - 0.5 * estimated_grad(1);
+  %if (elbo_data_part > 0)
+    %fprintf('Should be negative: %f\n', elbo_data_part);
   %  elbo = elbo - elbo_data_part;
-  end
+  %end
 
   %fprintf('Not estimated grad:');
   %disp(not_estimated(2));
