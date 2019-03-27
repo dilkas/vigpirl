@@ -6,7 +6,10 @@
 \usepackage{bm}
 \usepackage{bbm}
 \usepackage{mathtools}
+\usepackage[style=ieee]{biblatex}
+\usepackage{setspace}
 
+\addbibresource{talk.bib}
 \usetheme{SaintPetersburg}
 \beamertemplatenavigationsymbolsempty
 \usetikzlibrary{shapes,bayesnet}
@@ -21,7 +24,9 @@
 \newcommand{\vbound}{\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma}}
 \newcommand{\dt}{\frac{\partial}{\partial t}}
 \newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}}
+\newcommand{\V}{V_{\mathbf{r}}}
 
+\renewcommand{\thempfootnote}{\arabic{mpfootnote}}
 \DeclarePairedDelimiterX{\infdivx}[2]{(}{)}{%
   #1\;\delimsize\|\;#2%
 }
@@ -36,94 +41,128 @@
 
 \maketitle
 
-\begin{frame}{Markov Decision Process}
-  \begin{minipage}[t][0.85\textheight]{\textwidth}
-    $\mathcal{M} = (\mathcal{S}, \mathcal{A}, \mathcal{T}, \gamma, \mathbf{r})$,
-    where
-  
-    $\mathcal{T} : \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to [0,
-    1]$, and
-
-    $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|} \text{ or } r : \mathcal{S} \to
-    \mathbb{R}$.
-    \begin{tikzpicture}[state/.style={rectangle, draw, scale=1.5},
-      action/.style={diamond, draw, fill=lightgray}, overlay, shift={(-2, -3)}]
-      \node(origin) at (0, 0){};
-      \node[state](s0) at (1, 0){$s_0$};
-      \node[action](start) at (2.5, 0){start};
-      \node[state,label=try](s1) at (4, 0){$s_1$};
-      \node[action](wait) at (4, -2){wait};
-      \node[action](send) at (5.5, 0){send};
-      \node[state,label={right:failure},label={below:\textcolor{red}{-1}}](s2) at (7, 2){$s_2$};
-      \node[action](restart) at (7, 4){restart};
-      \node[state,label={left:success},label={above:\textcolor{green}{+3}}](s3) at (7, -2){$s_3$};
-      \node[action](stop) at (8.5, -2){stop};
-      \draw[->] (s0) edge (start);
-      \draw[->] (start) edge node[above] {$1$} (s1);
-      \draw[->,bend left] (s1) edge (wait);
-      \draw[->,bend left] (wait) edge node[left] {$1$} (s1);
-      \draw[->] (s1) edge (send);
-      \draw[->] (send) edge node[left] {$0.01$} (s2);
-      \draw[->] (send) edge node[left] {$0.99$} (s3);
-      \draw[->] (s2) edge (restart);
-      \draw[->,bend right] (restart) edge node[above] {$1$} (s0);
-      \draw[->,bend left] (s3) edge (stop);
-      \draw[->,bend left] (stop) edge node[below] {$1$} (s3);
-      \draw[->] (origin) edge (s0);
-    \end{tikzpicture}
-    \vfill
-    {\hfill\tiny\color{gray}Source: P. Dilkas. Nondeterministic Bigraphs and Their Use
-      in Modelling Movement. 2018}
-  \end{minipage}
+\begin{frame}
+  \includegraphics[width=\textwidth]{images/image-044.jpg}
+  \begin{spacing}{0.5}
+    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
+  \end{spacing}
 \end{frame}
 
+\begin{frame}
+  \includegraphics[width=\textwidth]{images/image-045.jpg}
+  \begin{spacing}{0.5}
+    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
+  \end{spacing}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{images/image-048.jpg}
+  \begin{spacing}{0.5}
+    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
+  \end{spacing}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{images/image-049.jpg}
+  \begin{spacing}{0.5}
+    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
+  \end{spacing}
+\end{frame}
+
+\begin{frame}{Inverse Reinforcement Learning (IRL)}
+  \begin{columns}
+    \begin{column}{0.2\textwidth}
+      Model (MDP)
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/image-052.png}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.8\textwidth}
+      Demonstrations
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/image-013.png}
+      \end{figure}
+    \end{column}
+  \end{columns}
+  \begin{spacing}{0.5}
+    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
+  \end{spacing}
+\end{frame}
+
+% TODO: could mention other applications
+
 \begin{frame}{Inverse Reinforcement Learning (COLT 1998)}
-  \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{russell.png}
-  \end{figure}
-  \begin{tikzpicture}[overlay, shift={(10, 1.8)}]
-    \node {\includegraphics{russell.jpg}};
-  \end{tikzpicture}
-  \begin{block}{Inverse Reinforcement Learning Problem}
+  \begin{definition}[Markov Decision Process]
+    An MDP is a set $\mathcal{M} = \{\mathcal{S}, \mathcal{A}, \mathcal{T},
+    \gamma, \mathbf{r} \}$ that consists of:
+    \begin{itemize}
+    \item states $\mathcal{S}$,
+    \item actions $\mathcal{A}$,
+    \item transition function $\mathcal{T} : \mathcal{S} \times \mathcal{A}
+      \times \mathcal{S} \to [0, 1]$,
+    \item discount factor $\gamma \in [0, 1)$,
+    \item reward function/vector $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ (or
+      $r : \mathcal{S} \to \mathbb{R}$).
+    \end{itemize}
+  \end{definition}
+  \pause
+  \begin{definition}[Inverse Reinforcement Learning Problem]
     Given:
     \begin{itemize}
     \item $\mathcal{M} \setminus \{ \mathbf{r} \}$,
-    \item $\mathcal{D} = \{ \zeta_i \}_{i=1}^N$, where $\zeta_i = \{ (s_{i,1},
-      a_{i,1}), \dots, (s_{i,T}, a_{i,T}) \}$,
+    \item demonstrations $\mathcal{D} = \{ \zeta_i \}_{i=1}^N$, where $\zeta_i =
+      \{ (s_{i,t}, a_{i,t}) \}_{t=1}^T$,
     \item features $\mathbf{X} \in \mathbb{R}^{|\mathcal{S}| \times d}$,
     \end{itemize}
     find $\mathbf{r}$.
-  \end{block}
-\end{frame} % TODO: motivation for solving this
+  \end{definition}
+\end{frame}
+% TODO: add motivation for IRL from the Turing talk
 
-\begin{frame}{Value Iteration}
-  \begin{block}{Standard MDP}
-    \[
-      V_{\mathbf{r}}(s) \coloneqq r(s) + \gamma \max_{a \in \mathcal{A}} \sum_{s' \in
-        \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s')
-    \]
-  \end{block}
-  \begin{block}{Linearly Solvable / Maximum Causal Entropy MDP}
-    \[
-      V_{\mathbf{r}}(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp \left( r(s) +
-        \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s')
-      \right)
-    \]
+\begin{frame}
+  \begin{itemize}
+  \item Has the model learned optimal behaviour?
+  \item Can it recognise its own weak spots?
+  \item Solution: variational inference.
+  \end{itemize}
+  \begin{tikzpicture}[remember picture,overlay]
+    \node at (9, 1) {\includegraphics[scale=1]{images/vi.png}};
+  \end{tikzpicture}
+  \pause
+  \begin{block}{Outline for the rest of the talk}
+  \begin{itemize}
+  \item Maximum causal entropy and stochastic policies
+  \item Reward function as a Gaussian process (GP)
+  \item Variational approximation of the posterior distribution
+  \item Theoretical results: how can we compute the gradient?
+  \item Empirical results: does it work?
+  \item Further work: what comes next?
+  \end{itemize}
   \end{block}
 \end{frame}
+% TODO: could add a list of goals
 
-\begin{frame}{Under the Maximum Entropy Model...}
-  \[
-    p(\mathcal{D} \mid \mathbf{r}) = \prod_{i=1}^N \prod_{t=1}^T p(a_{i,t} \mid
-    s_{i,t}) = \exp\left( \sum_{i=1}^N \sum_{t=1}^T Q_{\mathbf{r}}(s_{i,t},
-      a_{i,t}) - V_{\mathbf{r}}(s_{i,t}) \right)
-  \]
-  where
-  \[
-    Q_{\mathbf{r}}(s, a) = r(s) + \gamma \sum_{s' \in \mathcal{S}}
-    \mathcal{T}(s, a, s')V_{\mathbf{r}}(s')
-  \]
+% TODO: Interlude about GPs
+
+\begin{frame}{Maximum Causal Entropy}
+  \begin{minipage}[t]{\textwidth}
+    \begin{block}{Standard MDP}
+      \[
+        V_{\mathbf{r}}(s) \coloneqq r(s) + \gamma \max_{a \in \mathcal{A}}
+        \sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s')
+      \]
+    \end{block}
+    \begin{block}{Maximum Causal Entropy MDP\footfullcite{DBLP:conf/icml/ZiebartBD10}}
+      \[
+        V_{\mathbf{r}}(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp \left(
+          r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a,
+          s')V_{\mathbf{r}}(s') \right)
+      \]
+    \end{block}
+    \vspace{1cm}
+  \end{minipage}
 \end{frame}
 
 \begin{frame}{Reward Function as a Gaussian Process}
@@ -167,9 +206,7 @@
   \end{block}
 \end{frame}
 
-% TODO: why use VI on this problem?
-
-\begin{frame}{Variational Inference}
+\begin{frame}{Variational Approximation}
   \begin{block}{Previous Work}
     \begin{itemize}
     \item Levine et al. (2011) assume that $\mathbf{r} =
@@ -178,21 +215,19 @@
     \item Wulfmeier et al. (2015) use a neural network
     \end{itemize}
   \end{block}
-  What about posterior probabilities?
   \[
     p(\mathbf{r}, \mathbf{u} \mid \mathcal{D}) = \frac{p(\mathcal{D} \mid
       \mathbf{r})p(\mathbf{r} \mid \mathbf{u})p(\mathbf{u})}{p(\mathcal{D})}
   \]
-  Solution: approximate $p(\mathbf{r}, \mathbf{u} \mid \mathcal{D})$ with
-  $q(\mathbf{r}, \mathbf{u}) = q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})$, where
+  can be approximated with $q(\mathbf{r}, \mathbf{u}) = q(\mathbf{r} \mid
+  \mathbf{u})q(\mathbf{u})$, where
   \begin{itemize}
   \item $q(\mathbf{r} \mid \mathbf{u}) = p(\mathbf{r} \mid \mathbf{u})$
   \item $q(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \bm\mu, \bm\Sigma)$
   \end{itemize}
 \end{frame}
 
-% TODO: what parameters are we optimising? Maybe add the integral form as well
-\begin{frame}{Variational Inference}
+\begin{frame}{Variational Approximation}
   \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -209,23 +244,19 @@
   \end{figure}
   Goal: \alert{minimise} the \emph{Kullback-Leibler divergence}:
   \[
-    \begin{split}
-      \DKL{q(\mathbf{r}, \mathbf{u})}{p(\mathbf{r}, \mathbf{u} \mid \mathcal{D})}
-      &= \mathbb{E}_{(\mathbf{r}, \mathbf{u}) \sim q(\mathbf{r}, \mathbf{u})}[\log
-      q(\mathbf{r}, \mathbf{u}) - \log p(\mathbf{r}, \mathbf{u} \mid
-      \mathcal{D})] \\
-      &= \mathbb{E}_{(\mathbf{r}, \mathbf{u}) \sim q(\mathbf{r},
-        \mathbf{u})}[\log q(\mathbf{r}, \mathbf{u}) - \log p(\mathcal{D},
-      \mathbf{r}, \mathbf{u})] \\
-      &+ \mathbb{E}_{(\mathbf{r}, \mathbf{u}) \sim q(\mathbf{r},
-        \mathbf{u})}[\log p(\mathcal{D})]
-    \end{split}
+    \DKL{q(\mathbf{r}, \mathbf{u})}{p(\mathbf{r}, \mathbf{u} \mid \mathcal{D})}
+    = \mathbb{E}_{q(\mathbf{r}, \mathbf{u})}[\log q(\mathbf{r}, \mathbf{u}) -
+    \log p(\mathbf{r}, \mathbf{u} \mid \mathcal{D})]
   \]
   Equivalently, \alert{maximise} the \emph{evidence lower bound}:
+  \begin{align*}
+    \mathcal{L} &= \mathbb{E}_{q(\mathbf{r}, \mathbf{u})}[\log p(\mathcal{D}, \mathbf{r}, \mathbf{u}) - \log q(\mathbf{r}, \mathbf{u})] \\
+                &= \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu - \alert{\mathbb{E}[v]} - \DKL{q(\mathbf{u})}{p(\mathbf{u})}
+  \end{align*}
+  where
   \[
-    \mathcal{L} = \mathbb{E}_{(\mathbf{r}, \mathbf{u}) \sim q(\mathbf{r},
-      \mathbf{u})}[\log p(\mathcal{D}, \mathbf{r}, \mathbf{u}) - \log
-    q(\mathbf{r}, \mathbf{u})]
+    v = \sum_{i=1}^N \sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in \mathcal{S}}
+    \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
   \]
 \end{frame}
 
@@ -359,4 +390,40 @@
     $d(\mathbf{u}) \in \mathbb{R}_2[\mathbf{u}]$.
   \end{lemma}
 \end{frame}
+
+% TODO: add empirical results
+
+\begin{frame}{Further Work}
+  \begin{minipage}[t]{\textwidth}
+    \begin{columns}[t]
+      \begin{column}{0.9\textwidth}
+        \begin{itemize}
+        \item More flexible models using...
+          \begin{itemize}
+          \item normalizing flows\footfullcite{DBLP:conf/icml/RezendeM15}
+          \item spectral kernels\footfullcite{pmlr-v28-wilson13}
+          \end{itemize}
+        \item Faster GP inference and MDP solving
+        \item IRL in the context of reinforcement learning
+        \item Interplay between rewards and stochastic/deterministic policies
+        \end{itemize}
+        \vspace{2.5cm}
+      \end{column}
+      \begin{column}{0.1\textwidth}
+        \vspace{-1cm}
+        \begin{figure}
+          \centering
+          \includegraphics[scale=0.1]{images/flows-1.png}
+
+          \includegraphics[scale=0.1]{images/flows-2.png}
+
+          \includegraphics[scale=0.1]{images/flows-3.png}
+
+          \includegraphics[scale=0.1]{images/flows-4.png}
+        \end{figure}
+      \end{column}
+    \end{columns}
+  \end{minipage}
+\end{frame}
+
 \end{document}

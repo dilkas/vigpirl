@@ -39,7 +39,7 @@ feature_data = struct('splittable', [1; 2; 3]);
 example_samples = {[1, 1], [3, 2]};
 wrapper(mdp_data, feature_data, example_samples);
 %vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, example_samples);
-%return;
+return;
 
 % Fancy stuff 1
 %max_demonstrations_count = 3;
