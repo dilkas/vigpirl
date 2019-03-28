@@ -6,11 +6,11 @@
 \usepackage{bm}
 \usepackage{bbm}
 \usepackage{mathtools}
-\usepackage[style=ieee]{biblatex}
+\usepackage[bibstyle=ieee,citestyle=authoryear]{biblatex}
 \usepackage{setspace}
 
 \addbibresource{talk.bib}
-\usetheme{SaintPetersburg}
+\usetheme{Frankfurt}
 \beamertemplatenavigationsymbolsempty
 \usetikzlibrary{shapes,bayesnet}
 \newtheorem{proposition}{Proposition}
@@ -41,29 +41,15 @@
 
 \maketitle
 
-\begin{frame}
-  \includegraphics[width=\textwidth]{images/image-044.jpg}
-  \begin{spacing}{0.5}
-    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
-  \end{spacing}
-\end{frame}
+\section{Introduction}
 
 \begin{frame}
-  \includegraphics[width=\textwidth]{images/image-045.jpg}
-  \begin{spacing}{0.5}
-    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
-  \end{spacing}
-\end{frame}
-
-\begin{frame}
-  \includegraphics[width=\textwidth]{images/image-048.jpg}
-  \begin{spacing}{0.5}
-    {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
-  \end{spacing}
-\end{frame}
-
-\begin{frame}
-  \includegraphics[width=\textwidth]{images/image-049.jpg}
+  \begin{overprint}
+    \onslide<1>\includegraphics[width=\textwidth]{images/image-044.jpg}
+    \onslide<2>\includegraphics[width=\textwidth]{images/image-045.jpg}
+    \onslide<3>\includegraphics[width=\textwidth]{images/image-048.jpg}
+    \onslide<4>\includegraphics[width=\textwidth]{images/image-049.jpg}
+  \end{overprint}
   \begin{spacing}{0.5}
     {\tiny\color{gray}\fullcite{DBLP:journals/ijrr/KretzschmarSSB16}}
   \end{spacing}
@@ -91,24 +77,22 @@
   \end{spacing}
 \end{frame}
 
-% TODO: could mention other applications
-
-\begin{frame}{Inverse Reinforcement Learning (COLT 1998)}
+\begin{frame}
   \begin{definition}[Markov Decision Process]
     An MDP is a set $\mathcal{M} = \{\mathcal{S}, \mathcal{A}, \mathcal{T},
     \gamma, \mathbf{r} \}$ that consists of:
     \begin{itemize}
-    \item states $\mathcal{S}$,
-    \item actions $\mathcal{A}$,
+    \item states $\mathcal{S}$
+    \item actions $\mathcal{A}$
     \item transition function $\mathcal{T} : \mathcal{S} \times \mathcal{A}
-      \times \mathcal{S} \to [0, 1]$,
-    \item discount factor $\gamma \in [0, 1)$,
+      \times \mathcal{S} \to [0, 1]$
+    \item discount factor $\gamma \in [0, 1)$
     \item reward function/vector $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ (or
-      $r : \mathcal{S} \to \mathbb{R}$).
+      $r : \mathcal{S} \to \mathbb{R}$)
     \end{itemize}
   \end{definition}
   \pause
-  \begin{definition}[Inverse Reinforcement Learning Problem]
+  \begin{definition}[Inverse Reinforcement Learning \parencite{DBLP:conf/colt/Russell98}]
     Given:
     \begin{itemize}
     \item $\mathcal{M} \setminus \{ \mathbf{r} \}$,
@@ -121,11 +105,33 @@
 \end{frame}
 % TODO: add motivation for IRL from the Turing talk
 
+\begin{frame}{Other Applications}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \includegraphics[height=0.8\textheight]{images/helicopter-000.jpg}
+      \begin{spacing}{0.5}
+        {\tiny\fullcite{DBLP:conf/nips/AbbeelCQN06}}
+      \end{spacing}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \includegraphics[width=0.5\textwidth]{images/pedestrians-013.png}\includegraphics[width=0.5\textwidth]{images/pedestrians-014.png}
+      \begin{spacing}{0.5}
+        {\tiny\fullcite{DBLP:conf/iros/ZiebartRGMPBHDS09}}
+      \end{spacing}
+      \vspace{0.5cm}
+      \includegraphics[width=\textwidth]{images/patrolling.png}
+      \begin{spacing}{0.5}
+        {\tiny\fullcite{DBLP:conf/atal/BogertD14}}
+      \end{spacing}
+    \end{column}
+  \end{columns}
+\end{frame}
+
 \begin{frame}
   \begin{itemize}
   \item Has the model learned optimal behaviour?
   \item Can it recognise its own weak spots?
-  \item Solution: variational inference.
+  \item Solution: variational inference (VI)
   \end{itemize}
   \begin{tikzpicture}[remember picture,overlay]
     \node at (9, 1) {\includegraphics[scale=1]{images/vi.png}};
@@ -144,7 +150,7 @@
 \end{frame}
 % TODO: could add a list of goals
 
-% TODO: Interlude about GPs
+\section{Entropy}
 
 \begin{frame}{Maximum Causal Entropy}
   \begin{minipage}[t]{\textwidth}
@@ -154,16 +160,19 @@
         \sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s')
       \]
     \end{block}
-    \begin{block}{Maximum Causal Entropy MDP\footfullcite{DBLP:conf/icml/ZiebartBD10}}
+    \begin{block}{Maximum Causal Entropy MDP\textsuperscript{1}}
       \[
         V_{\mathbf{r}}(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp \left(
           r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a,
           s')V_{\mathbf{r}}(s') \right)
       \]
     \end{block}
+    \vphantom{\footfullcite{DBLP:conf/icml/ZiebartBD10}}
     \vspace{1cm}
   \end{minipage}
 \end{frame}
+
+\section{GPs}
 
 \begin{frame}{Reward Function as a Gaussian Process}
   \begin{block}{Automatic Relevance Determination Kernel}
@@ -205,6 +214,8 @@
     \end{itemize}
   \end{block}
 \end{frame}
+
+\section{VI}
 
 \begin{frame}{Variational Approximation}
   \begin{block}{Previous Work}
@@ -259,6 +270,8 @@
     \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
   \]
 \end{frame}
+
+\section{Theory}
 
 \begin{frame}{Mathematical Preliminaries}
   \begin{table}
@@ -324,14 +337,12 @@
     coefficients are in $\mathbb{R}$.
   \end{definition}
   \begin{example}
-    \[
-      \begin{split}
-        \mathbb{R}_2[\mathbf{x}] \supset \{ &2x_1^2 + \pi x_2,\\
-        &x_1x_2,\\
-        &-3x_1 + 1,\\
-        &0 \}
-      \end{split}
-    \]
+    \begin{align*}
+      2x_1^2 + \pi x_2 &\in \mathbb{R}_2[\mathbf{x}] \\
+      x_1x_2 &\in \mathbb{R}_2[\mathbf{x}] \\
+      -3x_1 + 1 &\in \mathbb{R}_2[\mathbf{x}] \\
+      0 &\in \mathbb{R}_2[\mathbf{x}]
+    \end{align*}
   \end{example}
 \end{frame}
 
@@ -391,7 +402,11 @@
   \end{lemma}
 \end{frame}
 
+\section{Experiments}
+
 % TODO: add empirical results
+
+\section{Conclusion}
 
 \begin{frame}{Further Work}
   \begin{minipage}[t]{\textwidth}
@@ -407,7 +422,7 @@
         \item IRL in the context of reinforcement learning
         \item Interplay between rewards and stochastic/deterministic policies
         \end{itemize}
-        \vspace{2.5cm}
+        \vspace{1.5cm}
       \end{column}
       \begin{column}{0.1\textwidth}
         \vspace{-1cm}
