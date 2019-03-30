@@ -1174,7 +1174,7 @@ by Timoney \cite{lecture_notes}.
   \eqref{eq:remaining_integral} as well.
 \end{proof}
 
-\section{Evaluation} \label{sec:evaluation}
+\section{Experiments} \label{sec:evaluation}
 % showing deep understanding
 
 In order to fully understand the model's behaviour, we focus on a three-state
@@ -1421,6 +1421,53 @@ not reduce variance, or perhaps this plot could benefit from a higher number of
 iterations and more repeated experiments to ensure the accuracy of the results.
 % or a different MDP, like a star
 
+\begin{figure}
+  \centering
+  \begin{tikzpicture}
+    \foreach \i in {0,...,9}
+    \node[draw,circle] (v\i) at (360/10 * \i:3cm) {$s_{\i}$};
+    \foreach \i in {0,...,9}
+    \foreach \j in {0,...,\i}
+    \draw[gray] (v\i) -- (v\j);
+
+    \draw[->,thick,blue] (v9) -- (v2);
+    \draw[->,thick,blue] (v7) -- (v8);
+    \draw[->,thick,blue] (v9) -- (v4);
+    \draw[->,thick,blue] (v3) -- (v0);
+    \draw[->,thick,blue] (v2) -- (v4);
+    \draw[->,thick,blue] (v4) -- (v6);
+    \draw[->,thick,blue] (v6) -- (v5);
+
+    \begin{scope}[yshift=-7cm]
+    \foreach \i in {0,...,9}
+    \node[draw,circle] (v\i) at (360/10 * \i:3cm) {$s_{\i}$};
+    \foreach \i in {0,...,9}
+    \foreach \j in {0,...,\i}
+    \draw[gray] (v\i) -- (v\j);
+
+    \draw[->,thick,blue] (v3) -- (v0);
+    \draw[->,thick,blue] (v4) -- (v0);
+    \draw[->,thick,blue] (v6) -- (v0);
+    \draw[->,thick,blue] (v2) -- (v0);
+    \draw[->,thick,blue] (v5) -- (v0);
+    \draw[->,thick,blue] (v8) -- (v0);
+    \draw[->,thick,blue] (v9) -- (v0);
+    \end{scope}
+  \end{tikzpicture}
+  \caption{The clique MDP with two sets of demonstrations denoted by blue arrows.}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/boxplots}
+\end{figure}
+% TODO: write down all the relevant numbers
+% TODO: these things are true most of the time, but not always, sometimes the
+% exact opposite is true
+% not showing outliers for clarity
+% smaller sample of demonstrations (7 instead of 100)
+% uniformly random
+
 % EXTRA INFO:
 % Discarding iterations where either $\bm\Sigma$ or $\bm\Gamma$ becomes near-singular.
 %Diagonal and non-diagonal entries of the covariance matrix are normalised to
@@ -1504,6 +1551,8 @@ the same spectral representations for efficient VI.
 \end{itemize}
 
 \subsection{Further Work}
+%TODO: how optimal policies depend on the structure of the mdp and available
+%data (i.e., why don't our policies converge to 1)
 
 An interesting extension to our work would be to consider IRL in the context
 of a reinforcement learning (RL) agent. Suppose we have an agent whose purpose

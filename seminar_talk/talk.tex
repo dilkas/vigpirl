@@ -8,12 +8,29 @@
 \usepackage{mathtools}
 \usepackage[bibstyle=ieee,citestyle=authoryear]{biblatex}
 \usepackage{setspace}
+\usepackage{csvsimple}
+\usepackage{pgfplots}
+\usepackage{xcolor}
+\usetikzlibrary{shapes,bayesnet,arrows.meta,arrows,calc,pgfplots.colormaps}
+
+\definecolor{myblue}{HTML}{0000FF}
+\definecolor{myred}{HTML}{FF0000}
+\definecolor{mybrown}{HTML}{734C26}
 
 \addbibresource{talk.bib}
 \usetheme{Frankfurt}
 \beamertemplatenavigationsymbolsempty
-\usetikzlibrary{shapes,bayesnet}
 \newtheorem{proposition}{Proposition}
+
+% Makes the legend have a single rectangle per colour
+\pgfplotsset{
+  /pgfplots/ybar legend/.style={
+    /pgfplots/legend image code/.code={%
+      \draw[##1,/tikz/.cd,bar width=3pt,yshift=-0.2em,bar shift=0pt]
+      plot coordinates {(0cm,0.8em)};},
+  },
+}
+
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\tr}{tr}
@@ -25,6 +42,9 @@
 \newcommand{\dt}{\frac{\partial}{\partial t}}
 \newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}}
 \newcommand{\V}{V_{\mathbf{r}}}
+\newcommand{\pione}{\pi(a_1 \mid s_1)}
+\newcommand{\pitwo}{\pi(a_1 \mid s_2)}
+\newcommand{\pithree}{\pi(a_2 \mid s_3)}
 
 \renewcommand{\thempfootnote}{\arabic{mpfootnote}}
 \DeclarePairedDelimiterX{\infdivx}[2]{(}{)}{%
@@ -37,6 +57,7 @@
   Processes}
 %\date{15th January 2019} % TODO
 
+% TODO: circles instead of ellipses (in the paper as well)
 \begin{document}
 
 \maketitle
@@ -148,7 +169,6 @@
   \end{itemize}
   \end{block}
 \end{frame}
-% TODO: could add a list of goals
 
 \section{Entropy}
 
@@ -247,7 +267,7 @@
       \node[obs, right=of r] (D) {$\mathcal{D}$};
       \node[const, below=of r] (lambda) {$\bm\lambda$};
       \node[const, below=of u] (mu) {$\bm\mu$};
-      \node[const, left=of mu] (Sigma) {$\bm\Sigma$};
+      \node[const, left=of mu] (Sigma) {$\bm\Sigma = \mathbf{BB}^\intercal$};
       \edge {mu, Sigma} {u};
       \edge {lambda, u} {r};
       \edge {r} {D};
@@ -403,10 +423,205 @@
 \end{frame}
 
 \section{Experiments}
+% TODO: fix the wording of epsilon in the theorems
+% TODO: slide for conclusions:
+% 1. we proved that we can
+% 2. we showed some other theoretical results
+% 3. we showed correctness (both actual predictions and covariances)
+% 4. we opened up many new research opportunities
+% TODO: map of theorems from the paper
 
-% TODO: add empirical results
+\begin{frame}{Experimental Scenario}
+  \begin{figure}
+    \centering
+    \begin{tikzpicture}
+      \node[draw,circle] (s1) at (0, 0) {$s_1$};
+      \node[draw,circle] (s2) at (1, 2) {$s_2$};
+      \node[draw,circle] (s3) at (2, 0) {$s_3$};
+      \draw (s1) to (s2);
+      \draw (s1) to (s3);
+      \draw (s2) to (s3);
+      \draw[->,thick,violet] (0, 0.5) to (0.6, 1.7);
+      \draw[->,thick,violet] (2, 0.5) to (1.4, 1.7);
+      \node[violet] (label1) at (-1.5, 1.0) {$\zeta_1 = \{ (s_1, a_1) \}$};
+      \node[violet] (label2) at (3.5, 1.0) {$\zeta_2 = \{ (s_3, a_2) \}$};
+    \end{tikzpicture}
+  \end{figure}
+\end{frame}
+
+\begin{frame}{Convergence}
+  \centering
+  \includegraphics[height=0.9\textheight]{../mpaper/figures/convergence_new}
+\end{frame}
+
+\begin{frame}{Parameter Convergence}
+  \includegraphics[width=\textwidth]{../mpaper/figures/parameter_convergence_new}
+\end{frame}
+
+\begin{frame}{Policy}
+  \begin{tikzpicture}
+    \csvreader[
+    no head,
+    column count=11
+    ]{../mpaper/data/covariance_and_policy_transformed.csv}{1=\x, 2=\y, 3=\Soneone, 4=\Stwotwo, 5=\Sthreethree, 6=\Stwoone, 7=\Sthreeone, 8=\Sthreetwo, 9=\ponetwo, 10=\ptwoone, 11=\pthreetwo}{%
+      \begin{axis}[
+        ybar=0,
+        symbolic x coords={a,b,c},
+        ticks=none,
+        ymax=1,
+        ymin=0,
+        x=20,
+        bar width=20,
+        enlarge x limits=0.25,
+        at={(350*\x, 110*\y)},
+        height=100,
+        bar shift=0pt,
+        legend style={
+          legend columns=-1,
+          at={(1.7,-0.4)}
+        }
+        ]
+        \addplot coordinates {(a, \ponetwo)};
+        \addplot coordinates {(b, \ptwoone)};
+        \addplot coordinates {(c, \pthreetwo)};
+        \draw[dashed] (-50,50) -- (270,50);
+        % \ifthenelse{\x=2 \AND \y=1}{
+        % \legend{$\pione$,$\pitwo$,$\pithree$};
+        % }{}
+      \end{axis}
+    }
+    \draw [<->] (2.3, 8.5) node (yaxis) [above] {$\zeta_2$}
+    |- (10, 2) node (xaxis) [right] {$\zeta_1$};
+    \foreach \x in {1, 2, 3} {
+      \node (x\x) at (1+2.5*\x, 1.7) {$\x$};
+    }
+    \foreach \y in {1, 2, 3} {
+      \node (y\y) at (2.1, 1+2.1*\y) {$\y$};
+    }
+    \begin{scope}[yshift=5cm,xshift=10.5cm]
+      \node[draw,circle] (s1) at (0, 0) {$s_1$};
+      \node[draw,circle] (s2) at (1, 2) {$s_2$};
+      \node[draw,circle] (s3) at (2, 0) {$s_3$};
+      \draw[dashed] (s1) to (s2);
+      \draw[dashed] (s1) to (s3);
+      \draw[dashed] (s2) to (s3);
+      \draw[->,myblue,bend left] (s1) to (s2);
+      \draw[->,myred,bend left] (s2) to (s1);
+      \draw[->,mybrown,bend right] (s3) to (s2);
+    \end{scope}
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Covariance: Attempt 1}
+  \begin{figure}
+    \centering
+  \begin{tikzpicture}[
+    /pgfplots/colormap/violet,
+    ellipse2/.style={
+      draw,
+      circle,
+      /utils/exec={
+        \pgfplotscolormapdefinemappedcolor{####1}},
+      fill=mapped color},
+    edge2/.style={
+      ultra thick,
+      /utils/exec={
+        \pgfplotscolormapdefinemappedcolor{####1}},
+      draw=mapped color}]
+    \csvreader[
+    no head,
+    column count=11
+    ]{../mpaper/data/median_covariance_transformed.csv}{1=\x, 2=\y, 3=\Soneone, 4=\Stwotwo, 5=\Sthreethree, 6=\Stwoone, 7=\Sthreeone, 8=\Sthreetwo}{%
+      \node[ellipse2=\Soneone] (s1) at (2*\x, 2*\y) {$s_1$};
+      \node[ellipse2=\Stwotwo] (s2) at (2*\x+0.5, 2*\y+1) {$s_2$};
+      \node[ellipse2=\Sthreethree] (s3) at (2*\x+1, 2*\y) {$s_3$};
+      \draw[edge2=\Stwoone] (s1) -- (s2);
+      \draw[edge2=\Sthreeone] (s1) to (s3);
+      \draw[edge2=\Sthreetwo] (s2) to (s3);
+    }
+    \draw [<->] (1.5, 7.5) node (yaxis) [above] {$\zeta_2$}
+    |- (8, 1.5) node (xaxis) [right] {$\zeta_1$};
+    \foreach \x in {1, 2, 3} {
+      \node (x\x) at (0.5+2*\x, 1.3) {$\x$};
+    }
+    \foreach \y in {1, 2, 3} {
+      \node (y\y) at (1.3, 0.5+2*\y) {$\y$};
+    }
+    \begin{axis}[
+      colormap/violet,
+      scale only axis,
+      width=0pt,
+      height=0pt,
+      hide axis,
+      colorbar,
+      point meta min=-1,
+      point meta max=1,
+      xshift=250,
+      yshift=210,
+      colorbar style={
+        height=6cm,
+        ytick={-1,0,1},
+        ylabel=normalised covariance,
+        ylabel style={
+          yshift=-1cm
+        }
+      }]
+      \addplot [draw=none] coordinates {(0,0)};
+    \end{axis}
+  \end{tikzpicture}
+  \end{figure}
+\end{frame}
+
+\begin{frame}{Covariance: Attempt 2 (with Cliques!)}
+  \begin{figure}
+    \centering
+    \begin{tikzpicture}
+      \foreach \i in {0,...,9}
+      \node[draw,circle] (v\i) at (360/10 * \i:2cm) {$s_{\i}$};
+      \foreach \i in {0,...,9}
+      \foreach \j in {0,...,\i}
+      \draw[gray] (v\i) -- (v\j);
+
+      \only<2>{
+        \draw[->,thick,blue] (v9) -- (v2);
+        \draw[->,thick,blue] (v7) -- (v8);
+        \draw[->,thick,blue] (v9) -- (v4);
+        \draw[->,thick,blue] (v3) -- (v0);
+        \draw[->,thick,blue] (v2) -- (v4);
+        \draw[->,thick,blue] (v4) -- (v6);
+        \draw[->,thick,blue] (v6) -- (v5);
+      }
+
+      \begin{scope}[xshift=5cm]
+        \foreach \i in {0,...,9}
+        \node[draw,circle] (v\i) at (360/10 * \i:2cm) {$s_{\i}$};
+        \foreach \i in {0,...,9}
+        \foreach \j in {0,...,\i}
+        \draw[gray] (v\i) -- (v\j);
+
+        \only<2>{
+          \draw[->,thick,blue] (v3) -- (v0);
+          \draw[->,thick,blue] (v4) -- (v0);
+          \draw[->,thick,blue] (v6) -- (v0);
+          \draw[->,thick,blue] (v2) -- (v0);
+          \draw[->,thick,blue] (v5) -- (v0);
+          \draw[->,thick,blue] (v8) -- (v0);
+          \draw[->,thick,blue] (v9) -- (v0);
+        }
+      \end{scope}
+    \end{tikzpicture}
+  \end{figure}
+\end{frame}
+
+\begin{frame}{Covariance: Attempt 2 (with Cliques!)}
+\begin{figure}
+  \centering
+  \includegraphics[width=\columnwidth]{../mpaper/figures/boxplots}
+\end{figure}
+\end{frame}
 
 \section{Conclusion}
+% TODO: add a 'thank you' note
 
 \begin{frame}{Further Work}
   \begin{minipage}[t]{\textwidth}

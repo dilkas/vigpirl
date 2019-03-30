@@ -154,7 +154,6 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
 
   % ELBO and derivative over some element of B
   % NOTE: this is the log of the actual value
-  % TODO: titles, fix values on the x-axis, add two axes and their names to the y-aixs
   %accuracy = 0.1;
   %mu_from = -3;
   %mu_to = 3;
@@ -269,14 +268,14 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   %return;
 
   % for AdaGrad
-  G = zeros(m + d + 1 + m*(m+1)/2, 1);
+  %G = zeros(m + d + 1 + m*(m+1)/2, 1);
 
   % for AdaDelta
-  num_hyperparameters = m + d + 1 + m*(m+1)/2;
-  E_g = zeros(num_hyperparameters, 1);
-  E_x = zeros(num_hyperparameters, 1);
-  epsilon = 1e-6;
-  rho = 0.6;
+  % num_hyperparameters = m + d + 1 + m*(m+1)/2;
+  % E_g = zeros(num_hyperparameters, 1);
+  % E_x = zeros(num_hyperparameters, 1);
+  % epsilon = 1e-6;
+  % rho = 0.6;
 
   i = 0;
   tic;
@@ -341,41 +340,33 @@ function irl_result = vigpirlrun(algorithm_params,mdp_data,mdp_model,...
   fprintf('\n');
   time = toc;
 
-  figure('Units', 'centimeters', 'Position', [0 0 12 16], 'PaperPositionMode', 'auto');
-  subplot(2, 1, 1);
-  stem(elbo_list);
-  xlabel('number of iterations');
-  ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
-
-  subplot(2, 1, 2);
-  plot_history(policy_history);
-  xlabel('number of iterations');
-  legend('$\pi(a_1 \mid s_1)$', '$\pi(a_1 \mid s_2)$', '$\pi(a_2 \mid s_3)$', 'Interpreter', 'latex', 'Location', 'east');
+  % figure('Units', 'centimeters', 'Position', [0 0 12 16], 'PaperPositionMode', 'auto');
+  % subplot(2, 1, 1);
+  % stem(elbo_list);
+  % xlabel('number of iterations');
+  % ylabel('$\mathcal{L}$', 'Interpreter', 'latex');
+  % subplot(2, 1, 2);
+  % plot_history(policy_history);
+  % xlabel('number of iterations');
+  % legend('$\pi(a_1 \mid s_1)$', '$\pi(a_1 \mid s_2)$', '$\pi(a_2 \mid s_3)$', 'Interpreter', 'latex', 'Location', 'east');
   %print('../mpaper/figures/convergence_new', '-depsc2');
 
-  figure('Units', 'centimeters', 'Position', [0 0 15 5], 'PaperPositionMode', 'auto');
-  plot(hyperparameter_history(1,:), 'k-');
-  hold on;
-  plot(hyperparameter_history(2,:), 'k--');
-  plot(hyperparameter_history(6,:), 'b');
-  plot(hyperparameter_history(7,:), 'b--');
-  plot(hyperparameter_history(8,:), 'b-.');
-  plot(exp(hyperparameter_history(3,:)), 'r');
-  plot(exp(hyperparameter_history(4,:)), 'r--');
-  plot(exp(hyperparameter_history(5,:)), 'r-.');
-  plot(hyperparameter_history(9,:), 'g');
-  plot(hyperparameter_history(10,:), 'g--');
-  plot(hyperparameter_history(11,:), 'g-.');
-  legend('$\log \lambda_0$', '$\log \lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', '$B_{1,1}$', '$B_{2,2}$', '$B_{3,3}$', '$B_{2,1}$', '$B_{3,1}$', '$B_{3,2}$', 'Interpreter', 'latex', 'Location', 'westoutside');
-  %plot(exp(hyperparameter_history(1,:)), 'k-');
-  %hold on;
-  %plot(hyperparameter_history(2,:), 'k--');
-  %plot(hyperparameter_history(6,:), 'b');
-  %plot(hyperparameter_history(7,:), 'b--');
-  %plot(hyperparameter_history(8,:), 'b-.');
-  %legend('$\lambda_0$', '$\log\lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', 'Interpreter', 'latex', 'Location', 'westoutside');
-  xlabel('number of iterations');
-  hold off;
+  % figure('Units', 'centimeters', 'Position', [0 0 15 5], 'PaperPositionMode', 'auto');
+  % plot(hyperparameter_history(1,:), 'k-');
+  % hold on;
+  % plot(hyperparameter_history(2,:), 'k--');
+  % plot(hyperparameter_history(6,:), 'b');
+  % plot(hyperparameter_history(7,:), 'b--');
+  % plot(hyperparameter_history(8,:), 'b-.');
+  % plot(exp(hyperparameter_history(3,:)), 'r');
+  % plot(exp(hyperparameter_history(4,:)), 'r--');
+  % plot(exp(hyperparameter_history(5,:)), 'r-.');
+  % plot(hyperparameter_history(9,:), 'g');
+  % plot(hyperparameter_history(10,:), 'g--');
+  % plot(hyperparameter_history(11,:), 'g-.');
+  % legend('$\log \lambda_0$', '$\log \lambda_1$', '$\mu_1$', '$\mu_2$', '$\mu_3$', '$B_{1,1}$', '$B_{2,2}$', '$B_{3,3}$', '$B_{2,1}$', '$B_{3,1}$', '$B_{3,2}$', 'Interpreter', 'latex', 'Location', 'westoutside');
+  % xlabel('number of iterations');
+  % hold off;
   %print('../mpaper/figures/parameter_convergence_new', '-depsc2');
 
   matrices = vigpirlkernel(gp);
@@ -403,15 +394,4 @@ function plot_history(matrix)
     plot(matrix(row,:));
   end
   hold off;
-end
-
-function [r, g, b] = choose_color(elbo_value, max_negative, max_positive)
-  b = 0;
-  if elbo_value < 0
-    g = 0;
-    r = elbo_value / max_negative;
-  else
-    r = 0;
-    g = elbo_value / max_positive;
-  end
 end

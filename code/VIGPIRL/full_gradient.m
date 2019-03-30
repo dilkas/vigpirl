@@ -40,7 +40,6 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
     unique_lambda_part = arrayfun(@lambda_derivative, 1:size(matrices.Kuu_grad, 3));
     unique_mu_part = (u' - gp.mu)' * (Sigma_inv + Sigma_inv');
     unique_B_part = 2 * (Sigma_inv * U * Sigma_inv - Sigma_inv) * gp.B;
-    %unique_B_part = zeros(length(gp.mu));
 
     unique_part = vertcat(2, unique_lambda_part', diag(unique_B_part),...
       unique_mu_part', get_lower_triangle(unique_B_part));
@@ -97,11 +96,11 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
 
   % TESTING
   %fprintf('Not estimated: %f, estimated: %f, total: %f\n', not_estimated(2), estimated_grad(2), changes(2));
-  p_derivative = -0.5 * estimated_grad(2) + counts' * (matrices.Kru_grad(:, :, 1)' -...
-    matrices.Kru' * Kuu_inv * matrices.Kuu_grad(:, :, 1)) * Kuu_inv * gp.mu;
-  kl_derivative = 0.5 * (trace(Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * Sigma) +...
-    gp.mu' * Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * gp.mu -...
-    trace(Kuu_inv * matrices.Kuu_grad(:, :, 1)));
+  % p_derivative = -0.5 * estimated_grad(2) + counts' * (matrices.Kru_grad(:, :, 1)' -...
+  %   matrices.Kru' * Kuu_inv * matrices.Kuu_grad(:, :, 1)) * Kuu_inv * gp.mu;
+  % kl_derivative = 0.5 * (trace(Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * Sigma) +...
+  %   gp.mu' * Kuu_inv * matrices.Kuu_grad(:, :, 1) * Kuu_inv * gp.mu -...
+  %   trace(Kuu_inv * matrices.Kuu_grad(:, :, 1)));
   %fprintf('d/d_lambda0 of E[log p(D | r)]: %f\n', p_derivative);
   %fprintf('average v: %f\n', 0.5 * estimated_grad(1));
   %fprintf('d/d_lambda0 of -KL(q(u) || p(u)): %f\n', kl_derivative);
@@ -118,11 +117,6 @@ function [elbo, grad] = full_gradient(mdp_data, demonstrations, counts, gp, z, m
     %fprintf('Should be negative: %f\n', elbo_data_part);
   %  elbo = elbo - elbo_data_part;
   %end
-
-  %fprintf('Not estimated grad:');
-  %disp(not_estimated(2));
-  %fprintf('Estimated grad:');
-  %disp(estimated_grad(2));
 end
 
 function a = extract(mdp, state, action)
