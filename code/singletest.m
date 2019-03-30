@@ -158,7 +158,6 @@ function [values, groups] = meaningful_classes(matrix_of_differences)
     a = b + 1;
     b = b + length(non_neighbours);
     [groups{a:b}] = deal('other edges');
-    %groups = horzcat(zeros(1, length(state)), ones(1, length(other_diag)), 2 * ones(1, length(neighbours)), 3 * ones(1, length(non_neighbours)));
 end
 
 function covariance = covariance_matrix(result)

@@ -16,6 +16,9 @@
 \definecolor{myblue}{HTML}{0000FF}
 \definecolor{myred}{HTML}{FF0000}
 \definecolor{mybrown}{HTML}{734C26}
+\definecolor{mybluetwo}{HTML}{0072BD}
+\definecolor{myyellow}{HTML}{EDB120}
+\definecolor{myredtwo}{HTML}{D95319}
 
 \addbibresource{talk.bib}
 \usetheme{Frankfurt}
@@ -57,7 +60,6 @@
   Processes}
 %\date{15th January 2019} % TODO
 
-% TODO: circles instead of ellipses (in the paper as well)
 \begin{document}
 
 \maketitle
@@ -293,6 +295,35 @@
 
 \section{Theory}
 
+\begin{frame}{Theoretical Results}
+  \begin{figure}
+    \centering
+    \begin{tikzpicture}
+      \node [rectangle, draw, fill=lightgray] (perturbation) at (3, 0) {\textsc{Perturbation Lemma}};
+      \node [rectangle, draw, fill=lightgray] (lebesgue) at (-2, -3) {\textsc{Dominated Convergence Theorem}};
+      \node [rectangle, draw] (derivatives) at (-2, 0) {\textsc{Derivatives of PDFs}};
+      \node [rectangle, draw] (measurability) at (-4, -2) {\textsc{Measurability}};
+      \node [rectangle, draw] (boundedness) at (4, -2) {\textsc{Boundedness}};
+      \node [rectangle, draw] (lemma1) at (-3, -1) {\textsc{Lemma 1}};
+      \node [rectangle, draw] (lemma2) at (0, -1) {\textsc{Lemma 2}};
+      \node [rectangle, draw] (lemma3) at (3, -1) {\textsc{Lemma 3}};
+      \node [rectangle, draw] (lemma4) at (3, -3) {\textsc{Lemma 4}};
+      \node [rectangle, draw] (theorem) at (0, -2) {\textsc{Main Theorem}};
+      \draw [->] (perturbation) edge (lemma3);
+      \draw [->] (lebesgue) edge (theorem);
+      \draw [->] (derivatives) edge (lemma1);
+      \draw [->] (derivatives) edge (lemma2);
+      \draw [->] (derivatives) edge (lemma3);
+      \draw [->] (measurability) edge (theorem);
+      \draw [->] (boundedness) edge (theorem);
+      \draw [->] (lemma1) edge (theorem);
+      \draw [->] (lemma2) edge (theorem);
+      \draw [->] (lemma3) edge (theorem);
+      \draw [->] (lemma4) edge (theorem);
+    \end{tikzpicture}
+  \end{figure}
+\end{frame}
+
 \begin{frame}{Mathematical Preliminaries}
   \begin{table}
     \centering
@@ -424,12 +455,6 @@
 
 \section{Experiments}
 % TODO: fix the wording of epsilon in the theorems
-% TODO: slide for conclusions:
-% 1. we proved that we can
-% 2. we showed some other theoretical results
-% 3. we showed correctness (both actual predictions and covariances)
-% 4. we opened up many new research opportunities
-% TODO: map of theorems from the paper
 
 \begin{frame}{Experimental Scenario}
   \begin{figure}
@@ -450,8 +475,21 @@
 \end{frame}
 
 \begin{frame}{Convergence}
-  \centering
-  \includegraphics[height=0.9\textheight]{../mpaper/figures/convergence_new}
+  \hspace*{1cm}
+  \includegraphics[height=0.8\textheight]{../mpaper/figures/convergence_new}
+  \begin{tikzpicture}[remember picture,overlay]
+    \begin{scope}[yshift=3cm,xshift=0.5cm]
+      \node[draw,circle] (s1) at (0, 0) {$s_1$};
+      \node[draw,circle] (s2) at (1, 2) {$s_2$};
+      \node[draw,circle] (s3) at (2, 0) {$s_3$};
+      \draw[dashed] (s1) to (s2);
+      \draw[dashed] (s1) to (s3);
+      \draw[dashed] (s2) to (s3);
+      \draw[->,mybluetwo,bend left] (s1) to (s2);
+      \draw[->,myredtwo,bend left] (s2) to (s1);
+      \draw[->,myyellow,bend right] (s3) to (s2);
+    \end{scope}
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Parameter Convergence}
@@ -621,7 +659,12 @@
 \end{frame}
 
 \section{Conclusion}
-% TODO: add a 'thank you' note
+
+% TODO: slide for conclusions:
+% 1. we proved that we can
+% 2. we showed some other theoretical results
+% 3. we showed correctness (both actual predictions and covariances)
+% 4. we opened up many new research opportunities
 
 \begin{frame}{Further Work}
   \begin{minipage}[t]{\textwidth}
@@ -653,6 +696,10 @@
         \end{figure}
       \end{column}
     \end{columns}
+    \pause
+    \begin{tikzpicture}[remember picture,overlay]
+      \node at (0.5\textwidth, 2.5) {\large\emph{Thank You!}};
+    \end{tikzpicture}
   \end{minipage}
 \end{frame}
 

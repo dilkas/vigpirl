@@ -1177,7 +1177,7 @@ by Timoney \cite{lecture_notes}.
 \section{Experiments} \label{sec:evaluation}
 % showing deep understanding
 
-In order to fully understand the model's behaviour, we focus on a three-state
+In order to fully understand the model's behaviour, we start with a three-state
 MDP where the agent can deterministically move from any state to any other
 state. More formally, we set $\mathcal{S} = \{ s_1, s_2, s_3 \}$, $\mathcal{A} =
 \{ a_1, a_2 \}$,
@@ -1196,6 +1196,8 @@ and create two demonstrations $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
 (s_3, a_2) \}$ that correspond to moving from $s_1$ and $s_3$ to $s_2$.
 Therefore, we would expect the reward of $s_2$ to be higher than the other two
 rewards in order to reflect this.
+
+\paragraph{Convergence}
 
 \begin{figure}
   \centering
@@ -1219,17 +1221,19 @@ rewards in order to reflect this.
 
 We plot how $\mathcal{L}$ as well as policies $\pi(a_1 \mid s_1)$, $\pi(a_2 \mid
 s_3)$, and $\pi(a_1 \mid s_2)$ converge over a number of iterations in Figure
-\ref{fig:convergence1}. The first two policies correspond to actions taken in
-the set of demonstrations $\mathcal{D}$, so we would expect to see their
-probabilities converge to values near $1$. The third policy, however, has no
-data in $\mathcal{D}$ to guide its value, so the maximum causal entropy
-framework would put the probability at around $0.5$. The first thing to note is
-that while $\mathcal{L}$ converges in just a few iterations, policies continue
-to improve for much longer. In addition, all policies behave as expected:
-$\pitwo$ stays around $0.5$, while both $\pione$ and $\pithree$ keep increasing.
-Although they stay at around $0.75$ (and not 1), this may be optimal for the
-maximum causal entropy model (and this question will be addressed in more detail
-with a different experiment).
+\ref{fig:convergence1}\footnote{In all experiments, we discard runs that
+  result in a near-singular $\bm\Sigma$ or $\bm\Gamma$, repeatedly testing each
+  combination of parameters as many times as necessary.}. The first two policies
+correspond to actions taken in the set of demonstrations $\mathcal{D}$, so we
+would expect to see their probabilities converge to values near $1$. The third
+policy, however, has no data in $\mathcal{D}$ to guide its value, so the maximum
+causal entropy framework would put the probability at around $0.5$. The first
+thing to note is that while $\mathcal{L}$ converges in just a few iterations,
+policies continue to improve for much longer. In addition, all policies behave
+as expected: $\pitwo$ stays around $0.5$, while both $\pione$ and $\pithree$
+keep increasing. Although they stay at around $0.75$ (and not 1), this may be
+optimal for the maximum causal entropy model (and this question will be
+addressed in more detail with a different experiment).
 
 We also plot how the parameters of the model converge in Figure
 \ref{fig:convergence2}. While some parameters could benefit from a higher number of
@@ -1238,6 +1242,8 @@ iterations\footnote{The limit of 300 iterations was chosen so that the initial
   afterwards.}, none look alarmingly wrong. Note that $\mu_2$, a variable
 closely related to $r(s_2)$, stabilises at a positive value whereas both $\mu_1$
 and $\mu_2$ become negative.
+
+\paragraph{Adding More Data}
 
 \begin{figure}
   \centering
@@ -1284,7 +1290,7 @@ and $\mu_2$ become negative.
   \caption{Changes in policies after adding more demonstrations. The $x$-axis
     ($y$-axis) shows how many copies of $\zeta_1$ ($\zeta_2$) are in
     $\mathcal{D}$. Each plot shows the values of three policies after 300
-    iterations (averaged out over 10 runs). The bottom (top) of each bar plot
+    iterations (averaged out over ten runs). The bottom (top) of each bar plot
     corresponds to probability 0 (1), and dashed lines mark probability
     0.5.}
   \label{fig:policies}
@@ -1312,7 +1318,7 @@ better-converged policies.
     /pgfplots/colormap/violet,
     ellipse2/.style={
       draw,
-      ellipse,
+      circle,
       /utils/exec={
         \pgfplotscolormapdefinemappedcolor{#1}},
       fill=mapped color},
@@ -1364,7 +1370,7 @@ better-converged policies.
     Colours denote reward covariance values, e.g., the colour of node $s_1$
     denotes the variance of $r(s_1)$, and the colour of the edge between nodes
     $s_1$ and $s_2$ denotes the covariance between $r(s_1)$ and $r(s_2)$. The
-    colours represent median covariances across 10 runs, normalised to the
+    colours represent median covariances across ten runs, normalised to the
     interval $[-1, 1]$ while preserving their positivity/negativity.}
   \label{fig:covariance}
 \end{figure}
@@ -1414,12 +1420,12 @@ both extreme points guaranteed to be reached unless all values are on one side
 of zero on the real number axis.
 
 Unfortunately, the resulting plot in Figure \ref{fig:covariance} shows no clear
-pattern. The only worthwhile observation is that there are only two instances of
-negative covariance, and both of them are between states $s_2$ and $s_3$.
-Perhaps there is a good (currently unknown) reason for why adding more data does
-not reduce variance, or perhaps this plot could benefit from a higher number of
-iterations and more repeated experiments to ensure the accuracy of the results.
-% or a different MDP, like a star
+pattern, suggesting that adding more of the same demonstrations does not result
+in lower covariances. The only other observation from this plot is that there
+are only two instances of negative covariance, and both of them are between
+states $s_2$ and $s_3$.
+
+\paragraph{Structure versus Randomness}
 
 \begin{figure}
   \centering
@@ -1455,27 +1461,50 @@ iterations and more repeated experiments to ensure the accuracy of the results.
     \end{scope}
   \end{tikzpicture}
   \caption{The clique MDP with two sets of demonstrations denoted by blue arrows.}
+  \label{fig:cliques}
 \end{figure}
 
 \begin{figure}
   \centering
   \includegraphics[width=\columnwidth]{figures/boxplots}
+  \caption{Box plots of the difference between (absolute values of) reward
+    covariances in random and semi-structured scenarios from Figure
+    \ref{fig:cliques}, averaged out over 100 runs and grouped into four key
+    categories. `First state' refers to the variance of $r(s_0)$, the reward of
+    the state targeted by all demonstrations in the semi-structured case. `Other
+    states' are variances of other states of the MDP, i.e., diagonal entries of
+    the covariance matrix. `Incident edges' refers to covariances between
+    $r(s_0)$ and all other states, i.e., the first row or column of the
+    covariance matrix. Finally, `other edges' is the category for the remaining
+    covariances between pairs of rewards.}
+  \label{fig:covariance_boxplots}
 \end{figure}
-% TODO: write down all the relevant numbers
-% TODO: these things are true most of the time, but not always, sometimes the
-% exact opposite is true
-% not showing outliers for clarity
-% smaller sample of demonstrations (7 instead of 100)
-% uniformly random
 
-% EXTRA INFO:
-% Discarding iterations where either $\bm\Sigma$ or $\bm\Gamma$ becomes near-singular.
-%Diagonal and non-diagonal entries of the covariance matrix are normalised to
-%$[0, 1]$ separately, so as to emphasize the variation in each. There were no
-%negative entries of the covariance matrix after convergence.
-%More data creates bigger gradients---need smaller step size. Dynamic step sizes
-%don't work very well because they become zero after a big spike (and spikes do
-%happen).
+If having more copies of the same demonstrations does not affect covariances, we
+can test if covariances tend to be lower in situations that exhibit more
+structure, i.e., demonstrations provide a clearer picture of which states are
+more valuable. For this, we consider a completely-deterministic MDP with ten
+states and nine actions that allow the agent to move from any state to any other
+state---the \emph{clique MDP}. We denote the states by $\mathcal{S} = \{ s_i
+\}_{i=0}^9$, and, similarly to the previous example, set up a single feature $f$
+such that $f(s_i) = i$ for $i = 0, \dots, 9$. Finally, $\gamma = 0.9$ as before.
+We consider two scenarios, with 100 randomly generated demonstrations in each.
+The scenarios are visualised in Figure \ref{fig:cliques}, although we only show
+a small subset of demonstrations. In the first scenario, we draw both the
+starting state and the action uniformly at random. In the second scenario, we
+draw the starting state uniformly from $\mathcal{S} \setminus \{ s_0 \}$, and
+the action always points to $s_0$. We would expect at least variances of state
+rewards to be lower in the second scenario in order to reflect the more
+structured, certain behavioural pattern expressed by the demonstrations.
+
+Indeed, Figure \ref{fig:covariance_boxplots} shows exactly that. The first two
+box plots show that in roughly $3/4$ of the runs reward variances were higher in
+the random scenario\footnote{Note that outliers were removed from the plot.
+  However, all outliers were positive.}. Interestingly, the same applies to
+covariances.
+
+% TODO: conclude the experiments
+
 \section{Related Work} % 0.5-1 page
 
 The IRL problem itself was originally proposed by Russell in 1998
