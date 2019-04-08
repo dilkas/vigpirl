@@ -718,6 +718,7 @@ breaklines=true,
         \hskip 10\p@
         \hskip \labelsep
         {\sc #1\ #2\             % This mod by Gerry to enumerate corollaries
+          \hspace{-1em}
    \setbox\@tempboxa\hbox{(#3)}  % and bracket the 'corollary title'
         \ifdim \wd\@tempboxa>\z@ % and retain the correct numbering of e.g. theorems
             \hskip 5\p@\relax    % if they occur 'around' said corollaries.

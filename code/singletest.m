@@ -18,13 +18,14 @@ addpaths;
 %   'training_samples',64,'verbosity',1));
 
 % VIGPIRL
-%test_result = runtest('vigpirl',struct(),'linearmdp',...
-%    'gridworld',struct('n',8,'determinism',1,'seed',1,'continuous',0),...
-%    struct('training_sample_lengths',32,'training_samples',16,'verbosity',2));
+test_result = runtest('vigpirl',struct(),'linearmdp',...
+    'gridworld',struct('n',8,'determinism',1,'seed',1,'continuous',0),...
+    struct('training_sample_lengths',32,'training_samples',16,'verbosity',2));
 
 % Visualize solution.
-%printresult(test_result);
-%visualize(test_result);
+printresult(test_result);
+visualize(test_result);
+return;
 
 % Two states
 %mdp_data = struct('sa_s', [2; 1], 'sa_p', [1; 1], 'discount', 0, 'states', 2, 'actions', 1);

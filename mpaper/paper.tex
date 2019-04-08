@@ -11,6 +11,7 @@
 \usepackage{booktabs}
 \usepackage{csvsimple}
 \usepackage{pgfplots}
+\usepackage{blkarray}
 
 \usetikzlibrary{shapes,bayesnet,arrows.meta,arrows,calc,pgfplots.colormaps}
 %\tikzstyle{myarrow} = [-{Latex[length=2mm,width=2mm]}]
@@ -30,6 +31,7 @@
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{problem}[theorem]{Open Problem}
+\newtheorem{example}[theorem]{Example}
 
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\adj}{adj}
@@ -41,7 +43,7 @@
 }
 \newcommand{\DKL}{D_{\mathrm{KL}}\infdivx}
 \newcommand{\V}{V_{\mathbf{r}}}
-\newcommand{\dx}{\,d\mathbf{r}\,d\mathbf{u}}
+\newcommand{\dx}{\,\mathrm{d}\mathbf{r}\,\mathrm{d}\mathbf{u}}
 \newcommand{\vbound}{\frac{\rinf + \log|\mathcal{A}|}{1 - \gamma}}
 \newcommand{\rinf}{\lVert \mathbf{r} \rVert_\infty}
 
@@ -125,6 +127,8 @@ learn behaviour from \emph{demonstrations} that typically come from human
 actions. More formally, the IRL problem asks us to find a reward function for a
 Markov decision process (MDP), where demonstrations are encoded as sets of
 state-action pairs.
+% TODO (must): along with inverse optimal control, mention imitation learning
+% and apprenticeship learning
 
 IRL is an important problem because adjusting the reward function by hand is
 often unwieldy, since human behaviour often depends on many factors in
@@ -145,15 +149,17 @@ However, most IRL models in the literature make a convenient yet unjustified
 assumption that the reward function can be expressed as a linear combination of
 features
 \cite{DBLP:conf/icml/PieterN04,DBLP:conf/icml/NgR00,ziebart2008maximum}.
-This assumption makes the models unable to represent many reward structures. Out
-of the non-linear models proposed to date, none can answer the questions posed
-in the first paragraph. Quite often, the models assume that rewards have no
-variance \cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}. In this paper,
-we show how that assumption can be lifted by switching from maximum likelihood
-estimation to \emph{variational inference} (VI), i.e., we approximate the
-posterior distribution of the model by optimising the parameters of a simpler
-distribution to make it similar to the posterior. This approach can prove useful
-in four major ways:
+This assumption severely restricts what reward structures can be modelled (i.e.,
+the properties of the function that represents rewards across states). Out of
+the non-linear models proposed to date, none can answer the questions posed in
+the first paragraph. Quite often, the models assume that rewards have no
+variance \cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}.
+
+In this paper, we show how that assumption can be lifted by switching from
+maximum likelihood estimation to \emph{variational inference} (VI), i.e., we
+approximate the posterior distribution of the model by optimising the parameters
+of a simpler distribution to make it similar to the posterior. This approach can
+prove useful in four major ways:
 \begin{enumerate}
 \item By working with full distributions instead of point estimates, we can
   expect more precise reward predictions.
@@ -169,12 +175,13 @@ in four major ways:
   \cite{DBLP:conf/uai/JinDAS17}.
 \end{enumerate}
 
-Our main contribution is a lengthy proof in Section \ref{sec:proof} that shows
+Our main contribution is a proof in Section~\ref{sec:proof} that shows
 how VI can be applied to the maximum-entropy IRL model with Gaussian processes
 (GPs) proposed by Levine et al. \cite{DBLP:conf/nips/LevinePK11}. We describe
-how we adapt the model and set up the VI problem in Section \ref{sec:model}.
-Finally, in Section \ref{sec:evaluation} we examine the convergence properties
+how we adapt the model and set up the VI problem in Section~\ref{sec:model}.
+Finally, in Section~\ref{sec:evaluation} we examine the convergence properties
 of our model and its ability to deduce optimal policies in practice.
+% TODO: expand on this more
 
 \paragraph{Notation and Conventions}
 
@@ -195,7 +202,7 @@ definition of integration.
 \section{The Problem} \label{sec:problem}
 
 In this section, we introduce definitions and mathematical details relevant to
-the problem. We begin by formally defining what the problem is.
+the problem. We begin by formally defining the problem.
 
 \begin{definition}[MDP]
   A \emph{Markov decision process} is a set $\mathcal{M} = \{ \mathcal{S},
@@ -205,31 +212,117 @@ the problem. We begin by formally defining what the problem is.
   defined so that $\mathcal{T}(s, a, s')$ is the probability of moving to state
   $s'$ after taking action $a$ in state $s$; $\gamma \in [0, 1)$ is the discount
   factor; and $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ is the reward
-  vector\footnote{Depending on the situation, we will sometimes represent
-    rewards as a function $r : \mathcal{S} \to \mathbb{R}$.}.
+  vector.
 \end{definition}
+
+While it is more common to represent rewards as a function $r : \mathcal{S} \to
+\mathbb{R}$, the vector notation is generally more appropriate in our situation.
+However, we switch between the two notations as needed.
 
 \begin{definition}[IRL]
   Given an MDP without rewards $\mathcal{M} \setminus \{ \mathbf{r} \}$, an
   $|\mathcal{S}| \times d$ feature matrix $\mathbf{X}$ (where $d$ is the number
-  of features), and a set of expert demonstrations $\mathcal{D} = \{\zeta_i
+  of features), and a set of demonstrations $\mathcal{D} = \{\zeta_i
   \}_{i=1}^N$, where each demonstration $\zeta_i = \{ (s_{i,t}, a_{i,t})
-  \}_{t=1}^T$ is a multiset of state-action pairs representing optimal actions
-  executed by an expert, find the reward function that maximises the probability
+  \}_{t=1}^T$ is a multiset of state-action pairs that represents optimal (or
+  near-optimal) actions, find the reward function that maximises the probability
   of observing the demonstrations, i.e.,
   \[
     \argmax_{\mathbf{r}} p(\mathcal{D} \mid \mathbf{r}).
   \]
 \end{definition}
 
-The optimal (deterministic) \emph{policy} $\pi : \mathcal{S} \to \mathcal{A}$
-(i.e., a choice of actions for each state that maximises reward over time) is
-usually constructed by defining a \emph{value (utility) function} $\V :
-\mathcal{S} \to \mathbb{R}$ that measures how good a state is based on the
-reward $\mathbf{r}$ as well as the structure of the MDP. One can then find $\V$
-by applying the Bellman backup operator until convergence to every $s \in
-\mathcal{S}$ (the technique is known as \emph{value iteration})
-\cite{DBLP:books/daglib/0023820}:
+\begin{example}
+  Figure \ref{fig:example} shows a possible setup for IRL. In this case,
+  \begin{align*}
+    \mathcal{S} &= \{ s_1, s_2, s_3, s_4 \}, \\
+    \mathcal{A} &= \{ l, r, u, d \}, \\
+    \mathcal{T}(s, a, s') &= \begin{cases}
+      1 & \text{if } (s, a, s') = (s_1, r, s_2) \\
+      1 & \text{if } (s, a, s') = (s_1, d, s_4) \\
+      1 & \text{if } (s, a, s') = (s_2, l, s_1) \\
+      1 & \text{if } (s, a, s') = (s_2, d, s_3) \\
+      1 & \text{if } (s, a, s') = (s_3, l, s_4) \\
+      1 & \text{if } (s, a, s') = (s_3, u, s_2) \\
+      1 & \text{if } (s, a, s') = (s_4, r, s_3) \\
+      1 & \text{if } (s, a, s') = (s_4, u, s_1) \\
+      0 & \text{otherwise,}
+    \end{cases} \\
+      \mathbf{X} &= \begin{blockarray}{ccc}
+        & f_1 & f_2 \\
+        \begin{block}{c[cc]}
+          s_1 & 1 & 2 \\
+          s_2 & 2 & 2 \\
+          s_3 & 2 & 1 \\
+          s_4 & 1 & 1 \\
+        \end{block}
+      \end{blockarray},
+  \end{align*}
+  and $\gamma \in [0, 1)$ can be assigned any value. The distribution of example
+  state-action pairs into separate demonstrations is irrelevant to our model
+  (and possible all other models), so we can keep each pair in its own set as
+  follows:
+  \[
+    \mathcal{D} = \{ \{(s_1, d)\}, \{(s_2, l)\}, \{(s_4, u)\}, \{(s_4, u)\} \}.
+  \]
+
+  A solution to this problem is then an assignment of rewards to states, e.g.,
+  \[
+    \mathbf{r} = \begin{bmatrix}
+      2 \\
+      0 \\
+      -1 \\
+      1
+    \end{bmatrix} \quad \text{or} \quad r(s) = \begin{cases}
+      2 & \text{if } s = s_1 \\
+      0 & \text{if } s = s_2 \\
+      -1 & \text{if } s = s_3 \\
+      1 & \text{if } s = s_4.
+    \end{cases}
+  \]
+\end{example}
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[state/.style={circle,draw,fill=lightgray}]
+    \node [state] (s1) {$s_1$};
+    \node [state,right=2 of s1] (s2) {$s_2$};
+    \node [state,below=2 of s2] (s3) {$s_3$};
+    \node [state,left=2 of s3] (s4) {$s_4$};
+
+    \draw[->,bend left,dashed] (s1) edge node[above] {$r$} (s2);
+    \draw[->,bend left] (s2) edge node[below] {$l(1)$} (s1);
+    \draw[->,bend left] (s1) edge node[right] {$d(1)$} (s4);
+    \draw[->,bend left] (s4) edge node[left] {$u(2)$} (s1);
+    \draw[->,bend left,dashed] (s4) edge node[above] {$r$} (s3);
+    \draw[->,bend left,dashed] (s3) edge node[below] {$l$} (s4);
+    \draw[->,bend left,dashed] (s2) edge node[right] {$d$} (s3);
+    \draw[->,bend left,dashed] (s3) edge node[left] {$u$} (s2);
+
+    \draw [<->] (-1.3, 0.8) node (yaxis) [above] {$f_2$}
+    |- (3.5, -3.6) node (xaxis) [right] {$f_1$};
+    \draw[shift={(0,-3.6)}] (0pt,2pt) -- (0pt,-2pt) node[below] {$1$};
+    \draw[shift={(2.65,-3.6)}] (0pt,2pt) -- (0pt,-2pt) node[below] {$2$};
+    \draw[shift={(-1.3,-2.6)}] (2pt,0pt) -- (-2pt,0pt) node[left] {$1$};
+    \draw[shift={(-1.3,0)}] (2pt,0pt) -- (-2pt,0pt) node[left] {$2$};
+  \end{tikzpicture}
+  \caption{An example MDP with deterministic actions. States are represented by
+    grey circles, actions by directed labelled edges between them. The numbers
+    in parentheses next to some actions' names denote how many times that
+    state-action pair appears in $\mathcal{D}$. If that number is zero, the edge
+    is dashed. Finally, the axes assign two features to each state.}
+  \label{fig:example}
+\end{figure}
+
+The set of demonstrations $\mathcal{D}$ often comes from observed human
+behaviour and constitutes the most significant part of the data. The optimal
+(deterministic) \emph{policy} $\pi : \mathcal{S} \to \mathcal{A}$ (i.e., a
+choice of actions for each state that maximises reward over time) is usually
+constructed by defining a \emph{value (utility) function} $\V : \mathcal{S} \to
+\mathbb{R}$ that measures how good a state is based on the reward $\mathbf{r}$
+as well as the structure of the MDP. One can then find $\V$ by applying the
+Bellman backup operator until convergence to every $s \in \mathcal{S}$ (the
+technique is known as \emph{value iteration}) \cite{DBLP:books/daglib/0023820}:
 \[
   V_{\mathbf{r}}(s) \coloneqq r(s) + \gamma \max_{a \in \mathcal{A}} \sum_{s' \in
     \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s').
@@ -258,18 +351,22 @@ where
   \mathcal{T}(s, a, s')\V(s').
 \]
 
-% TODO: rewrite the 'we write' sentence and the sentence before that
-As we want learned rewards to generalise to previously unseen states and
-for states to have a notion of similarity, the IRL definition also includes $d$
-features associated with each state. In this paper, we will focus on modelling
-rewards as a function from feature space to $\mathbb{R}$ using a \emph{Gaussian
-  process}. A GP is defined as a collection of random variables, any finite
-number of which has a joint Gaussian distribution
-\cite{DBLP:books/lib/RasmussenW06}. We write $r \sim \mathcal{GP}(0, k)$ to say
-that $r$ is a GP with mean $0$ and covariance function $k$. \emph{Covariance
-  functions} (also known as \emph{kernels}) take two state feature vectors as
-input and quantify how similar the two states are, in a sense that we would
-expect high covariance scores to be associated with similar rewards.
+A significant part of learning is about being able to generalise to previously
+unseen input states (otherwise the problem becomes knowledge representation
+instead of learning). For this reason, we represent each state by a
+$d$-dimensional feature vector. This way, similar states are located in close
+proximity to one another, and the ML model can predict rewards for new states
+based on their similarity to training data.
+
+In this paper, we model rewards as a function from feature space to
+$\mathbb{R}$ using a \emph{Gaussian process}. A GP represents an infinite
+collection of random variables, any finite number of which has a joint Gaussian
+distribution \cite{DBLP:books/lib/RasmussenW06}. A GP is defined by its mean
+function (which is always $\mathbf{x} \mapsto 0$ in our case) and covariance
+function, which we denote by $k$. \emph{Covariance functions} (also known as
+\emph{kernels}) take two state feature vectors as input and quantify how similar
+the two states are, in a sense that we would expect high covariance scores to be
+associated with similar rewards.
 
 A common way to scale GPs to larger data sets is by selecting $m$ points in the
 feature space--called \emph{inducing points}---and focus most of the training
@@ -302,12 +399,13 @@ $\mathbf{x}_{\mathbf{u},j}$ denote feature vectors for the $i$th state in
 $\mathcal{S}$ and the $j$th inducing point, respectively
 \cite{DBLP:conf/uai/JinDAS17}.
 
-Our goal is then to use VI in order to approximate $\posterior$.
-Let $\approximation$ denote our approximation. VI aims to optimise this
-approximation by minimising the \emph{Kullback-Leibler} (KL) divergence between
-the original probability distribution and our approximation. KL divergence
-(asymmetrically) measures the difference between two probability distributions
-and can be defined as \cite{blei2017variational}
+Our goal is then to use VI in order to approximate
+$p(\mathbf{u},~\mathbf{r}~\mid~\mathcal{D})$. Let $\approximation$ denote our
+approximation. VI aims to optimise this approximation by minimising the
+\emph{Kullback-Leibler} (KL) divergence between the original probability
+distribution and our approximation. KL divergence (asymmetrically) measures the
+difference between two probability distributions and is defined as
+\cite{blei2017variational}
 \begin{align*}
   \DKL{\approximation}{\posterior} &= \mathbb{E}_{\approximation}[\log\approximation - \log\posterior ] \\
                                    &= \mathbb{E}_{\approximation}[\log\approximation - \log\pfull] \\
@@ -321,11 +419,11 @@ optimisation objective. The negation of what remains is known as the
 \begin{equation} \label{eq:elbo}
   \begin{split}
     \mathcal{L} &= \mathbb{E}_{\approximation}\left[ \log \frac{\pfull}{\approximation} \right] \\
-    &= \iiint \log \frac{\pfull}{\approximation} \approximation\dx.
+    &= \iint \log \frac{\pfull}{\approximation} \approximation\dx.
   \end{split}
 \end{equation}
 Thus, instead of minimising KL divergence, we focus on maximising $\mathcal{L}$
-by optimising the values of parameters to be defined in Section \ref{sec:model}.
+by optimising the values of parameters to be defined in Section~\ref{sec:model}.
 Note that hereafter we drop the subscript notation, as all expected values will
 be with respect to $\approximation$.
 
@@ -336,7 +434,7 @@ analysis, and measure theory that will be used later in the paper. Namely, we
 will use several different vector and matrix norms, consider how an inverse of a
 matrix changes with a small perturbation, and introduce Lebesgue's dominated
 convergence theorem which plays a major role in our theoretical results in
-Section \ref{sec:proof}.
+Section~\ref{sec:proof}.
 
 \begin{definition}[Norms]
   For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
@@ -381,11 +479,11 @@ Section \ref{sec:proof}.
   $g$ that is integrable over $X$ and dominates the sequence $\{ f_n \}$ on $X$
   in the sense that
   \[
-    |f_n| \le g \text{ a.e. on $X$ for all $n$.}
+    |f_n| \le g \text{ almost everywhere on $X$ for all $n$.}
   \]
   Then $f$ is integrable over $X$ and
   \[
-    \lim_{n \to \infty} \int_X f_n\,d\mu = \int_X f\,d\mu.
+    \lim_{n \to \infty} \int_X f_n\,\mathrm{d}\mu = \int_X f\,\mathrm{d}\mu.
   \]
 \end{theorem}
 
@@ -394,7 +492,7 @@ Section \ref{sec:proof}.
 In order to have a fully functional model, we still need to make several key
 design decisions. In this section, we describe the covariance function used to
 define the GP, consider what parameters should be used to optimise $\mathcal{L}$
-and how they should be initialised, and in Section \ref{sec:elbo}, we derive our
+and how they should be initialised, and in Section~\ref{sec:elbo}, we derive our
 final expression for $\mathcal{L}$.
 
 We stick with the same covariance function as in the work by Levine et al.
@@ -422,7 +520,7 @@ $\lambda_0$ and $\bm\Lambda$ at the same time.
 Ideally, we would like to model $\bm\lambda$ with an approximating distribution.
 However, due to how the prior probability density function (PDF) for
 $\mathbf{u}$ involves $\Kuu^{-1}$, and $\mathcal{L}$ has an expected value that
-cannot be eliminated (see Section \ref{sec:elbo}), we are unable to show that
+cannot be eliminated (see Section~\ref{sec:elbo}), we are unable to show that
 such an $\mathcal{L}$ is well-defined. More generally, we pose the following
 problem, which, to the best of our knowledge, is currently open:
 \begin{problem}
@@ -457,6 +555,14 @@ is a diagonal matrix. Typically, we would set $p$ so that $p \ll m$ to get an
 efficient approximation, but in this case we will simply set $p = m$ and
 $\mathbf{D} = \mathbf{O}_m$ in order to retain full covariance structure.
 
+The resulting model is summarised in Figure~\ref{fig:graphical_model}. We rely
+on $p(\mathcal{D} \mid \mathbf{r})$ as the only link between data and our model.
+Since the expression for $q(\mathbf{r} \mid \mathbf{u})$ has both $\mathbf{u}$
+and covariance matrices in it, $\mathbf{r}$ depends on both $\mathbf{u}$ and the
+parameters of the kernel, $\bm\lambda$. The two remaining dependencies stem from
+the fact that the approximating distribution for $\mathbf{u}$ is
+$\mathcal{N}(\bm\mu, \mathbf{BB}^\intercal)$.
+
 \begin{figure}
   \centering
   \begin{tikzpicture}
@@ -476,14 +582,6 @@ $\mathbf{D} = \mathbf{O}_m$ in order to retain full covariance structure.
     circles, and the variational parameters are at the bottom.}
   \label{fig:graphical_model}
 \end{figure}
-
-The resulting model is summarised in Figure \ref{fig:graphical_model}. We rely
-on $p(\mathcal{D} \mid \mathbf{r})$ as the only link between data and our model.
-Since the expression for $q(\mathbf{r} \mid \mathbf{u})$ has both $\mathbf{u}$
-and covariance matrices in it, $\mathbf{r}$ depends on both $\mathbf{u}$ and the
-parameters of the kernel, $\bm\lambda$. The two remaining dependencies stem from
-the fact that the approximating distribution for $\mathbf{u}$ is
-$\mathcal{N}(\bm\mu, \mathbf{BB}^\intercal)$.
 
 As we want to restrict some parameters (namely, $\bm\lambda$ and the diagonal of
 $\mathbf{B}$) to positive values, we express them as exponentials and later
@@ -522,11 +620,11 @@ that in order to keep the derivation simple, we drop all constant terms in the
 expression of $\mathcal{L}$, i.e., equality is taken to mean `equality up to an
 additive constant'.
 
-Firstly, let us return to \eqref{eq:elbo} and write
+Firstly, let us return to Equation~\eqref{eq:elbo} and write
 \[
   \mathcal{L} = \mathbb{E}[\log\pfull] - \mathbb{E}[\log\approximation].
 \]
-By substituting in \eqref{eq:full} and \eqref{eq:approximation}, we get
+By substituting in Equations~\eqref{eq:full} and \eqref{eq:approximation}, we get
 \begin{align*}
   \mathcal{L} &= \mathbb{E}[\log p(\mathbf{u}) + \log p(\mathbf{r} \mid \mathbf{u}) + \log p(\mathcal{D} \mid \mathbf{r})] \\
               &- \mathbb{E}[\log q(\mathbf{u}) + \log q(\mathbf{r} \mid \mathbf{u})].
@@ -575,9 +673,9 @@ where
 
 The typical way to optimise a quantity (the ELBO, in this case) involves
 computing its gradient. Unfortunately, the term $\mathbb{E}[v]$ in $\mathcal{L}$
-complicates the situation. The goal of this section is to show how Theorem
-\ref{thm:lebesgue} can be applied to our model in order to derive the gradient
-anyway\footnote{This technique is inspired by black box VI
+complicates the situation. The goal of this section is to show how
+Theorem~\ref{thm:lebesgue} can be applied to our model in order to derive the
+gradient anyway\footnote{This technique is inspired by black box VI
   \cite{DBLP:conf/aistats/RanganathGB14}, but takes a more detailed look at the
   problem and requires significantly more work to prove correctness.}. After
 showing that the theorem applies to our situation, we can estimate
@@ -591,6 +689,15 @@ $\nabla\mathbb{E}[v]$ with
 which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
 \mathbf{r}_s)\}_{s=1}^S$ from $\approximation$.
 
+Our main goal is Theorem~\ref{thm:main}, which allows us to move differentiation
+inside the integral. In order to prove it, we use a number of intermediate
+results. We start by stating a few derivatives of PDFs and covariance matrices,
+and bound their values with some easy-to-deal-with polynomials. We then provide
+a sketch proof of the measurability of MDP value functions as well as new upper
+and lower bounds on their values. After another quick lemma, we tackle the main
+proof of this paper. See Figure~\ref{fig:theorems} for an overview of how these
+results fit together.
+
 \begin{figure}
   \centering
   \begin{tikzpicture}
@@ -599,11 +706,11 @@ which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
     \node [rectangle, draw] (derivatives) at (-2, 0) {\textsc{Derivatives of PDFs}};
     \node [rectangle, draw] (measurability) at (-3, -2) {\textsc{Measurability}};
     \node [rectangle, draw] (boundedness) at (3, -2) {\textsc{Boundedness}};
-    \node [rectangle, draw] (lemma1) at (-2, -1) {\textsc{Lemma \ref{lemma:bound1}}};
-    \node [rectangle, draw] (lemma2) at (0, -1) {\textsc{Lemma \ref{lemma:bound2}}};
-    \node [rectangle, draw] (lemma3) at (2, -1) {\textsc{Lemma \ref{lemma:bound3}}};
-    \node [rectangle, draw] (lemma4) at (3, -3) {\textsc{Lemma \ref{lemma:integral_of_r}}};
-    \node [rectangle, draw] (theorem) at (0, -2) {\textsc{Theorem \ref{thm:main}}};
+    \node [rectangle, draw] (lemma1) at (-2, -1) {\textsc{Lemma~\ref{lemma:bound1}}};
+    \node [rectangle, draw] (lemma2) at (0, -1) {\textsc{Lemma~\ref{lemma:bound2}}};
+    \node [rectangle, draw] (lemma3) at (2, -1) {\textsc{Lemma~\ref{lemma:bound3}}};
+    \node [rectangle, draw] (lemma4) at (3, -3) {\textsc{Lemma~\ref{lemma:integral_of_r}}};
+    \node [rectangle, draw] (theorem) at (0, -2) {\textsc{Theorem~\ref{thm:main}}};
 
     \draw [->] (perturbation) edge (lemma3);
     \draw [->] (lebesgue) edge (theorem);
@@ -622,15 +729,6 @@ which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
     Results from the literature are in gray.}
   \label{fig:theorems}
 \end{figure}
-
-Our main goal is Theorem \ref{thm:main}, which allows us to move differentiation
-inside the integral. In order to prove it, we use a number of intermediate
-results. We start by stating a few derivatives of PDFs and covariance matrices,
-and bound their values with some easy-to-deal-with polynomials. We then provide
-a sketch proof of the measurability of MDP value functions as well as new upper
-and lower bounds on their values. After another quick lemma, we tackle the main
-proof of this paper. See Figure \ref{fig:theorems} for an overview of how these
-results fit together.
 
 Before that, however, we define a few extra variables in order to simplify
 expressions of derivatives:
@@ -709,15 +807,15 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
     instead. In this situation, convergence as $\epsilon \to 0$ implies constant
     upper and lower bounds.}
   \begin{equation} \label{eq:convergence1}
-    \mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to \mathbf{K}
+    \lim_{\epsilon \to 0} \mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \mathbf{K},
   \end{equation}
   and
   \begin{equation} \label{eq:convergence2}
-    \left. \frac{\partial \mathbf{K}}{\partial \lambda_i} \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to \frac{\partial \mathbf{K}}{\partial \lambda_i}
+    \lim_{\epsilon \to 0} \left. \frac{\partial \mathbf{K}}{\partial \lambda_i} \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} = \frac{\partial \mathbf{K}}{\partial \lambda_i}.
   \end{equation}
-  as $\epsilon \to 0$. For \eqref{eq:convergence1}, the result is obvious if $i
-  = 0$. Otherwise, it follows from the continuity of the exponential function.
-  For \eqref{eq:convergence2}, observe that if $i=0$, then
+  For Equation~\eqref{eq:convergence1}, the result is obvious if $i = 0$.
+  Otherwise, it follows from the continuity of the exponential function. For
+  Equation~\eqref{eq:convergence2}, observe that if $i=0$, then
   \[
     \left. \frac{\partial \mathbf{K}}{\partial \lambda_0} \right|_{\lambda_0 =
       c(\mathbf{r}, \mathbf{u})}
@@ -737,7 +835,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   \[
     \mathbf{K}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})},
   \]
-  so the same reasoning applies as in case of \eqref{eq:convergence1}.
+  so the same reasoning applies as in case of Equation~\eqref{eq:convergence1}.
 
   % Inverse of a covariance matrix
   Next, we will show that $\mathbf{K}^{-1}|_{\lambda_i = c(\mathbf{r},
@@ -755,8 +853,9 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
                                                                \frac{1}{c(\mathbf{r}, \mathbf{u})}\mathbf{A}^{-1} \\
                                                              &\to \frac{1}{\lambda_0}\mathbf{A}^{-1} = \frac{1}{\lambda_0} \left( \frac{1}{\lambda_0}\mathbf{K} \right)^{-1} = \mathbf{K}^{-1}
   \end{align*}
-  as $\epsilon \to 0$. For $i > 0$, by \eqref{eq:convergence1} and continuity of
-  $\mathbf{A} \mapsto \mathbf{A}^{-1}$ we immediate get \eqref{eq:limit3}.
+  as $\epsilon \to 0$. For $i > 0$, by Equation~\eqref{eq:convergence1} and
+  continuity of $\mathbf{A} \mapsto \mathbf{A}^{-1}$ we immediate get
+  Equation~\eqref{eq:limit3}.
 
   This is enough to prove constant upper and lower bounds on
   $\mathbf{S}$, $\bm\Gamma$, and $\mathbf{R}$ (all with $\lambda_i$ replaced
@@ -782,13 +881,14 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   for small enough $\epsilon$, and, thus, $\det(\bm\Gamma)^{-1}|_{\lambda_i =
     c(\mathbf{r}, \mathbf{u})}$ exists and is bounded.
   
-  From \eqref{eq:gamma_convergence} and continuity of $\mathbf{A} \mapsto
+  From Equation~\eqref{eq:gamma_convergence} and continuity of $\mathbf{A} \mapsto
   \mathbf{A}^{-1}$ we can immediately deduce that
   \begin{equation} \label{eq:gamma_inverse}
     \lim_{\epsilon \to 0} \bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r},
       \mathbf{u})} = \bm\Gamma^{-1}.
   \end{equation}
-  Similarly, from \eqref{eq:det_gamma} and \eqref{eq:gamma_inverse} we get that
+  Similarly, from Equations~\eqref{eq:det_gamma} and \eqref{eq:gamma_inverse} we
+  get that
   \[
     \adj(\bm\Gamma)|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} =
     \det(\bm\Gamma)\bm\Gamma^{-1}|_{\lambda_i = c(\mathbf{r}, \mathbf{u})} \to
@@ -827,7 +927,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   where $d(\mathbf{u}) \in \mathbb{R}_1[\mathbf{u}]$.
 \end{lemma}
 \begin{proof}
-  Using Lemma \ref{lemma:derivatives},
+  Using Lemma~\ref{lemma:derivatives},
   \[
     \left. \frac{\partial q(\mathbf{u})}{\partial \bm\mu} \right|_{\mu_i =
       c(\mathbf{r}, \mathbf{u})} = \frac{1}{2}q(\mathbf{u})(\bm\Sigma^{-1} +
@@ -861,7 +961,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   $d(\mathbf{u}) \in \mathbb{R}_2[\mathbf{u}]$.
 \end{lemma}
 \begin{proof}
-  Using Lemma \ref{lemma:derivatives},
+  Using Lemma~\ref{lemma:derivatives},
   \[
     \left. \frac{\partial q(\mathbf{u})}{\partial \bm\Sigma} \right|_{\Sigma_{i,j} =
     c(\mathbf{r}, \mathbf{u})} =
@@ -890,7 +990,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   We will show how we can establish bounds on $\mathbf{C}(\mathbf{r},
   \mathbf{u})^{-1}$ without using the continuity of matrix inversion. For this,
   we use the maximum norm $\lVert \cdot \rVert_\infty$ on both vectors and
-  matrices. We can apply Lemma \ref{lemma:perturbation} to $\bm\Sigma$ and
+  matrices. We can apply Lemma~\ref{lemma:perturbation} to $\bm\Sigma$ and
   $\mathbf{E}(\mathbf{r}, \mathbf{u})$ since
   \[
     \lVert \mathbf{E}(\mathbf{r}, \mathbf{u}) \rVert_\infty = \max_k \sum_l
@@ -958,7 +1058,7 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
     \begin{aligned}
       \;&\V(s_0) \in (-\infty, \alpha); \\
       \;&\V(s) \in \mathbb{R} \text{ for all } s \in \mathcal{S} \setminus \{ s_0 \}; \\
-      \;&\text{\eqref{eq:linear_mdp} is satisfied by all } s \in
+      \;&\text{Equation~\eqref{eq:linear_mdp} is satisfied by all } s \in
       \mathcal{S}
     \end{aligned}
     \right\}
@@ -972,20 +1072,20 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
 \begin{proposition}[Boundedness] \label{thm:bound}
   If the initial values of the MDP value function satisfy the following
   bound, then the bound remains satisfied throughout value iteration:
-  \begin{equation} \label{eq:bound}
+  \[
     |\V(s)| \le \vbound.
-  \end{equation}
+  \]
 \end{proposition}
 \begin{proof}
-  We begin by considering \eqref{eq:bound} without taking the absolute value of
-  $\V(s)$, i.e.,
+  We begin by considering the desired inequality without taking the absolute
+  value of $\V(s)$, i.e.,
   \begin{equation} \label{eq:positive_bound}
     \V(s) \le \vbound,
   \end{equation}
   and assuming that the initial values of $\{ \V(s) \mid s \in \mathcal{S} \}$
-  already satisfy \eqref{eq:positive_bound}. Recall that for each $s \in
-  \mathcal{S}$, the value of $\V(s)$ is updated by applying
-  \eqref{eq:update_rule}. Note that both the natural logarithm and the
+  already satisfy Inequality~\eqref{eq:positive_bound}. Recall that for each $s
+  \in \mathcal{S}$, the value of $\V(s)$ is updated by applying
+  Equation~\eqref{eq:update_rule}. Note that both the natural logarithm and the
   exponential function are increasing, $\gamma > 0$, and the $\mathcal{T}$
   function gives a probability (a non-negative number). Thus,
   \begin{align*}
@@ -1015,22 +1115,24 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
           &= \frac{\rinf + \log|\mathcal{A}|}{\gamma - 1},
   \end{align*}
   where we use the fact that $r(s) \ge -\rinf - 2\log|\mathcal{A}|$. Combining
-  \eqref{eq:positive_bound} and \eqref{eq:negative_bound} gives
-  \eqref{eq:bound}.
+  Inequalities~\eqref{eq:positive_bound} and \eqref{eq:negative_bound} gives
+  the desired result.
 \end{proof}
 
 \begin{lemma} \label{lemma:integral_of_r}
   \[
-    \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r} \mid \mathbf{u})\,d\mathbf{r} \le a +
-    \lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1,
+    \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r} \mid
+    \mathbf{u})\,\mathrm{d}\mathbf{r} \le a + \lVert \Kru^\intercal \Kuu^{-1}
+    \mathbf{u} \rVert_1,
   \]
   where $a$ is a constant independent of $\mathbf{u}$.
 \end{lemma}
 \begin{proof}
   Since $\rinf \le \lVert \mathbf{r} \rVert_1$,
   \[
-    \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r} \mid \mathbf{u})\,d\mathbf{r} \le \int
-    \lVert \mathbf{r} \rVert_1 q(\mathbf{r} \mid \mathbf{u})\,d\mathbf{r} =
+    \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r} \mid
+    \mathbf{u})\,\mathrm{d}\mathbf{r} \le \int \lVert \mathbf{r} \rVert_1
+    q(\mathbf{r} \mid \mathbf{u})\,\mathrm{d}\mathbf{r} =
     \sum_{i=1}^{|\mathcal{S}|} \mathbb{E}[|r_i|].
   \]
   As each $\mathbb{E}[|r_i|]$ is a mean of a folded Gaussian distribution,
@@ -1096,13 +1198,13 @@ by Timoney \cite{lecture_notes}.
   \[
     \lim_{n \to \infty} \fn = \df,
   \]
-  \eqref{eq:to_prove} follows from Theorem \ref{thm:lebesgue} as soon as we show
-  that both $f$ and $f_n$ are measurable and find a non-negative integrable
-  function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$,
+  Equation~\eqref{eq:to_prove} follows from Theorem~\ref{thm:lebesgue} as soon
+  as we show that both $f$ and $f_n$ are measurable and find a non-negative
+  integrable function $g$ such that for all $n$, $\mathbf{r}$, $\mathbf{u}$,
   \[
     |\fn| \le \g.
   \]
-  The MDP value function is measurable by Proposition \ref{thm:measurability}.
+  The MDP value function is measurable by Proposition~\ref{thm:measurability}.
   The result of multiplying or adding measurable functions (e.g., PDFs) to a
   measurable function is still measurable. Thus, both $f$ and $f_n$ are
   measurable.
@@ -1115,7 +1217,7 @@ by Timoney \cite{lecture_notes}.
           t_n} - q(\mathbf{r} \mid \mathbf{u})}{t_n - t} \right| q(\mathbf{u}),
   \]
   since PDFs are non-negative. An upper bound for
-  $|\V(s)|$ is given by Proposition \ref{thm:bound}, while
+  $|\V(s)|$ is given by Proposition~\ref{thm:bound}, while
   \[
     \frac{q(\mathbf{r} \mid \mathbf{u})|_{t = t_n} - q(\mathbf{r} \mid \mathbf{u})}{t_n - t} = \left.
       \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial t} \right|_{t = c(\mathbf{r},
@@ -1134,7 +1236,7 @@ by Timoney \cite{lecture_notes}.
   \]
   The bound is clearly non-negative and measurable. It remains to show that it
   is also integrable. Depending on what $t$ represents, we can use one of the
-  Lemmas \ref{lemma:bound1}, \ref{lemma:bound2}, and \ref{lemma:bound3}, which
+  Lemmas~\ref{lemma:bound1}, \ref{lemma:bound2}, and \ref{lemma:bound3}, which
   gives us two polynomials $p_1(\mathbf{u}), p_2(\mathbf{u}) \in
   \mathbb{R}_2[\mathbf{u}]$ such that
   \[
@@ -1147,10 +1249,10 @@ by Timoney \cite{lecture_notes}.
       \right|_{t=c(\mathbf{r}, \mathbf{u})} \right| < q(\mathbf{r} \mid \mathbf{u}) \max \{
     |p_1(\mathbf{u})|, |p_2(\mathbf{u})| \}.
   \]
-  We can now apply Lemma \ref{lemma:integral_of_r}, which allows us to integrate
+  We can now apply Lemma~\ref{lemma:integral_of_r}, which allows us to integrate
   out $\mathbf{r}$, and we are left with showing the existence of
   \begin{equation} \label{eq:remaining_integral}
-    \int \left( a + \lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1 \right) \max \{|p_1(\mathbf{u})|, |p_2(\mathbf{u})| \} q(\mathbf{u})\,d\mathbf{u},
+    \int \left( a + \lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1 \right) \max \{|p_1(\mathbf{u})|, |p_2(\mathbf{u})| \} q(\mathbf{u})\,\mathrm{d}\mathbf{u},
   \end{equation}
   where $a$ is a constant. The integral
   \[
@@ -1159,19 +1261,19 @@ by Timoney \cite{lecture_notes}.
         &|p_1(\mathbf{u})|, \\
         &|p_2(\mathbf{u})|
       \end{aligned}
-    \right\} q(\mathbf{u})\,d\mathbf{u} = \int \max \left\{
+    \right\} q(\mathbf{u})\,\mathrm{d}\mathbf{u} = \int \max \left\{
       \begin{aligned}
         &|p_1(\mathbf{u})q(\mathbf{u})|, \\
         &|p_2(\mathbf{u})q(\mathbf{u})|
       \end{aligned}
-    \right\}\,d\mathbf{u}
+    \right\}\,\mathrm{d}\mathbf{u}
   \]
   exists because $p_1(\mathbf{u})q(\mathbf{u})$ and
   $p_2(\mathbf{u})q(\mathbf{u})$ are both integrable, hence their absolute
   values are integrable, and the maximum of two integrable functions is also
   integrable. Since $\lVert \Kru^\intercal \Kuu^{-1} \mathbf{u} \rVert_1 \in
   \mathbb{R}_1[\mathbf{u}]$, a similar argument can be applied to the rest of
-  \eqref{eq:remaining_integral} as well.
+  Integral~\eqref{eq:remaining_integral} as well.
 \end{proof}
 
 \section{Experiments} \label{sec:evaluation}
@@ -1199,29 +1301,9 @@ rewards in order to reflect this.
 
 \paragraph{Convergence}
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\columnwidth]{figures/convergence_new}
-  \caption{Convergence of $\mathcal{L}$ (at the top) as well as several example
-    policies (at the bottom).}
-  \label{fig:convergence1}
-\end{figure}
-
-\begin{figure*}
-  \centering
-  \includegraphics[width=\textwidth]{figures/parameter_convergence_new}
-  \caption{Convergence of variational parameters. In order to represent
-    different variables on the same scale, some variables have been
-    $\log$-transformed. Colours denote which vector or matrix each scalar comes
-    from: black for $\bm\lambda$, \textcolor{blue}{blue} for $\bm\mu$,
-    \textcolor{red}{red} for diagonal elements of $\mathbf{B}$, and
-    \textcolor{green}{green} for its non-diagonal elements.}
-  \label{fig:convergence2}
-\end{figure*}
-
 We plot how $\mathcal{L}$ as well as policies $\pi(a_1 \mid s_1)$, $\pi(a_2 \mid
-s_3)$, and $\pi(a_1 \mid s_2)$ converge over a number of iterations in Figure
-\ref{fig:convergence1}\footnote{In all experiments, we discard runs that
+s_3)$, and $\pi(a_1 \mid s_2)$ converge over a number of iterations in
+Figure~\ref{fig:convergence1}\footnote{In all experiments, we discard runs that
   result in a near-singular $\bm\Sigma$ or $\bm\Gamma$, repeatedly testing each
   combination of parameters as many times as necessary.}. The first two policies
 correspond to actions taken in the set of demonstrations $\mathcal{D}$, so we
@@ -1235,15 +1317,51 @@ keep increasing. Although they stay at around $0.75$ (and not 1), this may be
 optimal for the maximum causal entropy model (and this question will be
 addressed in more detail with a different experiment).
 
-We also plot how the parameters of the model converge in Figure
-\ref{fig:convergence2}. While some parameters could benefit from a higher number of
-iterations\footnote{The limit of 300 iterations was chosen so that the initial
-  increase in $\mathcal{L}$ would not be overshadowed by a long straight line
-  afterwards.}, none look alarmingly wrong. Note that $\mu_2$, a variable
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/convergence_new}
+  \caption{Convergence of $\mathcal{L}$ (at the top) as well as several example
+    policies (at the bottom)}
+  \label{fig:convergence1}
+\end{figure}
+
+We also plot how the parameters of the model converge in
+Figure~\ref{fig:convergence2}. While some parameters could benefit from a higher
+number of iterations\footnote{The limit of 300 iterations was chosen so that the
+  initial increase in $\mathcal{L}$ would not be overshadowed by a long straight
+  line afterwards.}, none look alarmingly wrong. Note that $\mu_2$, a variable
 closely related to $r(s_2)$, stabilises at a positive value whereas both $\mu_1$
 and $\mu_2$ become negative.
 
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth]{figures/parameter_convergence_new}
+  \caption{Convergence of variational parameters. In order to represent
+    different variables on the same scale, some variables have been
+    $\log$-transformed. Colours denote which vector or matrix each scalar comes
+    from: black for $\bm\lambda$, \textcolor{blue}{blue} for $\bm\mu$,
+    \textcolor{red}{red} for diagonal elements of $\mathbf{B}$, and
+    \textcolor{green}{green} for its non-diagonal elements.}
+  \label{fig:convergence2}
+\end{figure*}
+
 \paragraph{Adding More Data}
+
+We would expect policies to converge closer to extreme values (i.e., 0 and 1) as
+we add more data to the model. We test this hypothesis with a small-scale
+experiment in Figure~\ref{fig:policies}. The policy $\pitwo$, in particular,
+confirms our prediction. As this policy denotes the probability of going from
+$s_2$ to $s_1$, we expect it to stay around $0.5$ as long as we have equal
+amounts of $\zeta_1$ and $\zeta_2$ (this corresponds to the plots at coordinates
+$(1, 1)$, $(2, 2)$, and $(3, 3)$). But as we increase the number of times state
+$s_1$ appears in our demonstrations (going to the right across any row of
+plots), the model recognises the increasing value of state $s_1$, and the
+probability increases. In contrast, going up across the plots reduces the
+probability, as state $s_3$ becomes more valuable, and the model prefers it over
+state $s_1$. Interestingly, the other two policy probabilities seem to increase
+regardless of what data is added. This is likely due to the fact that a higher
+number of demonstrations results in higher gradient values, and thus leads to
+better-converged policies.
 
 \begin{figure}
   \centering
@@ -1296,21 +1414,54 @@ and $\mu_2$ become negative.
   \label{fig:policies}
 \end{figure}
 
-We would expect policies to converge closer to extreme values (i.e., 0 and 1) as
-we add more data to the model. We test this hypothesis with a small-scale
-experiment in Figure \ref{fig:policies}. The policy $\pitwo$, in particular,
-confirms our prediction. As this policy denotes the probability of going from
-$s_2$ to $s_1$, we expect it to stay around $0.5$ as long as we have equal
-amounts of $\zeta_1$ and $\zeta_2$ (this corresponds to the plots at coordinates
-$(1, 1)$, $(2, 2)$, and $(3, 3)$). But as we increase the number of times state
-$s_1$ appears in our demonstrations (going to the right across any row of
-plots), the model recognises the increasing value of state $s_1$, and the
-probability increases. In contrast, going up across the plots reduces the
-probability, as state $s_3$ becomes more valuable, and the model prefers it over
-state $s_1$. Interestingly, the other two policy probabilities seem to increase
-regardless of what data is added. This is likely due to the fact that a higher
-number of demonstrations results in higher gradient values, and thus leads to
-better-converged policies.
+Finally, we would like to see similar changes in reward covariances. Firstly, we
+will show how to derive the covariance matrix for $\mathbf{r}$ from the
+posterior distributions of $\mathbf{u}$ and $\mathbf{r} \mid \mathbf{u}$.
+Remember that $\mathbf{u} \sim \mathcal{N}(\bm\mu, \bm\Sigma)$ and $\mathbf{r}
+\mid \mathbf{u} \sim \mathcal{N}(\mathbf{Su}, \bm\Gamma)$, and let $\mathbf{r}
+\sim \mathcal{N}(\bm\mu', \bm\Sigma')$, where our goal is to find $\bm\mu'$ and
+$\bm\Sigma'$. Then
+\[
+  \bm\mu' = \mathbb{E}[\mathbf{r}] = \mathbb{E}[\mathbf{Su}] = \mathbf{S}\bm\mu.
+\]
+Furthermore,
+\begin{align*}
+  \mathbb{E}_{\mathbf{r}}[\mathbf{rr}^\intercal] &= \bm\Gamma + \mathbb{E}_{\mathbf{u}}[\mathbf{Suu}^\intercal\mathbf{S}^\intercal] = \bm\Gamma + \mathbf{S}\mathbb{E}_{\mathbf{u}}[\mathbf{uu}^\intercal]\mathbf{S}^\intercal \\
+                                                 &= \bm\Gamma + \mathbf{S}(\bm\Sigma + \bm\mu\bm\mu^\intercal)\mathbf{S}^\intercal
+\end{align*}
+by an identity for $\mathbb{E}[\mathbf{xx}^\intercal]$ by Petersen and Pedersen
+\cite{petersen2008matrix}. Now we can find the covariance matrix as follows:
+\begin{align*}
+  \bm\Sigma' &= \mathbb{E}[(\mathbf{r} - \mathbf{S}\bm\mu)(\mathbf{r} -
+               \mathbf{S}\bm\mu)^\intercal] \\
+             &= \mathbb{E}[\mathbf{rr}^\intercal - \mathbf{r}\bm\mu^\intercal\mathbf{S}^\intercal - \mathbf{S}\bm\mu\mathbf{r}^\intercal + \mathbf{S}\bm\mu\bm\mu^\intercal\mathbf{S}^\intercal] \\
+             &= \bm\Gamma + \mathbf{S}\bm\Sigma\mathbf{S}^\intercal.
+\end{align*}
+Therefore, $\mathbf{r} \sim \mathcal{N}(\mathbf{S}\bm\mu, \bm\Gamma +
+\mathbf{S}\bm\Sigma\mathbf{S}^\intercal)$.
+
+Secondly, we normalise the elements of this new covariance matrix into the
+interval $[-1, 1]$ for visualisation purposes. Diagonal (state) and non-diagonal
+(edge) covariances are normalised separately in order to represent the full
+range of values more clearly. All covariances are normalised according to this
+rule:
+\[
+  x \mapsto
+  \begin{cases*}
+    x/M & if $x \ge 0$ \\
+    -x/m & otherwise,
+  \end{cases*}
+\]
+where $M$ is the maximum (diagonal or non-diagonal) covariance across all data,
+and $m$ is the minimum. This way, all covariances are scaled to $[-1, 1]$, with
+both extreme points guaranteed to be reached unless all values are on one side
+of zero on the real number axis.
+
+Unfortunately, the resulting plot in Figure~\ref{fig:covariance} shows no clear
+pattern, suggesting that adding more of the same demonstrations does not result
+in lower covariances. The only other observation from this plot is that there
+are only two instances of negative covariance, and both of them are between
+states $s_2$ and $s_3$.
 
 \begin{figure}[!ht]
   \centering
@@ -1341,10 +1492,10 @@ better-converged policies.
     \draw [<->] (1.5, 7.5) node (yaxis) [above] {$\zeta_2$}
     |- (8, 1.5) node (xaxis) [right] {$\zeta_1$};
     \foreach \x in {1, 2, 3} {
-      \node (x\x) at (0.5+2*\x, 1.3) {$\x$};
+      \draw[shift={(0.5+2*\x, 1.5)}] (0pt,2pt) -- (0pt,-2pt) node[below] {$\x$};
     }
     \foreach \y in {1, 2, 3} {
-      \node (y\y) at (1.3, 0.5+2*\y) {$\y$};
+      \draw[shift={(1.5, 0.5+2*\y)}] (2pt,0pt) -- (-2pt,0pt) node[left] {$\y$};
     }
     \begin{axis}[
       colormap/violet,
@@ -1366,7 +1517,7 @@ better-converged policies.
     \end{axis}
   \end{tikzpicture}
   \caption{Changes in reward covariances after adding more demonstrations. The
-    meaning of external axes is the same as in Figure \ref{fig:policies}.
+    meaning of external axes is the same as in Figure~\ref{fig:policies}.
     Colours denote reward covariance values, e.g., the colour of node $s_1$
     denotes the variance of $r(s_1)$, and the colour of the edge between nodes
     $s_1$ and $s_2$ denotes the covariance between $r(s_1)$ and $r(s_2)$. The
@@ -1375,59 +1526,26 @@ better-converged policies.
   \label{fig:covariance}
 \end{figure}
 
-Finally, we would like to see similar changes in reward covariances. Firstly, we
-will show how to derive the covariance matrix for $\mathbf{r}$ from the
-posterior distributions of $\mathbf{u}$ and $\mathbf{r} \mid \mathbf{u}$.
-Remember that $\mathbf{u} \sim \mathcal{N}(\bm\mu, \bm\Sigma)$ and $\mathbf{r}
-\mid \mathbf{u} \sim \mathcal{N}(\mathbf{Su}, \bm\Gamma)$, and let $\mathbf{r}
-\sim \mathcal{N}(\bm\mu', \bm\Sigma')$, where our goal is to find $\bm\mu'$ and
-$\bm\Sigma'$. Then
-\[
-  \bm\mu' = \mathbb{E}[\mathbf{r}] = \mathbb{E}[\mathbf{Su}] = \mathbf{S}\bm\mu.
-\]
-Furthermore,
-\begin{align*}
-  \mathbb{E}_{\mathbf{r}}[\mathbf{rr}^\intercal] &= \bm\Gamma + \mathbb{E}_{\mathbf{u}}[\mathbf{Suu}^\intercal\mathbf{S}^\intercal] = \bm\Gamma + \mathbf{S}\mathbb{E}_{\mathbf{u}}[\mathbf{uu}^\intercal]\mathbf{S}^\intercal \\
-                                                 &= \bm\Gamma + \mathbf{S}(\bm\Sigma + \bm\mu\bm\mu^\intercal)\mathbf{S}^\intercal
-\end{align*}
-by the identity for $\mathbb{E}[\mathbf{xx}^\intercal]$ from the book by
-Petersen and Pedersen \cite{petersen2008matrix}. Now we can find the covariance
-matrix as follows:
-\begin{align*}
-  \bm\Sigma' &= \mathbb{E}[(\mathbf{r} - \mathbf{S}\bm\mu)(\mathbf{r} -
-               \mathbf{S}\bm\mu)^\intercal] \\
-             &= \mathbb{E}[\mathbf{rr}^\intercal - \mathbf{r}\bm\mu^\intercal\mathbf{S}^\intercal - \mathbf{S}\bm\mu\mathbf{r}^\intercal + \mathbf{S}\bm\mu\bm\mu^\intercal\mathbf{S}^\intercal] \\
-             &= \bm\Gamma + \mathbf{S}\bm\Sigma\mathbf{S}^\intercal.
-\end{align*}
-Therefore, $\mathbf{r} \sim \mathcal{N}(\mathbf{S}\bm\mu, \bm\Gamma +
-\mathbf{S}\bm\Sigma\mathbf{S}^\intercal)$.
-
-Secondly, we normalise the elements of this new covariance matrix into the
-interval $[-1, 1]$ for visualisation purposes. Diagonal (state) and non-diagonal
-(edge) covariances are normalised separately in order to represent the full
-range of values more clearly. All covariances are normalised according to this
-rule:
-\[
-  x \mapsto
-  \begin{cases*}
-    x/M & if $x \ge 0$ \\
-    -x/m & otherwise,
-  \end{cases*}
-\]
-where $M$ is the maximum (diagonal or non-diagonal) covariance across all data,
-and $m$ is the minimum. This way, all covariances are scaled to $[-1, 1]$, with
-both extreme points guaranteed to be reached unless all values are on one side
-of zero on the real number axis.
-
-Unfortunately, the resulting plot in Figure \ref{fig:covariance} shows no clear
-pattern, suggesting that adding more of the same demonstrations does not result
-in lower covariances. The only other observation from this plot is that there
-are only two instances of negative covariance, and both of them are between
-states $s_2$ and $s_3$.
-
 \paragraph{Structure versus Randomness}
 
-\begin{figure}
+If having more copies of the same demonstrations does not affect covariances, we
+can test if covariances tend to be lower in situations that exhibit more
+structure, i.e., demonstrations provide a clearer picture of which states are
+more valuable. For this, we consider a completely-deterministic MDP with ten
+states and nine actions that allow the agent to move from any state to any other
+state---the \emph{clique MDP}. We denote the states by $\mathcal{S} = \{ s_i
+\}_{i=0}^9$, and, similarly to the previous example, set up a single feature $f$
+such that $f(s_i) = i$ for $i = 0, \dots, 9$. Finally, $\gamma = 0.9$ as before.
+We consider two scenarios, with 100 randomly generated demonstrations in each.
+The scenarios are visualised in Figure~\ref{fig:cliques}, although we only show
+a small subset of demonstrations. In the first scenario, we draw both the
+starting state and the action uniformly at random. In the second scenario, we
+draw the starting state uniformly from $\mathcal{S} \setminus \{ s_0 \}$, and
+the action always points to $s_0$. We would expect at least variances of state
+rewards to be lower in the second scenario in order to reflect the more
+structured, certain behavioural pattern expressed by the demonstrations.
+
+\begin{figure}[!ht]
   \centering
   \begin{tikzpicture}
     \foreach \i in {0,...,9}
@@ -1460,48 +1578,31 @@ states $s_2$ and $s_3$.
     \draw[->,thick,blue] (v9) -- (v0);
     \end{scope}
   \end{tikzpicture}
-  \caption{The clique MDP with two sets of demonstrations denoted by blue arrows.}
+  \caption{The clique MDP with two sets of demonstrations denoted by blue arrows}
   \label{fig:cliques}
 \end{figure}
+
+Indeed, Figure~\ref{fig:covariance_boxplots} shows exactly that. The first two
+box plots show that in roughly $3/4$ of the runs reward variances were higher in
+the random scenario\footnote{Note that outliers were removed from the plot.
+  However, all outliers were positive.}. Interestingly, the same applies to
+covariances.
 
 \begin{figure}
   \centering
   \includegraphics[width=\columnwidth]{figures/boxplots}
   \caption{Box plots of the difference between (absolute values of) reward
-    covariances in random and semi-structured scenarios from Figure
-    \ref{fig:cliques}, averaged out over 100 runs and grouped into four key
-    categories. `First state' refers to the variance of $r(s_0)$, the reward of
-    the state targeted by all demonstrations in the semi-structured case. `Other
-    states' are variances of other states of the MDP, i.e., diagonal entries of
-    the covariance matrix. `Incident edges' refers to covariances between
-    $r(s_0)$ and all other states, i.e., the first row or column of the
+    covariances in random and semi-structured scenarios from
+    Figure~\ref{fig:cliques}, averaged out over 100 runs and grouped into four
+    key categories. `First state' refers to the variance of $r(s_0)$, the reward
+    of the state targeted by all demonstrations in the semi-structured case.
+    `Other states' are variances of other states of the MDP, i.e., diagonal
+    entries of the covariance matrix. `Incident edges' refers to covariances
+    between $r(s_0)$ and all other states, i.e., the first row or column of the
     covariance matrix. Finally, `other edges' is the category for the remaining
     covariances between pairs of rewards.}
   \label{fig:covariance_boxplots}
 \end{figure}
-
-If having more copies of the same demonstrations does not affect covariances, we
-can test if covariances tend to be lower in situations that exhibit more
-structure, i.e., demonstrations provide a clearer picture of which states are
-more valuable. For this, we consider a completely-deterministic MDP with ten
-states and nine actions that allow the agent to move from any state to any other
-state---the \emph{clique MDP}. We denote the states by $\mathcal{S} = \{ s_i
-\}_{i=0}^9$, and, similarly to the previous example, set up a single feature $f$
-such that $f(s_i) = i$ for $i = 0, \dots, 9$. Finally, $\gamma = 0.9$ as before.
-We consider two scenarios, with 100 randomly generated demonstrations in each.
-The scenarios are visualised in Figure \ref{fig:cliques}, although we only show
-a small subset of demonstrations. In the first scenario, we draw both the
-starting state and the action uniformly at random. In the second scenario, we
-draw the starting state uniformly from $\mathcal{S} \setminus \{ s_0 \}$, and
-the action always points to $s_0$. We would expect at least variances of state
-rewards to be lower in the second scenario in order to reflect the more
-structured, certain behavioural pattern expressed by the demonstrations.
-
-Indeed, Figure \ref{fig:covariance_boxplots} shows exactly that. The first two
-box plots show that in roughly $3/4$ of the runs reward variances were higher in
-the random scenario\footnote{Note that outliers were removed from the plot.
-  However, all outliers were positive.}. Interestingly, the same applies to
-covariances.
 
 % TODO: conclude the experiments
 
@@ -1643,12 +1744,12 @@ model's confidence regarding optimal behaviour.
       &= \mathcal{N}(\mathbf{r}; \mathbf{Su}, \bm\Gamma),
     \end{align*}
     we have
-    \[
+    \begin{align*}
       \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i} =
-      -\frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) \dl[(\mathbf{r} -
-      \mathbf{Su})^\intercal\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su}) +
-      \log|\bm\Gamma|].
-    \]
+      -\frac{1}{2}q(\mathbf{r} \mid \mathbf{u}) \dl[&(\mathbf{r} -
+      \mathbf{Su})^\intercal\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su}) \\
+      &+ \log|\bm\Gamma|].
+    \end{align*}
     The same online tool can be used to show that
     \[
       \dl \log|\bm\Gamma| = -|\bm\Gamma|^{-1}\tr(\mathbf{R}\adj(\bm\Gamma)),
@@ -1707,7 +1808,7 @@ by Petersen and Pedersen \cite{petersen2008matrix}, and
     \bm\Sigma^{-\intercal})(\mathbf{u} - \bm\mu)]
   \end{split}
 \]
-by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Hence,
+by Theorem~\ref{thm:main} and Lemma~\ref{lemma:derivatives}. Hence,
 \[
   \begin{split}
     \frac{\partial\mathcal{L}}{\partial\bm\mu} &=
@@ -1726,7 +1827,7 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Hence,
     \right) \right)
   - \dB\mathbb{E}[v].
 \]
-By Theorem \ref{thm:main},
+By Theorem~\ref{thm:main},
 \[
   \dB\mathbb{E}[\V(s)] = \iint \V(s) q(\mathbf{r} \mid \mathbf{u})
   \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}}\dx.
@@ -1737,7 +1838,7 @@ Then, using the aforementioned tool by Laue et al.
   \dB\log|\bm\Sigma| = 2\bm\Sigma^{-1}\mathbf{B}, \quad \dB \tr \left( \Kuu^{-1}
     \bm\Sigma \right) = 2\Kuu^{-1}\mathbf{B},
 \]
-and Lemma \ref{lemma:derivatives} gives
+and Lemma~\ref{lemma:derivatives} gives
 \begin{gather*}
   \frac{\partial q(\mathbf{u})}{\partial \mathbf{B}} =
   q(\mathbf{u})(\bm\Sigma^{-1}\mathbf{U}\bm\Sigma^{-1} -
@@ -1787,7 +1888,7 @@ by Petersen and Pedersen \cite{petersen2008matrix}, and
     \end{multlined}
   \end{split}
 \]
-by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
+by Theorem~\ref{thm:main} and Lemma~\ref{lemma:derivatives}. Thus,
 \begin{align*}
   \frac{\partial \mathcal{L}}{\partial \lambda_j} &=
   \mathbf{t}^\intercal \left( \frac{\partial \Kru^\intercal}{\partial
@@ -1806,6 +1907,6 @@ by Theorem \ref{thm:main} and Lemma \ref{lemma:derivatives}. Thus,
     &- (\mathbf{r} - \mathbf{Su})^\intercal\bm\Gamma^{-1}\mathbf{R}\bm\Gamma^{-1}(\mathbf{r} - \mathbf{Su})) v],
   \end{aligned} 
 \end{align*}
-where the remaining derivatives can be found in Lemma \ref{lemma:derivatives}.
+where the remaining derivatives can be found in Lemma~\ref{lemma:derivatives}.
 
 \end{document}
