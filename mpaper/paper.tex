@@ -89,7 +89,7 @@
 \begin{abstract}
   The inverse reinforcement learning (IRL) problem asks us to find a reward
   function of a Markov decision process that explains observed behaviour. Many
-  approaches are only able to construct reward functions as linear combinations
+  approaches are only able to express reward functions as linear combinations
   of state features. Out of those that can handle nonlinearity, none can provide
   a full posterior distribution of rewards. Providing variance estimates for
   rewards would allow one to judge how well the model has learned its policy and
@@ -122,13 +122,11 @@ ensure it is exposed to sufficiently many uncommon or difficult situations?
 This learning problem
 \cite{DBLP:journals/ijsr/KimP16,DBLP:journals/ijrr/KretzschmarSSB16} as well as
 many others have benefited from an approach called \emph{inverse reinforcement
-  learning} (IRL) (also known as inverse optimal control). IRL proposes a way to
-learn behaviour from \emph{demonstrations} that typically come from human
-actions. More formally, the IRL problem asks us to find a reward function for a
-Markov decision process (MDP), where demonstrations are encoded as sets of
-state-action pairs.
-% TODO (must): along with inverse optimal control, mention imitation learning
-% and apprenticeship learning
+  learning} (IRL), also known as apprenticeship learning and inverse optimal
+control. IRL proposes a way to learn behaviour from demonstrations that
+typically come from human actions. More formally, the IRL problem asks us to
+find a reward function for a Markov decision process (MDP), where demonstrations
+are encoded as sets of state-action pairs.
 
 IRL is an important problem because adjusting the reward function by hand is
 often unwieldy, since human behaviour often depends on many factors in
@@ -144,25 +142,25 @@ IRL has been used to teach helicopters how to perform tricks
 predicting pedestrian movement \cite{DBLP:conf/iros/ZiebartRGMPBHDS09} and the
 driver's intentions \cite{DBLP:conf/aaai/VogelRGR12}.
 
-% TODO: need to rewrite the first sentence
-However, most IRL models in the literature make a convenient yet unjustified
+Most IRL models in the literature make a convenient yet unjustified
 assumption that the reward function can be expressed as a linear combination of
 features
 \cite{DBLP:conf/icml/PieterN04,DBLP:conf/icml/NgR00,ziebart2008maximum}.
 This assumption severely restricts what reward structures can be modelled (i.e.,
 the properties of the function that represents rewards across states). Out of
 the non-linear models proposed to date, none can answer the questions posed in
-the first paragraph. Quite often, the models assume that rewards have no
-variance \cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}.
+the first paragraph. More specifically, without knowing the ground truth for the
+learning problem, we have no reliable way to know whether the learned behaviour
+is optimal and which parts of the model could benefit from more data. Quite
+often, the models assume that rewards have no variance
+\cite{DBLP:conf/nips/LevinePK11,DBLP:conf/uai/JinDAS17}.
 
 In this paper, we show how that assumption can be lifted by switching from
 maximum likelihood estimation to \emph{variational inference} (VI), i.e., we
 approximate the posterior distribution of the model by optimising the parameters
 of a simpler distribution to make it similar to the posterior. This approach can
-prove useful in four major ways:
+prove useful in three major ways:
 \begin{enumerate}
-\item By working with full distributions instead of point estimates, we can
-  expect more precise reward predictions.
 \item Variance estimates can be used to guide what data should be collected
   next, i.e., if the rewards of some states have abnormally high variance, we
   might want to expose the model to more data visiting those and surrounding
@@ -170,18 +168,23 @@ prove useful in four major ways:
 \item Variances estimates can also be used to judge whether we can trust the
   predictions of the model or, perhaps, the model could benefit from some
   adjustments or more data.
-\item By adopting a more Bayesian approach, we automatically incorporate Occam's
-  razor into the model that guards against overfitting
+\item By adopting a more Bayesian approach we can set prior distributions on
+  random variables. This can help prevent overfitting as well as encode
+  additional information about the reward function
   \cite{DBLP:conf/uai/JinDAS17}.
 \end{enumerate}
 
-Our main contribution is a proof in Section~\ref{sec:proof} that shows
-how VI can be applied to the maximum-entropy IRL model with Gaussian processes
-(GPs) proposed by Levine et al. \cite{DBLP:conf/nips/LevinePK11}. We describe
-how we adapt the model and set up the VI problem in Section~\ref{sec:model}.
-Finally, in Section~\ref{sec:evaluation} we examine the convergence properties
-of our model and its ability to deduce optimal policies in practice.
-% TODO: expand on this more
+% TODO: could raise intractable posterior as the main reason, but would have to
+% rephrase the whole section
+No fully Bayesian nonlinear IRL model has been proposed yet. We will uncover one
+reason for this when we set up our IRL model for VI in Section~\ref{sec:model}.
+Applying VI to this model in a theoretically sound way (without introducing
+unjustified simplifying assumptions) requires us to use Lebesgue's dominated
+convergence theorem in order to derive the gradient of the expectation of the
+MDP value function---we provide a complete proof for this (and some other
+results) in Section~\ref{sec:proof}. Finally, in Section~\ref{sec:evaluation} we
+demonstrate the model's correctness and properties experimentally using several
+example scenarios.
 
 \paragraph{Notation and Conventions}
 
@@ -199,7 +202,90 @@ measure in a Euclidean space with a suitable number of dimensions. Similarly,
 whenever we consider the existence of an integral, we use the Lebesgue
 definition of integration.
 
-\section{The Problem} \label{sec:problem}
+\section{Background} % 0.5-1 page
+% TODO: edit this: we can probably extend this (and the introduction)
+
+The IRL problem itself was originally proposed by Russell in 1998
+\cite{DBLP:conf/colt/Russell98}. Most of the early approaches had the
+aforementioned reward linearity assumption. One of the first papers on the
+subject by Ng and Russell \cite{DBLP:conf/icml/NgR00} introduced several linear
+programming algorithms and identified an important issue: there are typically
+many reward functions that can explain the data equally well. This problem was
+solved by Ziebart et al. \cite{ziebart2008maximum} with the introduction of IRL
+based on the principles of maximum causal entropy in a linearly-solvable MDP.
+
+Levine et al. \cite{DBLP:conf/nips/LevinePK11} were the first to lift the
+linearity assumption without imposing additional restrictions on the problem.
+They do, however, model rewards as having no variance---our work removes this
+restriction without any compromises.
+
+An alternative to GPs for modelling nonlinear functions is, of course, neural
+networks. Wulfmeier et al. \cite{wulfmeier2015maximum} have shown how they can
+be used in the IRL setting. While this approach benefits from constant-time
+inference and the ability to learn complex features from data, neural
+networks often need significantly more data for the weights across all layers to
+stabilise.
+
+Recently, Jin et al. \cite{DBLP:conf/uai/JinDAS17} have adapted the model
+proposed by Levine et al. \cite{DBLP:conf/nips/LevinePK11} to use deep GPs,
+harnessing the power of deep learning to make the model less dependent on what
+features are provided. Although they use VI, their approximating distribution
+for rewards at inducing points is simply the Dirac $\delta$ function, which is
+essentially equivalent to the assumption of no variance.
+
+We argue that developing an IRL model with a variational approximation of the
+full posterior distribution has eluded previous research in the area for two
+reasons. First, it is not directly relevant to the goal of producing accurate
+point estimates of rewards. However, we described several key benefits in the
+previous section, and we postulate how this work could affect the wider fields
+of reinforcement learning and artificial intelligence in
+Section~\ref{sec:conclusions}. Second, as it will become apparent in
+Sections~\ref{sec:model} and \ref{sec:proof}, optimising such a VI model
+involves estimates of gradients, establishing correctness of which requires a
+significant amount of work.
+
+\subsection{Variational Inference}
+
+VI has come a long way from the initial \emph{mean field} approach where each
+variable is approximated by a univariate Gaussian, independent of all other
+variables. Recent years have brought improvements in both computational
+complexity and flexibility of the variational approximation
+\cite{blei2017variational}. In this section, we will mention some of the most
+important and relevant developments in the field, while referring the interested
+reader to recent survey articles
+\cite{blei2017variational,DBLP:journals/corr/abs-1711-05597} for a broader
+overview of the area.
+
+A major development in approximating complex distributions came in the form of
+\emph{normalizing flows}, i.e., a collection of invertible
+functions---parametrised by additional variational parameters---that are applied
+to latent variables \cite{DBLP:conf/icml/RezendeM15}. A sequence of such
+functions can transform a simple initial distribution (e.g., uniform or
+Gaussian) into an arbitrarily complex one.
+%A major challenge in applying this
+%work to IRL is related to variational parameters being used to compute the MDP
+%value function, i.e., how can we take the derivative of the value function with
+%respect to such a variational parameter? Alternatively, perhaps one can
+%construct a different model that would make this question moot.
+
+Another approach to flexibility in modelling could come from considering
+different GP kernels. For instance, Wilson and Adams \cite{pmlr-v28-wilson13}
+show how all \emph{stationary} (i.e., invariant to translations) kernels can be
+generated (or at least approximated) from a mixture of Gaussians in their
+spectral representation using Bochner's theorem
+\cite{bochner1959lectures,DBLP:journals/technometrics/Woodard00}. It looks
+promising to combine these kernels with the variational Fourier features
+approach by Hensman et al. \cite{DBLP:journals/jmlr/HensmanDS17} that leverages
+the same spectral representations for efficient VI.
+
+While these and many other advancements in VI promise great improvements, there
+are hidden challenges when it comes to applying them to VI. Many suggested
+improvements implicitly impose restrictions on the model that are unlikely to be
+satisfied in the context of IRL, e.g., the evidence of the model being a
+Gaussian. Nevertheless, the work outlined here seems adaptable to the IRL
+setting and can make variational approximations both more accurate and faster.
+
+\section{Problem Description} \label{sec:problem}
 
 In this section, we introduce definitions and mathematical details relevant to
 the problem. We begin by formally defining the problem.
@@ -222,7 +308,7 @@ However, we switch between the two notations as needed.
 \begin{definition}[IRL]
   Given an MDP without rewards $\mathcal{M} \setminus \{ \mathbf{r} \}$, an
   $|\mathcal{S}| \times d$ feature matrix $\mathbf{X}$ (where $d$ is the number
-  of features), and a set of demonstrations $\mathcal{D} = \{\zeta_i
+  of features), and a set of \emph{demonstrations} $\mathcal{D} = \{\zeta_i
   \}_{i=1}^N$, where each demonstration $\zeta_i = \{ (s_{i,t}, a_{i,t})
   \}_{t=1}^T$ is a multiset of state-action pairs that represents optimal (or
   near-optimal) actions, find the reward function that maximises the probability
@@ -233,10 +319,9 @@ However, we switch between the two notations as needed.
 \end{definition}
 
 \begin{example}
-  Figure \ref{fig:example} shows a possible setup for IRL. In this case,
+  Figure~\ref{fig:example} shows a possible setup for IRL. In this case,
+  $\mathcal{S} = \{ s_1, s_2, s_3, s_4 \}$, $\mathcal{A} = \{ l, r, u, d \}$,
   \begin{align*}
-    \mathcal{S} &= \{ s_1, s_2, s_3, s_4 \}, \\
-    \mathcal{A} &= \{ l, r, u, d \}, \\
     \mathcal{T}(s, a, s') &= \begin{cases}
       1 & \text{if } (s, a, s') = (s_1, r, s_2) \\
       1 & \text{if } (s, a, s') = (s_1, d, s_4) \\
@@ -378,13 +463,8 @@ factorised as
   \pfull = p(\mathbf{u}) \times p(\mathbf{r} \mid \mathbf{u}) \times
   p(\mathcal{D} \mid \mathbf{r}),
 \end{equation}
-where
-\begin{align*}
-  p(\mathbf{u}) &= \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu) \\
-                &= \frac{1}{(2\pi)^{m/2}|\Kuu|^{1/2}}\exp \left( -\frac{1}{2} \mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} \right) \\
-                &= \exp\left(-\frac{1}{2}\mathbf{u}^\intercal\Kuu^{-1}\mathbf{u} - \frac{1}{2}\log|\Kuu| - \frac{m}{2}\log 2\pi\right)
-\end{align*}
-is the GP prior \cite{DBLP:books/lib/RasmussenW06}. The GP posterior is then a
+where $p(\mathbf{u}) = \mathcal{N}(\mathbf{u}; \mathbf{0}, \Kuu)$ is the GP
+prior \cite{DBLP:books/lib/RasmussenW06}. The GP posterior is then a
 multivariate Gaussian \cite{DBLP:conf/nips/LevinePK11} defined as
 \begin{equation} \label{eq:r}
   p(\mathbf{r} \mid \mathbf{u}) =
@@ -399,12 +479,12 @@ $\mathbf{x}_{\mathbf{u},j}$ denote feature vectors for the $i$th state in
 $\mathcal{S}$ and the $j$th inducing point, respectively
 \cite{DBLP:conf/uai/JinDAS17}.
 
-Our goal is then to use VI in order to approximate
-$p(\mathbf{u},~\mathbf{r}~\mid~\mathcal{D})$. Let $\approximation$ denote our
-approximation. VI aims to optimise this approximation by minimising the
+We can then use VI in order to approximate
+$p(\mathbf{u},~\mathbf{r}~\mid~\mathcal{D})$. This is done by minimising the
 \emph{Kullback-Leibler} (KL) divergence between the original probability
 distribution and our approximation. KL divergence (asymmetrically) measures the
-difference between two probability distributions and is defined as
+difference between two probability distributions. Let $\approximation$ denote
+our approximation. The KL divergence is then defined as
 \cite{blei2017variational}
 \begin{align*}
   \DKL{\approximation}{\posterior} &= \mathbb{E}_{\approximation}[\log\approximation - \log\posterior ] \\
@@ -412,10 +492,9 @@ difference between two probability distributions and is defined as
                                    &+ \mathbb{E}_{\approximation}[\log p(\mathcal{D})].
 \end{align*}
 The last term is both hard to compute and constant with respect to
-$\approximation$ \cite{blei2017variational}, so we can remove it from our
-optimisation objective. The negation of what remains is known as the
-\emph{evidence lower bound} (ELBO) and is defined as
-\cite{DBLP:books/lib/Bishop07,blei2017variational}
+$\approximation$, so we can remove it from our optimisation objective. The
+negation of what remains is known as the \emph{evidence lower bound} (ELBO) and
+is defined as \cite{DBLP:books/lib/Bishop07,blei2017variational}
 \begin{equation} \label{eq:elbo}
   \begin{split}
     \mathcal{L} &= \mathbb{E}_{\approximation}\left[ \log \frac{\pfull}{\approximation} \right] \\
@@ -426,66 +505,6 @@ Thus, instead of minimising KL divergence, we focus on maximising $\mathcal{L}$
 by optimising the values of parameters to be defined in Section~\ref{sec:model}.
 Note that hereafter we drop the subscript notation, as all expected values will
 be with respect to $\approximation$.
-
-\section{Background}
-
-We introduce a few definitions and results from linear algebra, numerical
-analysis, and measure theory that will be used later in the paper. Namely, we
-will use several different vector and matrix norms, consider how an inverse of a
-matrix changes with a small perturbation, and introduce Lebesgue's dominated
-convergence theorem which plays a major role in our theoretical results in
-Section~\ref{sec:proof}.
-
-\begin{definition}[Norms]
-  For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
-  its \emph{maximum norm} (\emph{$\ell_\infty$-norm}) is
-  \[
-    \lVert \mathbf{x} \rVert_\infty = \max_i |x_i|
-  \]
-  whereas its \emph{$\ell_1$-norm} is
-  \[
-    \lVert \mathbf{x} \rVert_1 = \sum_{i = 1}^n |x_i|.
-  \]
-  Let $\mathbf{A}$ be a matrix. For any vector norm $\lVert
-  \cdot \rVert_p$, we can also define its \emph{induced norm} for matrices as
-  \[
-    \lVert \mathbf{A} \rVert_p = \sup_{\mathbf{x} \ne \mathbf{0}} \frac{\lVert
-      \mathbf{Ax} \rVert_p}{\lVert \mathbf{x} \rVert_p}.
-  \]
-  In particular, for $p = \infty$, we have
-  \[
-    \lVert \mathbf{A} \rVert_\infty = \max_i \sum_{j} |A_{i,j}|.
-  \]
-\end{definition}
-
-\begin{lemma}[Perturbation Lemma
-  \cite{layton2014numerical}] \label{lemma:perturbation}
-  Let $\lVert \cdot \rVert$ be any matrix norm, and let $\mathbf{A}$ and
-  $\mathbf{E}$ be matrices such that $\mathbf{A}$ is invertible and $\lVert
-  \mathbf{A}^{-1} \rVert \lVert \mathbf{E} \rVert < 1$, then $\mathbf{A} +
-  \mathbf{E}$ is invertible, and
-  \[
-    \lVert (\mathbf{A} + \mathbf{E})^{-1} \rVert \le \frac{\lVert
-      \mathbf{A}^{-1} \rVert}{1 - \lVert \mathbf{A}^{-1} \rVert \lVert
-      \mathbf{E} \rVert}.
-  \]
-\end{lemma}
-
-\begin{theorem}[Dominated Convergence Theorem
-  \cite{royden2010real}] \label{thm:lebesgue}
-  Let $(X, \mathcal{M}, \mu)$ be a measure space and $\{ f_n \}$ a sequence of
-  measurable functions on $X$ for which $\{ f_n \} \to f$ pointwise a.e. on $X$
-  and the function $f$ is measurable. Assume there is a non-negative function
-  $g$ that is integrable over $X$ and dominates the sequence $\{ f_n \}$ on $X$
-  in the sense that
-  \[
-    |f_n| \le g \text{ almost everywhere on $X$ for all $n$.}
-  \]
-  Then $f$ is integrable over $X$ and
-  \[
-    \lim_{n \to \infty} \int_X f_n\,\mathrm{d}\mu = \int_X f\,\mathrm{d}\mu.
-  \]
-\end{theorem}
 
 \section{The Model} \label{sec:model}
 
@@ -578,7 +597,7 @@ $\mathcal{N}(\bm\mu, \mathbf{BB}^\intercal)$.
   \end{tikzpicture}
   \caption{Our VI problem expressed as a (simplified)
     Bayesian network. The only observed variable (representing the
-    demonstrations) is in a gray circle, modelled latent variables are in white
+    demonstrations) is in a grey circle, modelled latent variables are in white
     circles, and the variational parameters are at the bottom.}
   \label{fig:graphical_model}
 \end{figure}
@@ -665,20 +684,23 @@ where
   v = \sum_{i=1}^N \sum_{t=1}^T \V(s_{i,t}) - \gamma\sum_{s' \in \mathcal{S}}
   \mathcal{T}(s_{i,t}, a_{i,t}, s')\V(s').
 \]
+We will need to optimise this expression in order to train our model.
 
 \section{Theoretical Justification} \label{sec:proof}
-% TODO: Possible improvements:
-% 1. Use limits more often.
-% 2. Avoid saying that epsilon is arbitrary and using phrases like 'sufficiently small'.
 
 The typical way to optimise a quantity (the ELBO, in this case) involves
 computing its gradient. Unfortunately, the term $\mathbb{E}[v]$ in $\mathcal{L}$
-complicates the situation. The goal of this section is to show how
-Theorem~\ref{thm:lebesgue} can be applied to our model in order to derive the
-gradient anyway\footnote{This technique is inspired by black box VI
-  \cite{DBLP:conf/aistats/RanganathGB14}, but takes a more detailed look at the
-  problem and requires significantly more work to prove correctness.}. After
-showing that the theorem applies to our situation, we can estimate
+complicates the situation. Indeed, in order to take the derivative of an
+expected value, certain conditions must be satisfied. Without proving the
+validity of our algorithm, we risk building it on faulty assumptions and having
+it misbehave---perhaps all the time, perhaps only in certain situations. The
+goal of this section is to show how Lebesgue's dominated convergence theorem can
+be applied to our model in order to derive $\nabla\mathbb{E}[v]$, i.e., the
+derivative of $\mathbb{E}[v]$ with respect to our variational parameters
+$\bm\mu$, $\mathbf{B}$, and $\bm\lambda$. This technique is inspired by black
+box VI \cite{DBLP:conf/aistats/RanganathGB14}, but takes a more detailed look at
+the problem and requires significantly more work to prove correctness. After
+showing that the theorem applies to our situation, we can then estimate
 $\nabla\mathbb{E}[v]$ with
 \begin{align*}
   \nabla\mathbb{E}[v] &= \nabla \iint v q(\mathbf{r} \mid \mathbf{u}) q(\mathbf{u})\dx \\
@@ -691,12 +713,14 @@ which can be computed by drawing $S$ samples $\{(\mathbf{u}_s,
 
 Our main goal is Theorem~\ref{thm:main}, which allows us to move differentiation
 inside the integral. In order to prove it, we use a number of intermediate
-results. We start by stating a few derivatives of PDFs and covariance matrices,
-and bound their values with some easy-to-deal-with polynomials. We then provide
-a sketch proof of the measurability of MDP value functions as well as new upper
-and lower bounds on their values. After another quick lemma, we tackle the main
-proof of this paper. See Figure~\ref{fig:theorems} for an overview of how these
-results fit together.
+results. We begin by introducing a few important tools and techniques in
+Section~\ref{sec:math_preliminaries}. In Section~\ref{sec:derivatives}, we state
+a few derivatives of PDFs and covariance matrices and bound their values with
+some easy-to-work-with polynomials. In Section~\ref{sec:propositions}, we
+provide a sketch proof of the measurability of the MDP value function as well as
+new upper and lower bounds on their values. After another quick lemma, the main
+proof of the paper is in Section~\ref{sec:the_proof}. See
+Figure~\ref{fig:theorems} for an overview of how these results fit together.
 
 \begin{figure}
   \centering
@@ -726,20 +750,83 @@ results fit together.
   \end{tikzpicture}
   \caption{A graphical representation of dependencies between our theoretical
     results. An arrow from $A$ to $B$ means that $A$ was used to prove $B$.
-    Results from the literature are in gray.}
+    Results from the literature are in grey.}
   \label{fig:theorems}
 \end{figure}
 
-Before that, however, we define a few extra variables in order to simplify
-expressions of derivatives:
+\subsection{Mathematical Preliminaries} \label{sec:math_preliminaries}
+
+We introduce a few definitions and results from linear algebra, numerical
+analysis, and measure theory that will be used later in the paper. Namely, we
+will use several different vector and matrix norms, consider how an inverse of a
+matrix changes with a small perturbation, and introduce Lebesgue's dominated
+convergence theorem which plays a major role in Section~\ref{sec:the_proof}.
+
+\begin{definition}[Norms]
+  For any finite-dimensional vector $\mathbf{x} = (x_1, \dots, x_n)^\intercal$,
+  its \emph{maximum norm} (\emph{$\ell_\infty$-norm}) is
+  \[
+    \lVert \mathbf{x} \rVert_\infty = \max_i |x_i|
+  \]
+  whereas its \emph{$\ell_1$-norm} is
+  \[
+    \lVert \mathbf{x} \rVert_1 = \sum_{i = 1}^n |x_i|.
+  \]
+  Let $\mathbf{A}$ be a matrix. For any vector norm $\lVert
+  \cdot \rVert_p$, we can also define its \emph{induced norm} for matrices as
+  \[
+    \lVert \mathbf{A} \rVert_p = \sup_{\mathbf{x} \ne \mathbf{0}} \frac{\lVert
+      \mathbf{Ax} \rVert_p}{\lVert \mathbf{x} \rVert_p}.
+  \]
+  In particular, for $p = \infty$, we have
+  \[
+    \lVert \mathbf{A} \rVert_\infty = \max_i \sum_{j} |A_{i,j}|.
+  \]
+\end{definition}
+
+\begin{lemma}[Perturbation Lemma
+  \cite{layton2014numerical}] \label{lemma:perturbation}
+  Let $\lVert \cdot \rVert$ be any matrix norm, and let $\mathbf{A}$ and
+  $\mathbf{E}$ be matrices such that $\mathbf{A}$ is invertible and $\lVert
+  \mathbf{A}^{-1} \rVert \lVert \mathbf{E} \rVert < 1$, then $\mathbf{A} +
+  \mathbf{E}$ is invertible, and
+  \[
+    \lVert (\mathbf{A} + \mathbf{E})^{-1} \rVert \le \frac{\lVert
+      \mathbf{A}^{-1} \rVert}{1 - \lVert \mathbf{A}^{-1} \rVert \lVert
+      \mathbf{E} \rVert}.
+  \]
+\end{lemma}
+
+\begin{theorem}[Dominated Convergence Theorem
+  \cite{royden2010real}] \label{thm:lebesgue}
+  Let $(X, \mathcal{M}, \mu)$ be a measure space and $\{ f_n \}$ a sequence of
+  measurable functions on $X$ for which $\{ f_n \} \to f$ pointwise a.e. on $X$
+  and the function $f$ is measurable. Assume there is a non-negative function
+  $g$ that is integrable over $X$ and dominates the sequence $\{ f_n \}$ on $X$
+  in the sense that
+  \[
+    |f_n| \le g \text{ almost everywhere on $X$ for all $n$.}
+  \]
+  Then $f$ is integrable over $X$ and
+  \[
+    \lim_{n \to \infty} \int_X f_n\,\mathrm{d}\mu = \int_X f\,\mathrm{d}\mu.
+  \]
+\end{theorem}
+
+\subsection{Derivatives of PDFs and Their Bounds} \label{sec:derivatives}
+
+The goal of this section is to find derivatives of $q(\mathbf{u})$ and
+$q(\mathbf{r} \mid \mathbf{u})$ with respect to variational parameters and
+bound their values. Note that throughout this section the word `constant' means
+`constant with respect to $\mathbf{u}$ and $\mathbf{r}$'. We begin by
+introducing a few extra variables in order to simplify expressions of
+derivatives:
 \begin{align*}
   \mathbf{U} &= (\mathbf{u} - \bm\mu)(\mathbf{u} - \bm\mu)^\intercal, \\
   \mathbf{S} &= \Kru^\intercal\Kuu^{-1}, \\
   \bm\Gamma &= \Krr - \mathbf{S}\Kru, \\
   \mathbf{R} &= \mathbf{S}\frac{\partial \Kru}{\partial \lambda_i} - \frac{\partial \Krr}{\partial \lambda_i} + \left( \frac{\partial \Kru^\intercal}{\partial \lambda_i} - \mathbf{S}\frac{\partial \Kuu}{\partial \lambda_i} \right) \Kuu^{-1}\Kru.
 \end{align*}
-Also note that throughout this section the word `constant' means `constant with
-respect to $\mathbf{u}$ and $\mathbf{r}$'.
 
 \begin{restatable}[Derivatives of PDFs]{lemma}{derivatives} \label{lemma:derivatives}
   \leavevmode
@@ -1026,15 +1113,22 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   follows.
 \end{proof}
 
+\subsection{The MDP Value Function} \label{sec:propositions}
+
+In this section, we present two results that are necessary for the main proof in
+Section \ref{sec:the_proof} but also interesting in their own right. Firstly, we
+sketch a proof for the measurability of the MDP value function. Afterwards, we
+establish upper and lower bounds on said function.
+
 \begin{remark}
-  MDP values are characterised by both a state and a reward function/vector. For
-  the rest of this section, we will think of the value function as $V :
-  \mathcal{S} \to \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$, i.e., $V$ takes a
-  state $s \in \mathcal{S}$ and returns a function $V(s) :
-  \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ that takes a reward vector
-  $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state
-  $s$, $\V(s) \in \mathbb{R}$. Given a reward vector, the function $V(s)$
-  computes the values of all states and returns the value of state $s$.
+  MDP values are characterised by both a state and a reward function/vector. In
+  this section, we will think of the value function as $V : \mathcal{S} \to
+  \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$, i.e., $V$ takes a state $s \in
+  \mathcal{S}$ and returns a function $V(s) : \mathbb{R}^{|\mathcal{S}|} \to
+  \mathbb{R}$ that takes a reward vector $\mathbf{r} \in
+  \mathbb{R}^{|\mathcal{S}|}$ and returns a value of the state $s$, $\V(s) \in
+  \mathbb{R}$. Given a reward vector, the function $V(s)$ computes the values of
+  all states and returns the value of state $s$.
 \end{remark}
 
 \begin{proposition}[Measurability] \label{thm:measurability}
@@ -1159,6 +1253,8 @@ respect to $\mathbf{u}$ and $\mathbf{r}$'.
   to get the desired result.
 \end{proof}
 
+\subsection{Differentiability} \label{sec:the_proof}
+
 Our main theorem is a specialised version of an integral differentiation result
 by Timoney \cite{lecture_notes}.
 \begin{theorem} \label{thm:main}
@@ -1276,13 +1372,33 @@ by Timoney \cite{lecture_notes}.
   Integral~\eqref{eq:remaining_integral} as well.
 \end{proof}
 
+Having proven that differentiation can be moved inside the integral allows us to
+use $\nabla\mathcal{L}$ for optimisation, knowing that our approach is sound.
+This allows us to implement a simple optimisation algorithm with a constant step
+size. The algorithm was implemented in MATLAB and is compatible with the
+toolkit\footnote{\url{https://graphics.stanford.edu/projects/gpirl/}} for
+evaluating IRL algorithms developed by Levine et al.
+\cite{DBLP:conf/nips/LevinePK11}. Note that due to the stochastic nature of the
+gradient, dynamic step size algorithms such as AdaGrad
+\cite{DBLP:journals/jmlr/DuchiHS11} and AdaDelta
+\cite{DBLP:journals/corr/abs-1212-5701} proved ineffective, as spikes in the
+gradient estimates would drive the step size down to zero. Similarly, although
+we check the $\ell_1$-norm of the difference between old and new parameter
+values in order to detect convergence, the algorithm usually only stops when the
+maximum number of iterations is exhausted.
+% TODO (must-y): An algorithm box / pseudo code outlining the algorithms (with
+% links to the many equations) so the reader can easily get an impression of the
+% (training) algorithm and the complexity.
+
 \section{Experiments} \label{sec:evaluation}
 % showing deep understanding
 
-In order to fully understand the model's behaviour, we start with a three-state
-MDP where the agent can deterministically move from any state to any other
-state. More formally, we set $\mathcal{S} = \{ s_1, s_2, s_3 \}$, $\mathcal{A} =
-\{ a_1, a_2 \}$,
+The main goal of this section is use experimental evidence in order to show that
+the implementation agrees with theory and to investigate its properties such as
+convergence and how the learned model changes with varying amounts and types of
+data. We begin with a three-state MDP where the agent can deterministically move
+from any state to any other state. More formally, we set $\mathcal{S} = \{ s_1,
+s_2, s_3 \}$, $\mathcal{A} = \{ a_1, a_2 \}$,
 \begin{align*}
   &\mathcal{T}(s_1, a_1, s_2) = 1, \quad \mathcal{T}(s_1, a_2, s_3) = 1, \\
   &\mathcal{T}(s_2, a_1, s_1) = 1, \quad \mathcal{T}(s_1, a_2, s_3) = 1, \\
@@ -1295,7 +1411,7 @@ add a single feature $f : \mathcal{S} \to \mathbb{R}$ such that
   f(s_1) = 1, \quad f(s_2) = 2, \quad f(s_3) = 3,
 \]
 and create two demonstrations $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
-(s_3, a_2) \}$ that correspond to moving from $s_1$ and $s_3$ to $s_2$.
+(s_3, a_2) \}$ that correspond to moving from $s_1$ and from $s_3$ to $s_2$.
 Therefore, we would expect the reward of $s_2$ to be higher than the other two
 rewards in order to reflect this.
 
@@ -1457,7 +1573,7 @@ and $m$ is the minimum. This way, all covariances are scaled to $[-1, 1]$, with
 both extreme points guaranteed to be reached unless all values are on one side
 of zero on the real number axis.
 
-Unfortunately, the resulting plot in Figure~\ref{fig:covariance} shows no clear
+However, the resulting plot in Figure~\ref{fig:covariance} shows no clear
 pattern, suggesting that adding more of the same demonstrations does not result
 in lower covariances. The only other observation from this plot is that there
 are only two instances of negative covariance, and both of them are between
@@ -1604,69 +1720,7 @@ covariances.
   \label{fig:covariance_boxplots}
 \end{figure}
 
-% TODO: conclude the experiments
-
-\section{Related Work} % 0.5-1 page
-
-The IRL problem itself was originally proposed by Russell in 1998
-\cite{DBLP:conf/colt/Russell98}. Most of the early approaches had the
-aforementioned reward linearity assumption. One of the first papers on the
-subject by Ng and Russell \cite{DBLP:conf/icml/NgR00} introduced several linear
-programming algorithms and identified an important issue: there are typically
-many reward functions that can explain the data equally well. This problem was
-solved by Ziebart et al. \cite{ziebart2008maximum} with the introduction of IRL
-based on the principles of maximum causal entropy in a linearly-solvable MDP.
-
-Levine et al. \cite{DBLP:conf/nips/LevinePK11} were the first to lift the
-linearity assumption without imposing additional restrictions on the problem.
-They do, however, model rewards as having no variance---our work removes this
-restriction without any compromises.
-
-Recently, Jin et al. \cite{DBLP:conf/uai/JinDAS17} have adapted the model
-proposed by Levine et al. \cite{DBLP:conf/nips/LevinePK11} to use deep GPs,
-harnessing the power of deep learning to make the model less dependent on what
-features are provided. Although they use VI, their approximating distribution
-for rewards at inducing points is simply the Dirac $\delta$ function, which is
-essentially equivalent to the assumption of no variance.
-
-An alternative to GPs for modelling nonlinear functions is, of course, neural
-networks. Wulfmeier et al. \cite{wulfmeier2015maximum} have shown how they can
-be used in the IRL setting. While this approach benefits from constant-time
-inference and the ability to learn complex features from data, neural
-networks often need significantly more data for the weights across all layers to
-stabilise.
-
-\subsection{Variational Inference}
-
-Since the focus of our work was on proving feasibility rather than ensuring
-performance, we simply used a combination of Gaussians for our variational
-approximation. However, while VI was initially focused on approximating
-distributions using simplistic models where all variables are independent
-\cite{blei2017variational}, the last few years have brought many advances in
-approximating more complex distributions and greatly reducing the computational
-complexity of the task. Adapting some of them to IRL is a nontrivial but highly
-valuable undertaking.
-
-For approximating complex distributions, Rezende and Mohamed
-\cite{DBLP:conf/icml/RezendeM15} suggest using \emph{normalising flows}, i.e., a
-collection of invertible functions---parametrised by additional variational
-parameters---that are applied to latent variables. A major challenge in applying
-their work to IRL is related to variational parameters being used to compute the
-MDP value function, i.e., how can we take the derivative of the value function
-with respect to such a variational parameter? Alternatively, perhaps one can
-construct a different model that would make this question moot.
-
-Another approach to flexibility in modelling could come from considering
-different GP kernels. For instance, Wilson and Adams \cite{pmlr-v28-wilson13}
-show how all \emph{stationary} (i.e., invariant to translations) kernels can be
-generated (or at least approximated) from a mixture of Gaussians in their
-spectral representation using Bochner's theorem
-\cite{bochner1959lectures,DBLP:journals/technometrics/Woodard00}. It looks
-promising to combine these kernels with the variational Fourier features
-approach by Hensman et al. \cite{DBLP:journals/jmlr/HensmanDS17} that leverages
-the same spectral representations for efficient VI.
-
-\section{Conclusion}
+\section{Conclusions and Further Work} \label{sec:conclusions}
 % TODO: write
 % Show how we achieved our claimed contributions
 
@@ -1680,9 +1734,7 @@ the same spectral representations for efficient VI.
 \item Determining how reward covariance depends on data would be the next step.
 \end{itemize}
 
-\subsection{Further Work}
-%TODO: how optimal policies depend on the structure of the mdp and available
-%data (i.e., why don't our policies converge to 1)
+% FURTHER WORK
 
 An interesting extension to our work would be to consider IRL in the context
 of a reinforcement learning (RL) agent. Suppose we have an agent whose purpose
@@ -1693,18 +1745,11 @@ exploitation similarly to many RL agents, but the information about rewards
 would come from observing (presumably near-optimal) behaviour exhibited by other
 agents rather than directly from the environment.
 
-It is also worth noting the approach presented in this paper requires solving
-$S$ MDPs for every iteration of optimising the parameters (where $S$ is the
-number of samples drawn from $\approximation$). There are at least two ways to
-reduce or eliminate this performance bottleneck:
-\begin{itemize}
-\item The MDP value function could be approximated, allowing for some minor
-  mistakes in the resulting policy.
-\item Perhaps there is a good way to use information about previously computed
-  value functions for similar rewards to hasten the current computation. One
-  simple way to do this would be by initialising the current values to the
-  optimal values of the previous MDP value function computation.
-\end{itemize}
+It is also worth noting that the approach presented in this paper requires solving
+$S$ MDPs for every iteration of optimisation (where $S$ is the
+number of samples drawn from $\approximation$). The running time could be
+significantly improved by reusing the solutions of previous MDPs to initialise
+the new (unsolved) MDP in order to hasten the convergence of value iteration.
 
 Finally, building on the idea that variance estimates can be used to judge
 whether the model has learned optimal policy, an interesting question for
