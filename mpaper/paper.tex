@@ -12,6 +12,7 @@
 \usepackage{csvsimple}
 \usepackage{pgfplots}
 \usepackage{blkarray}
+\usepackage[boxed]{algorithm2e}
 
 \usetikzlibrary{shapes,bayesnet,arrows.meta,arrows,calc,pgfplots.colormaps}
 %\tikzstyle{myarrow} = [-{Latex[length=2mm,width=2mm]}]
@@ -606,23 +607,25 @@ As we want to restrict some parameters (namely, $\bm\lambda$ and the diagonal of
 $\mathbf{B}$) to positive values, we express them as exponentials and later
 adjust their derivatives accordingly. Specifically, we can set $\lambda_i =
 e^{\lambda'_i}$ and optimise $\lambda'_i$ using the chain rule:
-\[
+\begin{equation} \label{eq:transformation}
   \frac{\partial \mathcal{L}}{\partial \lambda'_i} = e^{\lambda'_i}
   \frac{\partial \mathcal{L}}{\partial \lambda_i}.
-\]
+\end{equation}
 This way, we restrict $\lambda_i$ to positive values while allowing $\lambda'_i$
 to range over $\mathbb{R}$.
 
 Finally, the parameters can be initialised as follows\footnote{In practice, it
   is often easier to start with a fixed $\mathbf{B} = \mathbf{I}_m$, as random
   values of $\mathbf{B}$ can often result in a near-singular $\bm\Sigma$.}:
-\begin{alignat*}{3}
-  \mu_i &\sim \mathcal{U}(0, 1) \quad &&\text{for } i = 1, \dots, m, \\
+%\begin{equation} \label{eq:initialisation}
+\begin{alignat}{3}
+  \mu_i &\sim \mathcal{U}(0, 1) \quad &&\text{for } i = 1, \dots, m, \label{eq:first_initialisation} \\
   \lambda_0 &\sim \chi^2_5, && \\
   \lambda_i &\sim \chi^2_1 \quad &&\text{for } i = 1, \dots, d, \\
   \diag(\mathbf{B}) &\sim \chi^2_4, && \\
-  \text{the rest of } \mathbf{B} &\sim \mathcal{N}(0, 1). &&
-\end{alignat*}
+  \text{the rest of } \mathbf{B} &\sim \mathcal{N}(0, 1). \label{eq:last_initialisation} &&
+\end{alignat}
+%\end{equation}
 The initialisation of $\bm\mu$ mirrors the initialisation of $\mathbf{r}$ in
 previous work by Levine et al. \cite{DBLP:conf/nips/LevinePK11}. In contrast,
 while they have constant initial values for $\bm\lambda$, we sample from
@@ -1374,31 +1377,74 @@ by Timoney \cite{lecture_notes}.
 
 Having proven that differentiation can be moved inside the integral allows us to
 use $\nabla\mathcal{L}$ for optimisation, knowing that our approach is sound.
-This allows us to implement a simple optimisation algorithm with a constant step
-size. The algorithm was implemented in MATLAB and is compatible with the
-toolkit\footnote{\url{https://graphics.stanford.edu/projects/gpirl/}} for
-evaluating IRL algorithms developed by Levine et al.
-\cite{DBLP:conf/nips/LevinePK11}. Note that due to the stochastic nature of the
-gradient, dynamic step size algorithms such as AdaGrad
-\cite{DBLP:journals/jmlr/DuchiHS11} and AdaDelta
-\cite{DBLP:journals/corr/abs-1212-5701} proved ineffective, as spikes in the
-gradient estimates would drive the step size down to zero. Similarly, although
-we check the $\ell_1$-norm of the difference between old and new parameter
-values in order to detect convergence, the algorithm usually only stops when the
-maximum number of iterations is exhausted.
-% TODO (must-y): An algorithm box / pseudo code outlining the algorithms (with
-% links to the many equations) so the reader can easily get an impression of the
-% (training) algorithm and the complexity.
+This allows us to implement a simple optimisation algorithm, the description of
+which is in the next section.
 
 \section{Experiments} \label{sec:evaluation}
 % showing deep understanding
 
-The main goal of this section is use experimental evidence in order to show that
-the implementation agrees with theory and to investigate its properties such as
+The main goal of this section is use experimental evidence to show that the
+implementation agrees with theory and to investigate its properties such as
 convergence and how the learned model changes with varying amounts and types of
-data. We begin with a three-state MDP where the agent can deterministically move
-from any state to any other state. More formally, we set $\mathcal{S} = \{ s_1,
-s_2, s_3 \}$, $\mathcal{A} = \{ a_1, a_2 \}$,
+data. We begin with an outline of the implementation in
+Algorithm~\ref{alg:optimisation}. The algorithm was implemented in MATLAB and is
+compatible with the
+toolkit\footnote{\url{https://graphics.stanford.edu/projects/gpirl/}} for
+evaluating IRL algorithms developed by Levine et al.
+\cite{DBLP:conf/nips/LevinePK11}. We decided to use a constant step size because
+the stochastic nature of the gradient makes dynamic step size algorithms such as
+AdaGrad \cite{DBLP:journals/jmlr/DuchiHS11} and AdaDelta
+\cite{DBLP:journals/corr/abs-1212-5701} ineffective, as spikes in the gradient
+estimates drive the step size down to zero. Similarly, although we check for
+convergence using the $\ell_\infty$ norm, the algorithm usually only stops when
+the maximum number of iterations is exhausted.
+
+\begin{algorithm}
+  \SetKwData{parameters}{parameters}
+  \SetKwData{stepSize}{stepSize}
+  \SetKwData{ttolerance}{tolerance}
+  \SetKwData{numIterations}{numIterations}
+  \SetKwFunction{estimatedPart}{estimatedPart}
+  \SetKwFunction{exactPart}{exactPart}
+  \SetKwFunction{pack}{pack}
+  \SetKwFunction{unpack}{unpack}
+  \SetKwFunction{valueIteration}{valueIteration}
+  \SetKwFunction{transformGradient}{transformGradient}
+  \SetKwProg{Function}{Function}{}{end}
+  \KwData{number of samples $S$, constant step size \stepSize, convergence
+    criteria \ttolerance and \numIterations}
+  \KwResult{optimised \parameters}
+  initialise \parameters as in Equations~\eqref{eq:first_initialisation}--\eqref{eq:last_initialisation}\;
+  \For{$i \gets 1$ \KwTo \numIterations}{
+    $\{ \mathbf{u}_s \}_{s=1}^S \sim \mathcal{N}(\parameters.\bm\mu, \parameters.\bm\Sigma)$\;
+    $\nabla\mathcal{L} \gets \exactPart{\parameters} + \frac{1}{S} \sum_{s=1}^S\estimatedPart{\parameters, $\mathbf{u}_s$}$\;
+    $\mathbf{v} \gets$ \pack{\parameters}\;
+    $\mathbf{v}' \gets \mathbf{v} + \stepSize \times \transformGradient{$\nabla\mathcal{L}$}$\;
+    $\parameters \gets \unpack{$\mathbf{v}'$}$\;
+    \lIf{$\lVert \mathbf{v}' - \mathbf{v} \rVert_\infty < \ttolerance$}{break}
+  }
+  \Function{\estimatedPart{\parameters, $\mathbf{u}$}}{
+    $\mathbf{r} \sim \mathcal{N}(\parameters.\mathbf{Su}, \parameters.\bm\Gamma)$\;
+    $\V \gets \valueIteration{$\mathbf{r}$}$\;
+    \Return{the estimated part of $\nabla\mathcal{L}$ according to $\mathbf{r}$,
+      $\V$, and \parameters\;}
+  }
+  \caption{The optimisation procedure. All parameters are kept in a single variable
+    \textsf{parameters}. Converting it to/from vector form and using $\log$,
+    $\exp$, and Equation~\eqref{eq:transformation} to handle the optimisation of
+    parameters restricted to positive values is handled by functions
+    \texttt{pack}, \texttt{unpack}, and \texttt{transformGradient}. Each
+    derivative from Appendix~\ref{appendix:derivatives} is split into parts
+    outside and inside $\mathbb{E}[\cdot]$ which are handled differently by
+    functions \texttt{exactPart} and \texttt{estimatedPart}. The function
+    \texttt{valueIteration} simply applies Equation~\eqref{eq:update_rule} until
+    convergence.}
+  \label{alg:optimisation}
+\end{algorithm}
+
+We will first focus on a simple three-state MDP where the agent can
+deterministically move from any state to any other state. More formally, we set
+$\mathcal{S} = \{s_1, s_2, s_3 \}$, $\mathcal{A} = \{ a_1, a_2 \}$,
 \begin{align*}
   &\mathcal{T}(s_1, a_1, s_2) = 1, \quad \mathcal{T}(s_1, a_2, s_3) = 1, \\
   &\mathcal{T}(s_2, a_1, s_1) = 1, \quad \mathcal{T}(s_1, a_2, s_3) = 1, \\
@@ -1411,9 +1457,9 @@ add a single feature $f : \mathcal{S} \to \mathbb{R}$ such that
   f(s_1) = 1, \quad f(s_2) = 2, \quad f(s_3) = 3,
 \]
 and create two demonstrations $\zeta_1 = \{ (s_1, a_1) \}$ and $\zeta_2 = \{
-(s_3, a_2) \}$ that correspond to moving from $s_1$ and from $s_3$ to $s_2$.
-Therefore, we would expect the reward of $s_2$ to be higher than the other two
-rewards in order to reflect this.
+(s_3, a_2) \}$ that correspond to moving from $s_1$ and $s_3$ to $s_2$. With
+this setup, we would expect the reward of $s_2$ to be higher than the other two
+rewards.
 
 \paragraph{Convergence}
 
@@ -1433,7 +1479,7 @@ keep increasing. Although they stay at around $0.75$ (and not 1), this may be
 optimal for the maximum causal entropy model (and this question will be
 addressed in more detail with a different experiment).
 
-\begin{figure}[!ht]
+\begin{figure}
   \centering
   \includegraphics[width=\columnwidth]{figures/convergence_new}
   \caption{Convergence of $\mathcal{L}$ (at the top) as well as several example
@@ -1579,7 +1625,7 @@ in lower covariances. The only other observation from this plot is that there
 are only two instances of negative covariance, and both of them are between
 states $s_2$ and $s_3$.
 
-\begin{figure}[!ht]
+\begin{figure}[!t]
   \centering
   \begin{tikzpicture}[
     /pgfplots/colormap/violet,
@@ -1661,7 +1707,8 @@ the action always points to $s_0$. We would expect at least variances of state
 rewards to be lower in the second scenario in order to reflect the more
 structured, certain behavioural pattern expressed by the demonstrations.
 
-\begin{figure}[!ht]
+% TODO: must shorten something by ~1 line
+\begin{figure}[!t]
   \centering
   \begin{tikzpicture}
     \foreach \i in {0,...,9}
@@ -1719,31 +1766,24 @@ covariances.
     covariances between pairs of rewards.}
   \label{fig:covariance_boxplots}
 \end{figure}
+% TODO: probably need to conclude the experiments
 
 \section{Conclusions and Further Work} \label{sec:conclusions}
-% TODO: write
 % Show how we achieved our claimed contributions
 
-\begin{itemize}
-\item Why my theoretical contributions are important...
-\item Reasonable results with policy convergence.
-\item Shown how to eliminate the deterministic training conditional
-  assumption---a common weakness of previous approaches.
-\item Being able to model rewards using full probability distributions without
-  limiting assumptions opens up many new research directions.
-\item Determining how reward covariance depends on data would be the next step.
-\end{itemize}
+In this paper, we showed how VI can be used to solve the IRL problem. We
+proved the validity of our approach, establishing subsidiary results such as new
+bounds for the linearly solvable MDP model along the way. The implementation of
+the model was well-behaved and showed that covariance can indeed be used to
+recognise a well-learned model from a model which is less sure about what
+policies are optimal.
 
 % FURTHER WORK
-
-An interesting extension to our work would be to consider IRL in the context
-of a reinforcement learning (RL) agent. Suppose we have an agent whose purpose
-is to learn optimal behaviour from observing other agents using IRL. It could
-then take reward variance estimates into account when choosing what states to
-visit next. It would have to handle the balance between exploration and
-exploitation similarly to many RL agents, but the information about rewards
-would come from observing (presumably near-optimal) behaviour exhibited by other
-agents rather than directly from the environment.
+Building on the that, an interesting question for MDP (or, perhaps, dynamical
+systems) research would be: how much does a reward have to change in order to
+affect the deterministic policy? A simple answer to this question would allow us
+to use variance estimates in order to quantify the model's confidence regarding
+optimal behaviour.
 
 It is also worth noting that the approach presented in this paper requires solving
 $S$ MDPs for every iteration of optimisation (where $S$ is the
@@ -1751,12 +1791,14 @@ number of samples drawn from $\approximation$). The running time could be
 significantly improved by reusing the solutions of previous MDPs to initialise
 the new (unsolved) MDP in order to hasten the convergence of value iteration.
 
-Finally, building on the idea that variance estimates can be used to judge
-whether the model has learned optimal policy, an interesting question for
-MDP (or, perhaps, dynamical systems) research would be: how much does a reward
-have to change in order to affect the deterministic policy? A simple answer to
-this question would allow us to use variance estimates in order to quantify the
-model's confidence regarding optimal behaviour.
+Finally, an interesting extension to our work would be to consider IRL in the
+context of a reinforcement learning (RL) agent. Suppose we have an agent whose
+purpose is to learn optimal behaviour from observing other agents using IRL. It
+could then take reward variance estimates into account when choosing what states
+to visit next. It would have to handle the balance between exploration and
+exploitation similarly to many RL agents, but the information about rewards
+would come from observing (presumably near-optimal) behaviour exhibited by other
+agents rather than directly from the environment.
 
 %\vskip8pt \noindent
 %{\bf Acknowledgments.}
@@ -1827,7 +1869,7 @@ model's confidence regarding optimal behaviour.
   \end{enumerate}
 \end{proof}
 
-\section{Derivatives of the ELBO}
+\section{Derivatives of the ELBO} \label{appendix:derivatives}
 
 \subsection{\texorpdfstring{$\partial/\partial\bm\mu$}{Derivative w.r.t. mu}}
 
