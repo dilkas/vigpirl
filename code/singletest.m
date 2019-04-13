@@ -18,14 +18,14 @@ addpaths;
 %   'training_samples',64,'verbosity',1));
 
 % VIGPIRL
-test_result = runtest('vigpirl',struct(),'linearmdp',...
-    'gridworld',struct('n',8,'determinism',1,'seed',1,'continuous',0),...
-    struct('training_sample_lengths',32,'training_samples',16,'verbosity',2));
+%test_result = runtest('vigpirl',struct(),'linearmdp',...
+%    'gridworld',struct('n',8,'determinism',1,'seed',1,'continuous',0),...
+%    struct('training_sample_lengths',32,'training_samples',16,'verbosity',2));
 
 % Visualize solution.
-printresult(test_result);
-visualize(test_result);
-return;
+%printresult(test_result);
+%visualize(test_result);
+%return;
 
 % Two states
 %mdp_data = struct('sa_s', [2; 1], 'sa_p', [1; 1], 'discount', 0, 'states', 2, 'actions', 1);
@@ -33,14 +33,16 @@ return;
 %example_samples = {[1, 1]};
 
 % Three states
-%mdp_data = struct('discount', 0.9, 'states', 3, 'actions', 2);
-%mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
-%mdp_data.sa_p(1:3, 1:2, 1) = 1;
-%feature_data = struct('splittable', [1; 2; 3]);
-%example_samples = {[1, 1], [3, 2]};
+mdp_data = struct('discount', 0.9, 'states', 3, 'actions', 2);
+mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
+mdp_data.sa_p(1:3, 1:2, 1) = 1;
+feature_data = struct('splittable', [1; 2; 3]);
+example_samples = {[1, 1], [3, 2]};
 %wrapper(mdp_data, feature_data, example_samples);
-%vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, example_samples);
-%return;
+vigpirlrun(struct(), mdp_data, 'linearmdp', feature_data, example_samples);
+%model = Vigpirl(struct(), mdp_data, 'linearmdp', feature_data, example_samples);
+%model.elbo_and_derivative_plot();
+return;
 
 % Fancy stuff 1
 %max_demonstrations_count = 3;
