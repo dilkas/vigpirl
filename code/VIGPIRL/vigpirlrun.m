@@ -1,16 +1,13 @@
 % GP-based non-linear IRL algorithm with variational inference
-function irl_result = vigpirlrun(algorithm_params, mdp_data, mdp_model,...
+function irl_result = vigpirlrun(algorithm_params, mdp_data, ~,...
                                  feature_data, demonstrations, ~, ~)
   % algorithm_params - parameters of the GP IRL algorithm.
   % mdp_data - definition of the MDP to be solved.
   % demonstrations - cell array containing examples.
   % irl_result - result of IRL algorithm (see bottom of file).
 
-  model = Vigpirl(algorithm_params, mdp_data, mdp_model, feature_data, demonstrations);
+  model = Vigpirl(Mdp(mdp_data, feature_data, demonstrations), algorithm_params);
   [model, time] = model.run();
-  model.convergence_plot();
-  model.policy_convergence_plot();
-  model.parameter_convergence_plot();
 
   matrices = vigpirlkernel(model.gp);
   r = matrices.Kru' * inv(matrices.Kuu) * model.gp.mu;

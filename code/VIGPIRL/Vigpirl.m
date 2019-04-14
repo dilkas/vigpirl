@@ -14,24 +14,23 @@ classdef Vigpirl
         policy_history = [];
     end
     methods
-        function obj = Vigpirl(algorithm_params, mdp_data, mdp_model,...
-            feature_data, demonstrations)
+        function obj = Vigpirl(mdp, algorithm_params)
             % Fill in default parameters
             obj.algorithm_params = vigpirldefaultparams(algorithm_params);
             % Get state-action counts and initial state distributions
-            [mu_sa, obj.counts] = vigpirlgetstatistics(demonstrations, mdp_data);
+            [mu_sa, obj.counts] = vigpirlgetstatistics(mdp.demonstrations, mdp.mdp_data);
             % Create initial GP
-            obj.gp = vigpirlinit(obj.algorithm_params, feature_data);
+            obj.gp = vigpirlinit(obj.algorithm_params, mdp.feature_data);
 
             % Choose inducing points.
             %obj.gp = vigpirlgetinducingpoints(obj.gp, mu_sa, obj.algorithm_params);
             obj.gp.X_u = obj.gp.X;
 
-            obj.d = size(feature_data.splittable, 2);
+            obj.d = size(mdp.feature_data.splittable, 2);
             obj.m = size(obj.gp.X_u, 1);
             obj.gp.mu = rand(1, obj.m)';
-            obj.mdp_data = mdp_data;
-            obj.demonstrations = demonstrations;
+            obj.mdp_data = mdp.mdp_data;
+            obj.demonstrations = mdp.demonstrations;
 
             % B is a lower triangular matrix with positive diagonal entries
             if obj.algorithm_params.random_initial_B

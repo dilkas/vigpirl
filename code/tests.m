@@ -1,4 +1,5 @@
 function tests = tests
+  addpaths;
   tests = functiontests(localfunctions);
 end
 
@@ -25,7 +26,6 @@ function test_full_gradient(testCase)
   matrices.Krr_grad(:, :, 1) = [-5 0 -2; 1 1 -5; -3 -3 5];
   matrices.Krr_grad(:, :, 2) = [-3 -5 1; 2 -1 2; -5 3 -4];
 
-  addpaths;
   S = [-2 5 -4; -5 3 -1; -2 4 -5];
   r = S * u';
   mdp_solution = linearmdpsolve(mdp_data, r);
@@ -53,7 +53,7 @@ function test_full_gradient(testCase)
 end
 
 function test_hyperparameter_packing(testCase)
-  gp = struct('rbf_var', 0, 'inv_widths', [1 2],...
+  gp = struct('lambda0', 0, 'lambda', [1 2],...
     'B', [3 0 0; 4 5 0; 6 7 8], 'mu', [-1; -2; -3]);
   verifyEqual(testCase, vigpirlunpackparam(gp, vigpirlpackparam(gp)), gp, 'AbsTol', 1e-10);
 end
