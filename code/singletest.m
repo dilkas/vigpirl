@@ -32,6 +32,7 @@ mdp = ThreeStateMdp();
 %mdp.covariances_with_more_data();
 
 model = Vigpirl(mdp, struct());
-model.elbo_and_derivative_plot();
+model.run();
+%model.elbo_and_derivative_plot();
 
 %clique_experiment();

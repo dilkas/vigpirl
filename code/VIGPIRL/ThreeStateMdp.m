@@ -50,7 +50,7 @@ classdef ThreeStateMdp < Mdp
                     temp_data2 = [];
                     for i = 1:num_repeats
                         result = run_until_works(obj);
-                        [covariance, Gamma] = covariance_matrix(result);
+                        [covariance, Gamma] = construct_covariance_matrices(result);
                         % The format is: first column top to bottom, then second, etc.
                         temp_data1 = [temp_data1; reshape(covariance, [1, 9])];
                         temp_data2 = [temp_data2; reshape(Gamma, [1, 9])];

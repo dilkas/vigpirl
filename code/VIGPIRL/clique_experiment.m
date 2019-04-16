@@ -16,8 +16,8 @@ function clique_experiment()
         [random_demonstrations, targeted_demonstrations] = generate_demonstrations(num_demonstrations, n)
         random_result = run_until_works(Mdp(mdp_data, feature_data, random_demonstrations));
         targeted_result = run_until_works(Mdp(mdp_data, feature_data, targeted_demonstrations));
-        random_covariance = covariance_matrix(random_result);
-        targeted_covariance = covariance_matrix(targeted_result);
+        random_covariance = construct_covariance_matrices(random_result);
+        targeted_covariance = construct_covariance_matrices(targeted_result);
         [values, groups] = meaningful_classes(abs(random_covariance) - abs(targeted_covariance));
         total_values = [total_values, values];
         total_groups = [total_groups, groups];

@@ -50,3 +50,20 @@ function matrices = vigpirlkernel(gp, Xstar)
   matrices = struct('Kuu', K_uu, 'Kru', K_uf, 'Krr', K_ff, 'Kuu_grad',...
     K_uu_grad, 'Kru_grad', K_uf_grad, 'Krr_grad', K_ff_grad);
 end
+
+function [nmat, nmat2, nconst] = construct_noise_matrix(n, noise, lambda)
+  nconst = exp(-0.5 * noise * sum(lambda));
+  nconst2 = -0.5 * noise;
+  nmat = nconst * ones(n) + (1 - nconst) * eye(n);
+  nmat2 = nconst2 * ones(n) - nconst2 * eye(n);
+end
+
+function deriv = d_covariance_matrix_d_lambda_i(K, X, Y, nmat2, i)
+  xi = X(:, i);
+  xi_sq = xi .^ 2;
+  yi = Y(:, i);
+  yi_sq = yi .^ 2;
+  inner = repmat(yi_sq', size(X, 1), 1) + repmat(xi_sq, 1, size(Y, 1))...
+          - 2 * xi * yi';
+  deriv = K .* (-0.5 * inner + nmat2);
+end
