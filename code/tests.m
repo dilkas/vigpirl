@@ -3,7 +3,7 @@ function tests = tests
   tests = functiontests(localfunctions);
 end
 
-function test_full_gradient(testCase)
+function test_gradient(testCase)
   function c = k(x, y)
     c = rbf * exp(-0.5 * 2 * (x - y)^2);
   end
@@ -31,10 +31,10 @@ function test_full_gradient(testCase)
   mdp_solution = linearmdpsolve(mdp_data, r);
   v = counts' * mdp_solution.v;
 
-  [~, full_gradient_answer] = full_gradient(mdp_data, demonstrations, counts, gp, u, matrices, true);
+  [~, compute_gradient_answer] = compute_gradient(mdp_data, demonstrations, counts, gp, u, matrices, true);
 
   lambda0_derivative = 116 + 0.5 * (417 * v - 25);
-  verifyEqual(testCase, full_gradient_answer(1), lambda0_derivative);
+  verifyEqual(testCase, compute_gradient_answer(1), lambda0_derivative);
 
   B11_derivative = -8 * v;
   B22_derivative = -24 * v;
@@ -43,13 +43,13 @@ function test_full_gradient(testCase)
   B31_derivative = 0;
   B32_derivative = 0;
 
-  verifyEqual(testCase, full_gradient_answer(3), B11_derivative);
-  verifyEqual(testCase, full_gradient_answer(4), B22_derivative);
-  verifyEqual(testCase, full_gradient_answer(5), B33_derivative);
+  verifyEqual(testCase, compute_gradient_answer(3), B11_derivative);
+  verifyEqual(testCase, compute_gradient_answer(4), B22_derivative);
+  verifyEqual(testCase, compute_gradient_answer(5), B33_derivative);
 
-  verifyEqual(testCase, full_gradient_answer(9), B21_derivative);
-  verifyEqual(testCase, full_gradient_answer(10), B31_derivative);
-  verifyEqual(testCase, full_gradient_answer(11), B32_derivative);
+  verifyEqual(testCase, compute_gradient_answer(9), B21_derivative);
+  verifyEqual(testCase, compute_gradient_answer(10), B31_derivative);
+  verifyEqual(testCase, compute_gradient_answer(11), B32_derivative);
 end
 
 function test_hyperparameter_packing(testCase)

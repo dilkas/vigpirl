@@ -28,11 +28,23 @@ addpaths;
 %return;
 
 mdp = ThreeStateMdp();
+
+% One run, many plots
+%model = Vigpirl(mdp, struct());
+%model = model.run();
+%model.convergence_plots();
+%model.elbo_and_policy_convergence_plots();
+%model.parameter_convergence_plot();
+
+% Plots that run their own experiments
+%model = Vigpirl(mdp, struct());
+%model.elbo_contour_plot();
+%model.policy_contour_plot();
+%model.elbo_vs_gamma_plot();
+%model.elbo_and_derivative_plot();
+
+% Fancy experiments specific to the three-state MDP
 %mdp.covariance_and_policy_with_more_data();
 %mdp.covariances_with_more_data();
-
-model = Vigpirl(mdp, struct());
-model.run();
-%model.elbo_and_derivative_plot();
 
 %clique_experiment();

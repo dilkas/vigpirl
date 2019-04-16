@@ -1,15 +1,17 @@
+% A simple deterministic three-state MDP used for experiments
 classdef ThreeStateMdp < Mdp
     methods
         function obj = ThreeStateMdp()
             mdp_data = struct('discount', 0.9, 'states', 3, 'actions', 2);
             mdp_data.sa_s(:, :, 1) = [2, 3; 1, 3; 1, 2];
             mdp_data.sa_p(1:3, 1:2, 1) = 1;
-            obj = obj@Mdp(mdp_data, struct('splittable', [1; 2; 3]), {[1, 1], [3, 2]})
+            obj = obj@Mdp(mdp_data, struct('splittable', [1; 2; 3]),...
+                {[1, 1], [3, 2]})
         end
 
+        % Collect data about how Sigma and policies change with more copies of
+        % the same demonstrations
         function covariance_and_policy_with_more_data(obj)
-            % Collect data about how Sigma and policies change with more and
-            % more (of the same) demonstrations
             max_demonstrations_count = 2;
             num_repeats = 2;
             data = [];
@@ -22,8 +24,11 @@ classdef ThreeStateMdp < Mdp
                     temp_data1 = [];
                     for i = 1:num_repeats
                         result = run_until_works(obj);
-                        % The format is: first column top to bottom, then second, etc.
-                        temp_data1 = [temp_data1; reshape(result.gp.B * result.gp.B', [1, 9]), reshape(result.p, [1, 6])];
+                        % The format is: first column top to bottom,
+                        % then second, etc.
+                        temp_data1 = [temp_data1;...
+                            reshape(result.gp.B * result.gp.B', [1, 9]),...
+                            reshape(result.p, [1, 6])];
                     end
                     data = [data; [x, y, mean(temp_data1, 1)]];
                 end
@@ -32,8 +37,8 @@ classdef ThreeStateMdp < Mdp
             writematrix(data, 'covariance_and_policy.csv');
         end
 
+        % Different kinds of covariances and their means/medians
         function covariances_with_more_data(obj)
-            % Different kinds of covariances and their means/medians
             max_demonstrations_count = 2;
             num_repeats = 2;
             data = [];

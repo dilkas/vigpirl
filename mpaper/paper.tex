@@ -1237,12 +1237,10 @@ establish upper and lower bounds on said function.
         -\frac{\xi_1}{\sigma_1} \right) \right),
   \]
   where $\xi_i = \left[\mathbf{Su}\right]_i$, $\sigma_i =
-  \sqrt{\bm\Gamma_{i,i}}$\footnote{The expression
-    under the square root sign is non-negative because $\bm\Gamma$ is a
-    covariance matrix of a Gaussian distribution, hence also positive
-    semi-definite, which means that its diagonal entries are non-negative.}, and
-  $\Phi$ is the cumulative distribution function of the standard Gaussian.
-  Furthermore,
+  \sqrt{\Gamma_{i,i}}$\footnote{The diagonal of $\bm\Gamma$ is non-negative
+    because $\bm\Gamma$ is a covariance matrix of a Gaussian distribution, hence
+    also positive semi-definite.}, and $\Phi$ is the cumulative distribution
+  function of the standard Gaussian. Furthermore,
   \[
     \mathbb{E}[|r_i|] \le \sigma_i\sqrt{\frac{2}{\pi}} + |\xi_i|,
   \]
