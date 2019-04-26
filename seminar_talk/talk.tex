@@ -13,11 +13,6 @@
 \usepackage{xcolor}
 \usetikzlibrary{shapes,bayesnet,arrows.meta,arrows,calc,pgfplots.colormaps}
 
-% TODO: Avoid saying that epsilon is arbitrary and using phrases like 'sufficiently
-% small', i.e., update theorems, make sure they match the paper
-% TODO: could add the example (figure and notation)
-% TODO: could add the algorithm (maybe should?)
-
 \definecolor{myblue}{HTML}{0000FF}
 \definecolor{myred}{HTML}{FF0000}
 \definecolor{mybrown}{HTML}{734C26}
@@ -112,11 +107,11 @@
     \begin{itemize}
     \item states $\mathcal{S}$
     \item actions $\mathcal{A}$
-    \item transition function $\mathcal{T} : \mathcal{S} \times \mathcal{A}
+    \item transition function $\mathcal{T} \colon \mathcal{S} \times \mathcal{A}
       \times \mathcal{S} \to [0, 1]$
     \item discount factor $\gamma \in [0, 1)$
     \item reward function/vector $\mathbf{r} \in \mathbb{R}^{|\mathcal{S}|}$ (or
-      $r : \mathcal{S} \to \mathbb{R}$)
+      $r \colon \mathcal{S} \to \mathbb{R}$)
     \end{itemize}
   \end{definition}
   \pause
@@ -131,7 +126,6 @@
     find $\mathbf{r}$.
   \end{definition}
 \end{frame}
-% TODO: add motivation for IRL from the Turing talk
 
 \begin{frame}{Other Applications}
   \begin{columns}
@@ -172,7 +166,7 @@
   \item Variational approximation of the posterior distribution
   \item Theoretical results: how can we compute the gradient?
   \item Empirical results: does it work?
-  \item Further work: what comes next?
+  \item Conclusions: what have we achieved?
   \end{itemize}
   \end{block}
 \end{frame}
@@ -187,7 +181,7 @@
         \sum_{s' \in \mathcal{S}} \mathcal{T}(s, a, s')V_{\mathbf{r}}(s')
       \]
     \end{block}
-    \begin{block}{Maximum Causal Entropy MDP\textsuperscript{1}}
+    \begin{block}{Maximum Causal Entropy (Linearly Solvable) MDP\textsuperscript{1}}
       \[
         V_{\mathbf{r}}(s) \coloneqq \log \sum_{a \in \mathcal{A}} \exp \left(
           r(s) + \gamma\sum_{s' \in \mathcal{S}} \mathcal{T}(s, a,
@@ -205,7 +199,7 @@
   \begin{block}{Automatic Relevance Determination Kernel}
     For any two states $\mathbf{x}_i, \mathbf{x}_j \in \mathbb{R}^d$,
     \[
-      k_{\bm\lambda}(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
+      k(\mathbf{x}_i, \mathbf{x}_j) = \lambda_0\exp\left(
         -\frac{1}{2}(\mathbf{x}_i - \mathbf{x}_j)^\intercal\bm\Lambda(\mathbf{x}_i -
         \mathbf{x}_j) - \mathbbm{1}[i \ne j]\sigma^2\tr(\bm\Lambda) \right)
     \]
@@ -244,15 +238,16 @@
 
 \section{VI}
 
-\begin{frame}{Variational Approximation}
-  \begin{block}{Previous Work}
-    \begin{itemize}
-    \item Levine et al. (2011) assume that $\mathbf{r} =
-      \Kru^\intercal\Kuu^{-1}\mathbf{u}$ and maximise the likelihood
-    \item Jin et al. (2017) add more assumptions and use a deep GP model
-    \item Wulfmeier et al. (2015) use a neural network
-    \end{itemize}
-  \end{block}
+\begin{frame}{Variational Inference}
+  %\begin{block}{Previous Work}
+  %  \begin{itemize}
+  %  \item Levine et al. (2011) assume that $\mathbf{r} =
+  %    \Kru^\intercal\Kuu^{-1}\mathbf{u}$ and maximise the likelihood
+  %  \item Jin et al. (2017) add more assumptions and use a deep GP model
+  %  \item Wulfmeier et al. (2015) use a neural network
+  %  \end{itemize}
+  %\end{block}
+  The posterior distribution
   \[
     p(\mathbf{r}, \mathbf{u} \mid \mathcal{D}) = \frac{p(\mathcal{D} \mid
       \mathbf{r})p(\mathbf{r} \mid \mathbf{u})p(\mathbf{u})}{p(\mathcal{D})}
@@ -265,7 +260,7 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Variational Approximation}
+\begin{frame}{Variational Inference}
   \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -274,7 +269,7 @@
       \node[obs, right=of r] (D) {$\mathcal{D}$};
       \node[const, below=of r] (lambda) {$\bm\lambda$};
       \node[const, below=of u] (mu) {$\bm\mu$};
-      \node[const, left=of mu] (Sigma) {$\bm\Sigma = \mathbf{BB}^\intercal$};
+      \node[const, left=of mu] (Sigma) {$\bm\Sigma$};
       \edge {mu, Sigma} {u};
       \edge {lambda, u} {r};
       \edge {r} {D};
@@ -289,7 +284,7 @@
   Equivalently, \alert{maximise} the \emph{evidence lower bound}:
   \begin{align*}
     \mathcal{L} &= \mathbb{E}_{q(\mathbf{r}, \mathbf{u})}[\log p(\mathcal{D}, \mathbf{r}, \mathbf{u}) - \log q(\mathbf{r}, \mathbf{u})] \\
-                &= \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu - \alert{\mathbb{E}[v]} - \DKL{q(\mathbf{u})}{p(\mathbf{u})}
+                &= \mathbf{t}^\intercal\Kru^\intercal\Kuu^{-1}\bm\mu - \alert{\mathbb{E}_{q(\mathbf{r}, \mathbf{u})}[v]} - \DKL{q(\mathbf{u})}{p(\mathbf{u})}
   \end{align*}
   where
   \[
@@ -329,42 +324,72 @@
   \end{figure}
 \end{frame}
 
-\begin{frame}{Mathematical Preliminaries}
-  \begin{table}
-    \centering
-    \begin{tabular}{cc}
-      Vector norms & Matrix norms \\
-      {$\!\begin{aligned}
-          \lVert \mathbf{x} \rVert_1 &= \sum_i |x_i| \\
-          \lVert \mathbf{x} \rVert_\infty &= \max_i |x_i|
-        \end{aligned}$} & {$\!\begin{aligned}
-          \lVert \mathbf{A} \rVert_p &= \sup_{\mathbf{x} \ne \mathbf{0}} \frac{\lVert \mathbf{Ax} \rVert_p}{\lVert \mathbf{x} \rVert_p} \\
-          \lVert \mathbf{A} \rVert_\infty &= \max_i \sum_{j} |A_{i,j}|
-        \end{aligned}$}
-    \end{tabular}
-  \end{table}
-  \begin{lemma}[Perturbation Lemma]
-    Let $\lVert \cdot \rVert$ be any matrix norm, and let $\mathbf{A}$ and
-    $\mathbf{E}$ be matrices such that $\mathbf{A}$ is invertible and $\lVert
-    \mathbf{A}^{-1} \rVert \lVert \mathbf{E} \rVert < 1$, then $\mathbf{A} +
-    \mathbf{E}$ is invertible, and
+%\begin{frame}{Mathematical Preliminaries}
+%  \begin{table}
+%    \centering
+%    \begin{tabular}{cc}
+%      Vector norms & Matrix norms \\
+%      {$\!\begin{aligned}
+%          \lVert \mathbf{x} \rVert_1 &= \sum_i |x_i| \\
+%          \lVert \mathbf{x} \rVert_\infty &= \max_i |x_i|
+%        \end{aligned}$} & {$\!\begin{aligned}
+%          \lVert \mathbf{A} \rVert_p &= \sup_{\mathbf{x} \ne \mathbf{0}} \frac{\lVert \mathbf{Ax} \rVert_p}{\lVert \mathbf{x} \rVert_p} \\
+%          \lVert \mathbf{A} \rVert_\infty &= \max_i \sum_{j} |A_{i,j}|
+%        \end{aligned}$}
+%    \end{tabular}
+%  \end{table}
+%  \begin{lemma}[Perturbation Lemma]
+%    Let $\lVert \cdot \rVert$ be any matrix norm, and let $\mathbf{A}$ and
+%    $\mathbf{E}$ be matrices such that $\mathbf{A}$ is invertible and $\lVert
+%    \mathbf{A}^{-1} \rVert \lVert \mathbf{E} \rVert < 1$, then $\mathbf{A} +
+%    \mathbf{E}$ is invertible, and
+%    \[
+%      \lVert (\mathbf{A} + \mathbf{E})^{-1} \rVert \le \frac{\lVert
+%        \mathbf{A}^{-1} \rVert}{1 - \lVert \mathbf{A}^{-1} \rVert \lVert
+%        \mathbf{E} \rVert}.
+%    \]
+%  \end{lemma}
+%\end{frame}
+
+\begin{frame}{Main Theorem}
+  \begin{theorem}
+    Whenever the derivative exists,
     \[
-      \lVert (\mathbf{A} + \mathbf{E})^{-1} \rVert \le \frac{\lVert
-        \mathbf{A}^{-1} \rVert}{1 - \lVert \mathbf{A}^{-1} \rVert \lVert
-        \mathbf{E} \rVert}.
+      \dt\iint
+      V_{\mathbf{r}}(s)q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})\dx
+      = \iint
+      \dt[V_{\mathbf{r}}(s)q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})]\dx,
     \]
-  \end{lemma}
+    where $t$ is any element of $\bm\mu$, $\bm\Sigma$, or $\bm\lambda$.
+  \end{theorem}
 \end{frame}
 
-\begin{frame}{Theoretical Results}
-  Seeing $V$ as $V : \mathcal{S} \to \mathbb{R}^{|\mathcal{S}|} \to
+\begin{frame}{Dominated Convergence Theorem}
+  \begin{theorem}
+    Let $(X, \mathcal{M}, \mu)$ be a measure space and $\{ f_n \}$ a sequence of
+    \alert{measurable} functions on $X$ for which $\{ f_n \} \to f$ pointwise
+    almost everywhere on $X$, and the function $f$ is \alert{measurable}. Assume
+    there is a \alert{non-negative function $g$} that is \alert{integrable} over
+    $X$ and \alert{dominates} the sequence $\{ f_n \}$ on $X$ in the sense that
+    \[
+      |f_n| \le g \text{ almost everywhere on $X$ for all $n$.}
+    \]
+    Then $f$ is integrable over $X$ and
+    \[
+      \lim_{n \to \infty} \int_X f_n\,\mathrm{d}\mu = \int_X f\,\mathrm{d}\mu.
+    \]
+  \end{theorem}
+\end{frame}
+
+\begin{frame}{Other Results}
+  Seeing $V$ as $V \colon \mathcal{S} \to \mathbb{R}^{|\mathcal{S}|} \to
   \mathbb{R}$... \\~\\
 
-  \begin{proposition}
-    MDP value functions $V(s) : \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$ (for
-    $s \in \mathcal{S}$) are Lebesgue measurable.
+  \begin{proposition}[Measurability]
+    MDP value functions $V(s) \colon \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}$
+    (for $s \in \mathcal{S}$) are Lebesgue measurable.
   \end{proposition}
-  \begin{proposition}
+  \begin{proposition}[Boundedness]
     If the initial values of the MDP value function satisfy the following
     bound, then the bound remains satisfied throughout value iteration:
     \[
@@ -373,76 +398,63 @@
   \end{proposition}
 \end{frame}
 
-\begin{frame}{Theoretical Results}
-  \begin{theorem} \label{thm:main}
-    Whenever the derivative exists,
-    \[
-      \dt\iint
-      V_{\mathbf{r}}(s)q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})\dx
-      = \iint
-      \dt[V_{\mathbf{r}}(s)q(\mathbf{r} \mid \mathbf{u})q(\mathbf{u})]\dx,
-    \]
-    where $t$ is any scalar part of $\bm\mu$, $\bm\Sigma$, or $\bm\lambda$.
-  \end{theorem}
-\end{frame}
+%\begin{frame}{A Note on Polynomials}
+%  \begin{definition}
+%    Let $\mathbb{R}_d[\mathbf{x}]$ denote the vector space of polynomials with
+%    degree at most $d$, where variables are elements of $\mathbf{x}$, and
+%    coefficients are in $\mathbb{R}$.
+%  \end{definition}
+%  \begin{example}
+%    \begin{align*}
+%      2x_1^2 + \pi x_2 &\in \mathbb{R}_2[\mathbf{x}] \\
+%      x_1x_2 &\in \mathbb{R}_2[\mathbf{x}] \\
+%      -3x_1 + 1 &\in \mathbb{R}_2[\mathbf{x}] \\
+%      0 &\in \mathbb{R}_2[\mathbf{x}]
+%    \end{align*}
+%  \end{example}
+%\end{frame}
 
-\begin{frame}{A Note on Polynomials}
-  \begin{definition}
-    Let $\mathbb{R}_d[\mathbf{x}]$ denote the vector space of polynomials with
-    degree at most $d$, where variables are elements of $\mathbf{x}$, and
-    coefficients are in $\mathbb{R}$.
-  \end{definition}
-  \begin{example}
-    \begin{align*}
-      2x_1^2 + \pi x_2 &\in \mathbb{R}_2[\mathbf{x}] \\
-      x_1x_2 &\in \mathbb{R}_2[\mathbf{x}] \\
-      -3x_1 + 1 &\in \mathbb{R}_2[\mathbf{x}] \\
-      0 &\in \mathbb{R}_2[\mathbf{x}]
-    \end{align*}
-  \end{example}
-\end{frame}
+%\begin{frame}{Helpful Lemmas}
+%  \begin{lemma}
+%    \[
+%      \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r} \mid
+%      \mathbf{u})\,d\mathbf{r} \le a + \lVert \Kru^\intercal \Kuu^{-1}
+%      \mathbf{u} \rVert_1,
+%    \]
+%    where $a$ is a constant independent of $\mathbf{u}$.
+%  \end{lemma}
+%  \begin{lemma}
+%    Let $i \in \{ 0, \dots, d \}$ be arbitrary, and let $c \colon
+%    \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\lambda_i - \epsilon,
+%    \lambda_i + \epsilon) \subset \mathbb{R}$ be a function with a codomain
+%    arbitrarily close to $\lambda_i$. Then
+%    \[
+%      \left. \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i}
+%      \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
+%    \]
+%    has upper and lower bounds of the form $q(\mathbf{r} \mid
+%    \mathbf{u})d(\mathbf{u})$, where $d(\mathbf{u}) \in
+%    \mathbb{R}_2[\mathbf{u}]$.
+%  \end{lemma}
+%\end{frame}
 
-\begin{frame}{Helpful Lemmas}
+%\begin{frame}{Helpful Lemmas}
+%  \begin{lemma}
+%    Let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (a, b) \subset
+%    \mathbb{R}$ be an arbitrary bounded function. Then, for $i = 1, \dots, m$,
+%    every element of
+%    \[
+%      \left. \frac{\partial q(\mathbf{u})}{\partial \bm\mu} \right|_{\mu_i =
+%        c(\mathbf{r}, \mathbf{u})}
+%    \]
+%    has upper and lower bounds of the form $q(\mathbf{u})d(\mathbf{u})$,
+%    where $d(\mathbf{u}) \in \mathbb{R}_1[\mathbf{u}]$.
+%  \end{lemma}
+%\end{frame}
+
+\begin{frame}{Other Results}
   \begin{lemma}
-    \[
-      \int \lVert \mathbf{r} \rVert_\infty q(\mathbf{r} \mid
-      \mathbf{u})\,d\mathbf{r} \le a + \lVert \Kru^\intercal \Kuu^{-1}
-      \mathbf{u} \rVert_1,
-    \]
-    where $a$ is a constant independent of $\mathbf{u}$.
-  \end{lemma}
-  \begin{lemma}
-    Let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (a, b) \subset
-    \mathbb{R}$ be an arbitrary bounded function. Then, for $i = 0,
-    \dots, d$,
-    \[
-      \left. \frac{\partial q(\mathbf{r} \mid \mathbf{u})}{\partial \lambda_i}
-      \right|_{\lambda_i = c(\mathbf{r}, \mathbf{u})}
-    \]
-    has upper and lower bounds of the form $q(\mathbf{r} \mid
-    \mathbf{u})d(\mathbf{u})$, where $d(\mathbf{u}) \in
-    \mathbb{R}_2[\mathbf{u}]$.
-  \end{lemma}
-\end{frame}
-
-\begin{frame}{Helpful Lemmas}
-  \begin{lemma}
-    Let $c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (a, b) \subset
-    \mathbb{R}$ be an arbitrary bounded function. Then, for $i = 1, \dots, m$,
-    every element of
-    \[
-      \left. \frac{\partial q(\mathbf{u})}{\partial \bm\mu} \right|_{\mu_i =
-        c(\mathbf{r}, \mathbf{u})}
-    \]
-    has upper and lower bounds of the form $q(\mathbf{u})d(\mathbf{u})$,
-    where $d(\mathbf{u}) \in \mathbb{R}_1[\mathbf{u}]$.
-  \end{lemma}
-\end{frame}
-
-\begin{frame}{Helpful Lemmas}
-  \begin{lemma} \label{lemma:bound3}
-    Let $i, j = 1, \dots, m$, and let $\epsilon > 0$ be arbitrary. Furthermore,
-    let
+    Let $i, j = 1, \dots, m$, and let
     \[
       c : \mathbb{R}^{|\mathcal{S}|} \times \mathbb{R}^m \to (\Sigma_{i,j} - \epsilon,
       \Sigma_{i,j} + \epsilon) \subset \mathbb{R}
@@ -459,7 +471,15 @@
 \end{frame}
 
 \section{Experiments}
-% TODO: fix the wording of epsilon in the theorems
+
+\begin{frame}{Experiments}
+  \includegraphics[width=\textwidth]{images/experiments.jpg}
+  \begin{spacing}{0.5}
+    {\tiny\color{gray}Source:
+      \url{https://www.flickr.com/photos/nationaleyeinstitute/9955408003/},
+      Creative Commons Attribution 2.0 Generic license}
+  \end{spacing}
+\end{frame}
 
 \begin{frame}{Experimental Scenario}
   \begin{figure}
@@ -497,63 +517,60 @@
   \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{Parameter Convergence}
-  \includegraphics[width=\textwidth]{../mpaper/figures/parameter_convergence_new}
-\end{frame}
+%\begin{frame}{Parameter Convergence}
+%  \includegraphics[width=\textwidth]{../mpaper/figures/parameter_convergence_new}
+%\end{frame}
 
-\begin{frame}{Policy}
-  \begin{tikzpicture}
-    \csvreader[
-    no head,
-    column count=11
-    ]{../mpaper/data/covariance_and_policy_transformed.csv}{1=\x, 2=\y, 3=\Soneone, 4=\Stwotwo, 5=\Sthreethree, 6=\Stwoone, 7=\Sthreeone, 8=\Sthreetwo, 9=\ponetwo, 10=\ptwoone, 11=\pthreetwo}{%
-      \begin{axis}[
-        ybar=0,
-        symbolic x coords={a,b,c},
-        ticks=none,
-        ymax=1,
-        ymin=0,
-        x=20,
-        bar width=20,
-        enlarge x limits=0.25,
-        at={(350*\x, 110*\y)},
-        height=100,
-        bar shift=0pt,
-        legend style={
-          legend columns=-1,
-          at={(1.7,-0.4)}
-        }
-        ]
-        \addplot coordinates {(a, \ponetwo)};
-        \addplot coordinates {(b, \ptwoone)};
-        \addplot coordinates {(c, \pthreetwo)};
-        \draw[dashed] (-50,50) -- (270,50);
-        % \ifthenelse{\x=2 \AND \y=1}{
-        % \legend{$\pione$,$\pitwo$,$\pithree$};
-        % }{}
-      \end{axis}
-    }
-    \draw [<->] (2.3, 8.5) node (yaxis) [above] {$\zeta_2$}
-    |- (10, 2) node (xaxis) [right] {$\zeta_1$};
-    \foreach \x in {1, 2, 3} {
-      \node (x\x) at (1+2.5*\x, 1.7) {$\x$};
-    }
-    \foreach \y in {1, 2, 3} {
-      \node (y\y) at (2.1, 1+2.1*\y) {$\y$};
-    }
-    \begin{scope}[yshift=5cm,xshift=10.5cm]
-      \node[draw,circle] (s1) at (0, 0) {$s_1$};
-      \node[draw,circle] (s2) at (1, 2) {$s_2$};
-      \node[draw,circle] (s3) at (2, 0) {$s_3$};
-      \draw[dashed] (s1) to (s2);
-      \draw[dashed] (s1) to (s3);
-      \draw[dashed] (s2) to (s3);
-      \draw[->,myblue,bend left] (s1) to (s2);
-      \draw[->,myred,bend left] (s2) to (s1);
-      \draw[->,mybrown,bend right] (s3) to (s2);
-    \end{scope}
-  \end{tikzpicture}
-\end{frame}
+%\begin{frame}{Policy}
+%  \begin{tikzpicture}
+%    \csvreader[
+%    no head,
+%    column count=11
+%    ]{../mpaper/data/covariance_and_policy_transformed.csv}{1=\x, 2=\y, 3=\Soneone, 4=\Stwotwo, 5=\Sthreethree, 6=\Stwoone, 7=\Sthreeone, 8=\Sthreetwo, 9=\ponetwo, 10=\ptwoone, 11=\pthreetwo}{%
+%      \begin{axis}[
+%        ybar=0,
+%        symbolic x coords={a,b,c},
+%        ticks=none,
+%        ymax=1,
+%        ymin=0,
+%        x=20,
+%        bar width=20,
+%        enlarge x limits=0.25,
+%        at={(350*\x, 110*\y)},
+%        height=100,
+%        bar shift=0pt,
+%        legend style={
+%          legend columns=-1,
+%          at={(1.7,-0.4)}
+%        }
+%        ]
+%        \addplot coordinates {(a, \ponetwo)};
+%        \addplot coordinates {(b, \ptwoone)};
+%        \addplot coordinates {(c, \pthreetwo)};
+%        \draw[dashed] (-50,50) -- (270,50);
+%      \end{axis}
+%    }
+%    \draw [<->] (2.3, 8.5) node (yaxis) [above] {$\zeta_2$}
+%    |- (10, 2) node (xaxis) [right] {$\zeta_1$};
+%    \foreach \x in {1, 2, 3} {
+%      \node (x\x) at (1+2.5*\x, 1.7) {$\x$};
+%    }
+%    \foreach \y in {1, 2, 3} {
+%      \node (y\y) at (2.1, 1+2.1*\y) {$\y$};
+%    }
+%    \begin{scope}[yshift=5cm,xshift=10.5cm]
+%      \node[draw,circle] (s1) at (0, 0) {$s_1$};
+%      \node[draw,circle] (s2) at (1, 2) {$s_2$};
+%      \node[draw,circle] (s3) at (2, 0) {$s_3$};
+%      \draw[dashed] (s1) to (s2);
+%      \draw[dashed] (s1) to (s3);
+%      \draw[dashed] (s2) to (s3);
+%      \draw[->,myblue,bend left] (s1) to (s2);
+%      \draw[->,myred,bend left] (s2) to (s1);
+%      \draw[->,mybrown,bend right] (s3) to (s2);
+%    \end{scope}
+%  \end{tikzpicture}
+%\end{frame}
 
 \begin{frame}{Covariance: Attempt 1}
   \begin{figure}
@@ -663,49 +680,66 @@
 \end{figure}
 \end{frame}
 
-\section{Conclusion}
+\section{Conclusions}
 
-% TODO: slide for conclusions:
-% 1. we proved that we can
-% 2. we showed some other theoretical results
-% 3. we showed correctness (both actual predictions and covariances)
-% 4. we opened up many new research opportunities
-
-\begin{frame}{Further Work}
-  \begin{minipage}[t]{\textwidth}
-    \begin{columns}[t]
-      \begin{column}{0.9\textwidth}
-        \begin{itemize}
-        \item More flexible models using...
-          \begin{itemize}
-          \item normalizing flows\footfullcite{DBLP:conf/icml/RezendeM15}
-          \item spectral kernels\footfullcite{pmlr-v28-wilson13}
-          \end{itemize}
-        \item Faster GP inference and MDP solving
-        \item IRL in the context of reinforcement learning
-        \item Interplay between rewards and stochastic/deterministic policies
-        \end{itemize}
-        \vspace{1.5cm}
-      \end{column}
-      \begin{column}{0.1\textwidth}
-        \vspace{-1cm}
-        \begin{figure}
-          \centering
-          \includegraphics[scale=0.1]{images/flows-1.png}
-
-          \includegraphics[scale=0.1]{images/flows-2.png}
-
-          \includegraphics[scale=0.1]{images/flows-3.png}
-
-          \includegraphics[scale=0.1]{images/flows-4.png}
-        \end{figure}
-      \end{column}
-    \end{columns}
-    \pause
-    \begin{tikzpicture}[remember picture,overlay]
-      \node at (0.5\textwidth, 2.5) {\large\emph{Thank You!}};
-    \end{tikzpicture}
-  \end{minipage}
+\begin{frame}{Conclusions}
+  \begin{itemize}
+  \item VI can be applied to IRL without additional assumptions
+    \begin{itemize}
+    \item proof
+    \item other theoretical results
+    \item implementation
+    \end{itemize}
+  \item Covariances can be used to compare clear vs. noisy data
+    \begin{itemize}
+    \item but not the amount of data
+    \end{itemize}
+%  \item Detecting convergence is difficult
+%  \item Dynamic step sizes (e.g., AdaGrad and AdaDelta) fail
+%  \item Matrices often become singular
+  \end{itemize}
+  \pause
+  \vfill
+  \centering
+  \large
+  \emph{Thank You!}
 \end{frame}
+
+%\begin{frame}{Further Work}
+%  \begin{minipage}[t]{\textwidth}
+%    \begin{columns}[t]
+%      \begin{column}{0.9\textwidth}
+%        \begin{itemize}
+%        \item More flexible models using...
+%          \begin{itemize}
+%          \item normalizing flows\footfullcite{DBLP:conf/icml/RezendeM15}
+%          \item spectral kernels\footfullcite{pmlr-v28-wilson13}
+%          \end{itemize}
+%        \item Faster GP inference and MDP solving
+%        \item IRL in the context of reinforcement learning
+%        \item Interplay between rewards and stochastic/deterministic policies
+%        \end{itemize}
+%        \vspace{1.5cm}
+%      \end{column}
+%      \begin{column}{0.1\textwidth}
+%        \vspace{-1cm}
+%        \begin{figure}
+%          \centering
+%          \includegraphics[scale=0.1]{images/flows-1.png}
+%
+%          \includegraphics[scale=0.1]{images/flows-2.png}
+%
+%          \includegraphics[scale=0.1]{images/flows-3.png}
+%
+%          \includegraphics[scale=0.1]{images/flows-4.png}
+%        \end{figure}
+%      \end{column}
+%    \end{columns}
+%    \pause
+%    \begin{tikzpicture}[remember picture,overlay]
+%      \node at (0.5\textwidth, 2.5) {\large\emph{Thank You!}};
+%    \end{tikzpicture}
+%  \end{minipage}
+%\end{frame}
 
 \end{document}
